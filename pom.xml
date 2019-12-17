@@ -1,26 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!--
- * Copyright 2019 Blockchain Technology Partners
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- -->
+<!-- * Copyright 2019 Blockchain Technology Partners * * Licensed under the Apache License, Version 2.0 (the "License"); * you may not use this file except in compliance with the License. * You may obtain a copy of the License at * * http://www.apache.org/licenses/LICENSE-2.0 * * Unless required by applicable law or agreed to in writing, software * distributed under the License is distributed on an "AS IS" BASIS, * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. * See the License for the specific language governing permissions and * limitations under the License. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>daml-on-qldb</groupId>
   <artifactId>daml-on-qldb</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>DAML on QLDB</name>
-  <packaging>pom</packaging>
+  <packaging>jar</packaging>
   <description>Implementation of DAML SDK with a QLDB backend</description>
   <profiles>
     <profile>
@@ -88,11 +74,6 @@
   </properties>
   <dependencyManagement>
     <dependencies>
-      <dependency>
-        <groupId>software.amazon.qldb</groupId>
-        <artifactId>amazon-qldb-driver-java</artifactId>
-        <version>1.0.1</version>
-      </dependency>
       <!-- Unit testing -->
       <dependency>
         <groupId>junit</groupId>
@@ -182,6 +163,59 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+  <dependencies>
+    <!-- Logging -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-jdk14</artifactId>
+    </dependency>
+    <!-- AWS QLDB -->
+    <dependency>
+      <groupId>software.amazon.qldb</groupId>
+      <artifactId>amazon-qldb-driver-java</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk-qldb</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-ion</artifactId>
+    </dependency>
+    <!-- DAML Dependencies -->
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java-util</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.daml.ledger</groupId>
+      <artifactId>participant-state_${scala.lang.version}</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.digitalasset.ledger</groupId>
+      <artifactId>ledger-api-auth_${scala.lang.version}</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.digitalasset.platform</groupId>
+      <artifactId>sandbox_${scala.lang.version}</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.daml.ledger</groupId>
+      <artifactId>participant-state-kvutils_${scala.lang.version}</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.daml.ledger</groupId>
+      <artifactId>participant-state-index_${scala.lang.version}</artifactId>
+    </dependency>
+  </dependencies>
   <build>
     <extensions>
       <extension>
@@ -259,8 +293,7 @@
           <version>3.12.0</version>
           <configuration>
             <rulesets>
-              <!--               <ruleset>/rulesets/java/maven-pmd-plugin-default.xml</ruleset>
-              <ruleset>/category/java/bestpractices.xml</ruleset> -->
+              <!-- <ruleset>/rulesets/java/maven-pmd-plugin-default.xml</ruleset> <ruleset>/category/java/bestpractices.xml</ruleset> -->
               <ruleset>/category/java/security.xml</ruleset>
             </rulesets>
             <linkXref>false</linkXref>
@@ -377,6 +410,7 @@
       </plugins>
     </pluginManagement>
 
+
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -393,6 +427,19 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <addClasspath>true</addClasspath>
+              <classpathPrefix>lib/</classpathPrefix>
+              <mainClass>com.blockchaintp.daml.DamlLedger</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
       </plugin>
     </plugins>
   </build>
