@@ -68,7 +68,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <protobuf.version>3.8.0</protobuf.version>
     <sawtooth.sdk.version>v0.1.3</sawtooth.sdk.version>
-    <daml.sdk.version>100.13.37</daml.sdk.version>
+    <daml.sdk.version>100.13.40</daml.sdk.version>
     <daml.bindings.version>2.3.3</daml.bindings.version>
     <scala.lang.version>2.12</scala.lang.version>
   </properties>
@@ -214,6 +214,11 @@
     <dependency>
       <groupId>com.daml.ledger</groupId>
       <artifactId>participant-state-index_${scala.lang.version}</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.reactivex.rxjava2</groupId>
+      <artifactId>rxjava</artifactId>
+      <version>2.2.8</version>
     </dependency>
   </dependencies>
   <build>

@@ -1,10 +1,5 @@
 package com.blockchaintp.daml;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-
-import com.amazon.ion.IonValue;
 import com.amazonaws.services.qldb.AmazonQLDB;
 import com.amazonaws.services.qldb.AmazonQLDBClientBuilder;
 import com.amazonaws.services.qldb.model.CreateLedgerRequest;
@@ -19,7 +14,6 @@ import com.amazonaws.services.qldb.model.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import software.amazon.qldb.Result;
 import software.amazon.qldb.TransactionExecutor;
 
 public class QLDBServiceClient {
@@ -124,15 +118,4 @@ public class QLDBServiceClient {
     return;
   }
 
-  public <T> Result insertDocuments(final TransactionExecutor txn, final String tableName, final List<T> documents) {
-    LOG.info("Inserting documents into table with name {}", tableName);
-    try {
-      final String query = String.format("insert into %s ?", tableName);
-      final IonValue ionDocuments = Constants.MAPPER.writeValueAsIonValue(documents);
-      final List<IonValue> params = Collections.singletonList(ionDocuments);
-      return txn.execute(query, params);
-    } catch (IOException ioe) {
-      throw new IllegalStateException(ioe);
-    }
-  }
 }
