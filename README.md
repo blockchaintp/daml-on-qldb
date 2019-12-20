@@ -3,22 +3,23 @@
 ## Build
 
 ### Using the docker based toolchain
+
 The basic build uses docker to pull down its toolchain and compile.
+
 1. install Docker [https://docs.docker.com/install/]
 1. install docker-compose [https://docs.docker.com/compose/install/]
 
 1. Clone the repository.
 
-```$ git clone git@github.com:blockchaintp/daml-on-sawtooth.git```
+  ```$ git clone git@github.com:blockchaintp/daml-on-sawtooth.git```
 
 4. set export the build identifier environment variable.  This is used to distinguish different variations of builds on the same machine.
 
-```$ export ISOLATION_ID=my-local-build```
+  ```$ export ISOLATION_ID=my-local-build```
 
 5. Execute the local build script. This will compile and package all of the java, as well as prepare docker images for local execution.
 
 ```$ bin/build.sh```
-
 
 ### Building in an IDE
 
@@ -35,16 +36,32 @@ To run the test suite:
 1. build the docker images locally as in the build instructions above
 1. set your AWS credential environment variables appropriately and similarly to
 
-```bash
-  export AWS_ACCESS_KEY=your_access_key_id     # Note that AWS_ACCESS_KEY and
-  export AWS_ACCESS_KEY_ID=your_access_key_id  # AWS_ACCESS_KEY_ID have the same value
+  ```bash
+    export ISOLATION_ID=my-local-build
+    export AWS_ACCESS_KEY=your_access_key_id     # Note that AWS_ACCESS_KEY and
+    export AWS_ACCESS_KEY_ID=your_access_key_id  # AWS_ACCESS_KEY_ID have the same value
 
-  export AWS_REGION=us-east-1                  # the region you want the QLDB in,
-                                               # NOTE: not all regions are valid
-  export AWS_SECRET_ACCESS_KEY=your_secret_access_key
-  export LEDGER_NAME=daml-on-qldb              # Note you may need to change this in order to avoid S3 bucket name conflicts
-  docker-compose -f docker/daml-test.yaml up
-```
+    export AWS_REGION=us-east-1                  # the region you want the QLDB in,
+                                                 # NOTE: not all regions are valid
+    export AWS_SECRET_ACCESS_KEY=your_secret_access_key
+    export LEDGER_NAME=daml-on-qldb              # NOTE: you may need to change this
+                                                 # in order to avoid S3 bucket name
+                                                 # conflicts
+  ```
+
+3. Extract the test DARS into a directory named `test-dars`
+
+  ```bash
+    mkdir -p test-dars && docker run --rm -v \
+      `pwd`/test-dars:/out ledger-api-testtool:${ISOLATION_ID} \
+      bash -c "java -jar ledger-api-test-tool.jar -x && cp *.dar /out"
+  ```
+
+4. Run the test rig
+
+  ```bash
+    docker-compose -f docker/daml-local.yaml up
+  ```
 
 By default `daml-on-qldb` will create a ledger named `daml-on-qldb` and an S3 bucket named `valuestore-daml-on-qldb`.  The bucket name is based off of the ledger name.  To use a different ledger name update the daml-test.yaml to add the argument `--ledger my-ledger-name` to the startup of the daml-on-qldb process. The `daml-test.yaml` and `daml-local.yaml` files have been written to take an environment variable `LEDGER_NAME` for convenience should you need to change.
 
@@ -55,13 +72,16 @@ A local instance of the `daml-on-qldb` may be run up according to the following 
 1. build the docker images locally as in the build instructions above
 1. set your AWS credential environment variables appropriately and similarly to
 
-```bash
-  export AWS_ACCESS_KEY=your_access_key_id     # Note that AWS_ACCESS_KEY and
-  export AWS_ACCESS_KEY_ID=your_access_key_id  # AWS_ACCESS_KEY_ID have the same value
+  ```bash
+    export ISOLATION_ID=my-local-build
+    export AWS_ACCESS_KEY=your_access_key_id     # Note that AWS_ACCESS_KEY and
+    export AWS_ACCESS_KEY_ID=your_access_key_id  # AWS_ACCESS_KEY_ID have the same value
 
-  export AWS_REGION=us-east-1                  # the region you want the QLDB in,
-                                               # NOTE: not all regions are valid
-  export LEDGER_NAME=daml-on-qldb              # NOTE: you may need to change this in order to avoid S3 bucket name conflicts
-  export AWS_SECRET_ACCESS_KEY=your_secret_access_key
-  docker-compose -f docker/daml-local.yaml up
-```
+    export AWS_REGION=us-east-1                  # the region you want the QLDB in,
+                                                 # NOTE: not all regions are valid
+    export LEDGER_NAME=daml-on-qldb              # NOTE: you may need to change this
+                                                 # in order to avoid S3 bucket name
+                                                 # conflicts
+    export AWS_SECRET_ACCESS_KEY=your_secret_access_key
+    docker-compose -f docker/daml-local.yaml up
+  ```
