@@ -44,7 +44,7 @@ To run the test suite:
     export AWS_REGION=us-east-1                  # the region you want the QLDB in,
                                                  # NOTE: not all regions are valid
     export AWS_SECRET_ACCESS_KEY=your_secret_access_key
-    export LEDGER_NAME=daml-on-qldb              # NOTE: you may need to change this
+    export LEDGER_NAME=daml-on-qldb              # NOTE: you MUST change this
                                                  # in order to avoid S3 bucket name
                                                  # conflicts
   ```
@@ -79,7 +79,7 @@ A local instance of the `daml-on-qldb` may be run up according to the following 
 
     export AWS_REGION=us-east-1                  # the region you want the QLDB in,
                                                  # NOTE: not all regions are valid
-    export LEDGER_NAME=daml-on-qldb              # NOTE: you may need to change this
+    export LEDGER_NAME=daml-on-qldb              # NOTE: you MUST change this
                                                  # in order to avoid S3 bucket name
                                                  # conflicts
     export AWS_SECRET_ACCESS_KEY=your_secret_access_key
