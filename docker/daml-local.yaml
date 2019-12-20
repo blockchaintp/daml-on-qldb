@@ -27,7 +27,7 @@ services:
       - AWS_SECRET_ACCESS_KEY
       - AWS_ACCESS_KEY
       - AWS_ACCESS_KEY_ID
-      - LEDGER_NAME=daml-on-qldb
+      - LEDGER_NAME
     ports:
       - "9000"
     entrypoint: "bash -c \"\

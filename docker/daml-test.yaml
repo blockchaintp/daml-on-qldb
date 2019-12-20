@@ -27,7 +27,7 @@ services:
       - AWS_SECRET_ACCESS_KEY
       - AWS_ACCESS_KEY
       - AWS_ACCESS_KEY_ID
-      - LEDGER_NAME=daml-on-qldb
+      - LEDGER_NAME
     entrypoint: "bash -c \"\
       /opt/daml-on-qldb/entrypoint.sh --port 9000 \
         --jdbc-url jdbc:postgresql://postgres/postgres?user=postgres \
