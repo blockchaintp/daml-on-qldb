@@ -74,16 +74,21 @@ public class QldbCommitter implements Runnable {
     Transaction txn = session.startTransaction();
     java.util.Map<DamlStateKey, Option<DamlStateValue>> inputState = new HashMap<>();
     try {
+      List<QldbDamlState> stateRefreshList=new ArrayList<>();
       for (DamlStateKey k : submission.getInputDamlStateList()) {
         ByteString kbs = KeyValueCommitting.packDamlStateKey(k);
         String skey = kbs.toStringUtf8();
         QldbDamlState s = new QldbDamlState(skey);
         if (s.exists(txn)) {
           s.fetch(txn, this.ledger);
+          stateRefreshList.add(s);
           inputState.put(k, Option.apply(s.damlStateValue()));
         } else {
           inputState.put(k, Option.empty());
         }
+      }
+      for (QldbDamlState s: stateRefreshList) {
+        s.refreshFromBulkStore(this.ledger);
       }
     } catch (IOException ioe) {
       LOG.error("IOException committing data", ioe);
