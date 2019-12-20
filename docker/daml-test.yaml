@@ -54,22 +54,22 @@ services:
     entrypoint: "bash -xc \"\
       sleep 300 && \
       java -jar ledger-api-test-tool.jar \
-        --timeout-scale-factor 4 \
+        --timeout-scale-factor 10 \
         --concurrent-test-runs 1 \
         daml-on-qldb:9000 \
         || \
       java -jar ledger-api-test-tool.jar \
-        --timeout-scale-factor 4 \
+        --timeout-scale-factor 10 \
         --concurrent-test-runs 1 \
         daml-on-qldb:9000 \
         || \
       java -jar ledger-api-test-tool.jar \
-        --timeout-scale-factor 4 \
+        --timeout-scale-factor 10 \
         --concurrent-test-runs 1 \
         daml-on-qldb:9000 \
         || \
       java -jar ledger-api-test-tool.jar \
-        --timeout-scale-factor 4 \
+        --timeout-scale-factor 10 \
         --concurrent-test-runs 1 \
         daml-on-qldb:9000 \
         \""
