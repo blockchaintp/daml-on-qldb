@@ -24,7 +24,7 @@ import io.reactivex.processors.UnicastProcessor;
 import scala.Tuple2;
 import scala.collection.JavaConverters;
 import software.amazon.qldb.QldbSession;
-import software.amazon.qldb.TransactionExecutor;
+import software.amazon.qldb.Transaction;
 
 public class QldbUpdateWatcher implements Runnable {
 
@@ -34,17 +34,17 @@ public class QldbUpdateWatcher implements Runnable {
   private UnicastProcessor<Tuple2<Offset, Update>> processor;
 
   private ScheduledExecutorService executorPool;
-  private QldbSession session;
+  private DamlLedger ledger;
   private long hbCount;
 
-  public QldbUpdateWatcher(long startingOffset, QldbSession session, ScheduledExecutorService executorPool) {
+  public QldbUpdateWatcher(long startingOffset, DamlLedger ledger, ScheduledExecutorService executorPool) {
     this.offset = startingOffset;
-    this.session = session;
+    this.ledger = ledger;
     this.processor = UnicastProcessor.create();
     this.executorPool = executorPool;
   }
 
-  public List<QldbDamlLogEntry> fetchNextLogEntries(TransactionExecutor txn) throws IOException {
+  public List<QldbDamlLogEntry> fetchNextLogEntries(Transaction txn) throws IOException {
     List<QldbDamlLogEntry> retList = new ArrayList<>();
     QldbDamlLogEntry log = QldbDamlLogEntry.getNextLogEntry(txn, this.offset);
     while (log != null) {
@@ -65,32 +65,42 @@ public class QldbUpdateWatcher implements Runnable {
 
   @Override
   public void run() {
-    this.session.execute(txn -> {
-      try {
-        List<QldbDamlLogEntry> newEntries = this.fetchNextLogEntries(txn);
-        boolean updatesSent = false;
-        for (QldbDamlLogEntry e : newEntries) {
-          Collection<Update> updates = JavaConverters
-              .asJavaCollection(KeyValueConsumption.logEntryToUpdate(e.damlLogEntryId(), e.damlLogEntry()));
-          long updateInLogEntryCount = 1;
-          for (Update u : updates) {
-            Offset thisOffset = Offset.apply(new long[] { e.getOffset(), updateInLogEntryCount++ });
-            this.processor.onNext(Tuple2.apply(thisOffset, u));
-            updatesSent = true;
-          }
-          this.offset = e.getOffset();
-          this.hbCount = 0;
+    QldbSession session = this.ledger.connect();
+    Transaction txn =session.startTransaction();
+    try {
+      List<QldbDamlLogEntry> newEntries = this.fetchNextLogEntries(txn);
+      txn.commit();
+      txn.close();
+      boolean updatesSent = false;
+      long startOffset = this.offset;
+      for (QldbDamlLogEntry e : newEntries) {
+        Collection<Update> updates = JavaConverters
+            .asJavaCollection(KeyValueConsumption.logEntryToUpdate(e.damlLogEntryId(), e.damlLogEntry()));
+        long updateInLogEntryCount = 1;
+        for (Update u : updates) {
+          Offset thisOffset = Offset.apply(new long[] { e.getOffset(), updateInLogEntryCount++ });
+          this.processor.onNext(Tuple2.apply(thisOffset, u));
+          updatesSent = true;
         }
-        if (!updatesSent) {
-          Offset thisOffset = Offset.apply(new long[] { this.offset, this.hbCount++ });
-          LOG.info("Sending heartbeat at offset {}", thisOffset);
-          Tuple2.apply(thisOffset,new Heartbeat(this.getCurrentRecordTime()));
-        }
-      } catch (IOException ioe) {
-        LOG.error("Error fetching log entries at {}", this.offset);
+        this.offset = e.getOffset();
       }
-    }, (retryAttempt) -> LOG.info("Retrying due to OCC conflict"));
-
+      if ( this.offset != startOffset ) {
+        this.hbCount = 0;
+      }
+      if (!updatesSent) {
+        long effectiveOffset = this.offset;
+        if (effectiveOffset < 0) {
+          effectiveOffset = 0;
+        }
+        Offset thisOffset = Offset.apply(new long[] { effectiveOffset, this.hbCount++ });
+        LOG.info("Sending heartbeat at offset {}", thisOffset);
+        Tuple2.apply(thisOffset, new Heartbeat(this.getCurrentRecordTime()));
+      }
+    } catch (IOException ioe) {
+      txn.abort();
+      LOG.error("Error fetching log entries at {}", this.offset);
+    }
+    session.close();
     this.executorPool.schedule(this, DEFAULT_POLL_INTERVAL_SECONDS, TimeUnit.SECONDS);
   }
 }

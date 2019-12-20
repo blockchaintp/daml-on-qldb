@@ -8,17 +8,22 @@ import java.util.List;
 import com.amazon.ion.IonStruct;
 import com.amazon.ion.IonValue;
 import com.blockchaintp.daml.Constants;
+import com.blockchaintp.daml.DamlLedger;
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlStateKey;
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlStateValue;
 import com.daml.ledger.participant.state.kvutils.KeyValueCommitting;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.protobuf.ByteString;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import software.amazon.qldb.Result;
-import software.amazon.qldb.TransactionExecutor;
+import software.amazon.qldb.Transaction;
 
 public class QldbDamlState implements DamlKeyValueRow {
 
+  private static final Logger LOG = LoggerFactory.getLogger(QldbDamlState.class);
   public static final String TABLE_NAME = "kv_daml_state";
   private String entry;
   private final String entryId;
@@ -59,6 +64,11 @@ public class QldbDamlState implements DamlKeyValueRow {
   }
 
   @Override
+  public String s3Key() {
+    return Utils.hash512(damlStateKey().toByteArray());
+  }
+
+  @Override
   public String data() {
     return this.entry;
   }
@@ -72,7 +82,9 @@ public class QldbDamlState implements DamlKeyValueRow {
   }
 
   @Override
-  public Result insert(TransactionExecutor txn) throws IOException {
+  public Result insert(Transaction txn, DamlLedger ledger) throws IOException {
+    LOG.info("insert damlkey={} in table={}", damlkey(), TABLE_NAME);
+
     final String query = String.format("insert into %s ?", TABLE_NAME);
     final IonValue doc = Constants.MAPPER.writeValueAsIonValue(this);
     final List<IonValue> params = Collections.singletonList(doc);
@@ -80,7 +92,9 @@ public class QldbDamlState implements DamlKeyValueRow {
   }
 
   @Override
-  public Result update(TransactionExecutor txn) throws IOException {
+  public Result update(Transaction txn, DamlLedger ledger) throws IOException {
+    LOG.info("update damlkey={} in table={}", damlkey(), TABLE_NAME);
+
     final String query = String.format("update %s set data = ? where damlkey = ?", TABLE_NAME);
     final List<IonValue> params = new ArrayList<>();
     params.add(Constants.MAPPER.writeValueAsIonValue(data()));
@@ -89,10 +103,12 @@ public class QldbDamlState implements DamlKeyValueRow {
   }
 
   @Override
-  public QldbDamlState fetch(TransactionExecutor txn) throws IOException {
+  public QldbDamlState fetch(Transaction txn, DamlLedger ledger) throws IOException {
     if (!hollow) {
       return this;
     }
+    LOG.info("fetch damlkey={} in table={}", damlkey(), TABLE_NAME);
+
     final String query = String.format("select o from %s where damlkey = ?", TABLE_NAME);
     final List<IonValue> params = new ArrayList<>();
     params.add(Constants.MAPPER.writeValueAsIonValue(damlkey()));
@@ -111,7 +127,8 @@ public class QldbDamlState implements DamlKeyValueRow {
   }
 
   @Override
-  public boolean exists(TransactionExecutor txn) throws IOException {
+  public boolean exists(Transaction txn) throws IOException {
+    LOG.info("exists damlkey={} in table={}", damlkey(), TABLE_NAME);
     final String query = String.format("select o from %s where damlkey = ?", TABLE_NAME);
     final List<IonValue> params = new ArrayList<>();
     params.add(Constants.MAPPER.writeValueAsIonValue(damlkey()));
@@ -124,19 +141,20 @@ public class QldbDamlState implements DamlKeyValueRow {
   }
 
   @Override
-  public boolean upsert(TransactionExecutor txn) throws IOException {
+  public boolean upsert(Transaction txn, DamlLedger ledger) throws IOException {
     if (exists(txn)) {
-      update(txn);
+      update(txn,ledger);
       return false;
     } else {
-      insert(txn);
+      insert(txn,ledger);
       return true;
     }
   }
 
   @Override
-  public boolean delete(TransactionExecutor txn) throws IOException {
+  public boolean delete(Transaction txn, DamlLedger ledger) throws IOException {
     if (exists(txn)) {
+      LOG.info("delete damlkey={} in table={}", damlkey(), TABLE_NAME);
       final String query = String.format("delete from %s where damlkey = ?", TABLE_NAME);
       final List<IonValue> params = new ArrayList<>();
       params.add(Constants.MAPPER.writeValueAsIonValue(damlkey()));

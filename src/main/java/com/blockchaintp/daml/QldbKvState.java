@@ -39,7 +39,6 @@ import akka.stream.scaladsl.Source;
 import scala.Option;
 import scala.Tuple2;
 import scala.collection.JavaConverters;
-import software.amazon.qldb.QldbSession;
 
 public class QldbKvState implements WriteService, ReadService {
 
@@ -48,9 +47,12 @@ public class QldbKvState implements WriteService, ReadService {
   private Engine engine;
   private QldbCommitter committer;
   private String ledgerId;
-  private QldbSession session;
   private DamlLedger ledger;
   private ScheduledExecutorService executorPool;
+
+  public QldbKvState(String ledgerId, String participantId) {
+    this(ledgerId, participantId, new Engine());
+  }
 
   public QldbKvState(String ledgerId, String participantId, Engine engine) {
     this.ledgerId = ledgerId;
@@ -58,8 +60,8 @@ public class QldbKvState implements WriteService, ReadService {
     this.setParticipantId(participantId);
     this.ledger = new DamlLedger(ledgerId);
     this.committer = new QldbCommitter(this.engine, this.ledger, this.getParticipantId());
-    this.session = this.ledger.connect();
     this.executorPool = Executors.newScheduledThreadPool(2);
+    this.executorPool.submit(this.committer);
   }
 
   /**
@@ -90,6 +92,8 @@ public class QldbKvState implements WriteService, ReadService {
 
     DamlLogEntryId damlLogEntryId = DamlLogEntryId.newBuilder().setEntryId(ByteString.copyFromUtf8(submissionId))
         .build();
+    LOG.info("upload package with submissionid {}", submissionId);
+
     SubmissionResult sr = this.committer.submit(damlLogEntryId, submission);
     if (sr instanceof SubmissionResult.Acknowledged$) {
       return CompletableFuture.completedFuture(new UploadPackagesResult.Ok$());
@@ -108,6 +112,7 @@ public class QldbKvState implements WriteService, ReadService {
         .build();
 
     DamlSubmission submission = KeyValueSubmission.partyToSubmission(submissionId, hint, displayName, participantId);
+    LOG.info("allocating party with submissionid {}", submissionId);
 
     return CompletableFuture.completedFuture(this.committer.submit(damlLogEntryId, submission));
   }
@@ -119,6 +124,7 @@ public class QldbKvState implements WriteService, ReadService {
         .build();
     DamlSubmission submission = KeyValueSubmission.configurationToSubmission(maxRecordTime, submissionId,
         this.getParticipantId(), config);
+    LOG.info("Submitting configuration with submissionid {}", submissionId);
 
     return CompletableFuture.completedFuture(this.committer.submit(damlLogEntryId, submission));
   }
@@ -150,7 +156,7 @@ public class QldbKvState implements WriteService, ReadService {
         break;
       }
     }
-    QldbUpdateWatcher watcher = new QldbUpdateWatcher(offset, this.session, this.executorPool);
+    QldbUpdateWatcher watcher = new QldbUpdateWatcher(offset, this.ledger, this.executorPool);
     Thread t = new Thread(watcher,QldbUpdateWatcher.class.getName()+"-from-"+offset);
     t.start();
 

@@ -12,15 +12,20 @@ import java.util.List;
 import com.amazon.ion.IonStruct;
 import com.amazon.ion.IonValue;
 import com.blockchaintp.daml.Constants;
+import com.blockchaintp.daml.DamlLedger;
 import com.daml.ledger.participant.state.kvutils.KeyValueCommitting;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.protobuf.ByteString;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import software.amazon.qldb.Result;
-import software.amazon.qldb.TransactionExecutor;
+import software.amazon.qldb.Transaction;
 
 public class QldbDamlLogEntry implements DamlKeyValueRow {
 
+  private static final Logger LOG = LoggerFactory.getLogger(QldbDamlLogEntry.class);
   public static final String TABLE_NAME = "kv_daml_log";
   private String entry;
   private final String entryId;
@@ -80,6 +85,11 @@ public class QldbDamlLogEntry implements DamlKeyValueRow {
   }
 
   @Override
+  public String s3Key() {
+    return Utils.hash512(damlLogEntryId().toByteArray());
+  }
+
+  @Override
   public String data() {
     return this.entry;
   }
@@ -92,7 +102,9 @@ public class QldbDamlLogEntry implements DamlKeyValueRow {
     return KeyValueCommitting.unpackDamlLogEntry(ByteString.copyFromUtf8(this.entry));
   }
 
-  public static long getMaxOffset(TransactionExecutor txn) {
+  public static long getMaxOffset(Transaction txn) {
+    LOG.info("fetch maxOffset");
+
     final String query = String.format("select max(offset) from %s", TABLE_NAME);
     Result r = txn.execute(query);
     if (r.isEmpty()) {
@@ -103,13 +115,16 @@ public class QldbDamlLogEntry implements DamlKeyValueRow {
       while (iter.hasNext()) {
         IonValue row = iter.next();
         IonStruct s = (IonStruct) row;
-        return Long.valueOf(s.get("_1").toString());
+        if (!s.get("_1").isNullValue()) {
+          offset = Long.valueOf(s.get("_1").toString());
+        }
       }
       return offset;
     }
   }
 
-  public static QldbDamlLogEntry getNextLogEntry(TransactionExecutor txn, long currentOffset) throws IOException {
+  public static QldbDamlLogEntry getNextLogEntry(Transaction txn, long currentOffset) throws IOException {
+    LOG.info("getNextLogEntry currentOffset={} in table={}", currentOffset, TABLE_NAME);
     long nextOffset = currentOffset;
     if (currentOffset < 0) {
       nextOffset = 0;
@@ -119,6 +134,7 @@ public class QldbDamlLogEntry implements DamlKeyValueRow {
     params.add(Constants.MAPPER.writeValueAsIonValue(nextOffset));
     Result r = txn.execute(query, params);
     if (r.isEmpty()) {
+      LOG.info("No current log entries");
       return null;
     } else {
       Iterator<IonValue> iter = r.iterator();
@@ -128,19 +144,22 @@ public class QldbDamlLogEntry implements DamlKeyValueRow {
         QldbDamlLogEntry e = new QldbDamlLogEntry(s.get("damlkey").toString(), s.get("data").toString(), Long.valueOf(s.get("offset").toString()));
         return e;
       } else {
+        LOG.info("No current log entries on iterator");
         return null;
       }
     }
   }
 
   @Override
-  public Result insert(TransactionExecutor txn) throws IOException {
+  public Result insert(Transaction txn, DamlLedger ledger) throws IOException {
     long currentOffset = getMaxOffset(txn);
     if (currentOffset == -1L) {
       currentOffset = 0;
     } else {
       currentOffset++;
     }
+    LOG.info("insert damlkey={} in table={}", damlkey(), TABLE_NAME);
+
     final String query = String.format("insert into %s ?", TABLE_NAME);
     this.offset = currentOffset;
     final IonValue doc = Constants.MAPPER.writeValueAsIonValue(this);
@@ -149,7 +168,9 @@ public class QldbDamlLogEntry implements DamlKeyValueRow {
   }
 
   @Override
-  public Result update(TransactionExecutor txn) throws IOException {
+  public Result update(Transaction txn, DamlLedger ledger) throws IOException {
+    LOG.info("update damlkey={} in table={}", damlkey(), TABLE_NAME);
+
     final String query = String.format("update %s set data = ? where damlkey = ?", TABLE_NAME);
     final List<IonValue> params = new ArrayList<>();
     params.add(Constants.MAPPER.writeValueAsIonValue(data()));
@@ -158,10 +179,12 @@ public class QldbDamlLogEntry implements DamlKeyValueRow {
   }
 
   @Override
-  public QldbDamlLogEntry fetch(TransactionExecutor txn) throws IOException {
+  public QldbDamlLogEntry fetch(Transaction txn, DamlLedger ledger) throws IOException {
     if (!hollow) {
       return this;
     }
+    LOG.info("fetch damlkey={} in table={}", damlkey(), TABLE_NAME);
+
     final String query = String.format("select o from %s where damlkey = ?", TABLE_NAME);
     final List<IonValue> params = new ArrayList<>();
     params.add(Constants.MAPPER.writeValueAsIonValue(damlkey()));
@@ -181,7 +204,9 @@ public class QldbDamlLogEntry implements DamlKeyValueRow {
   }
 
   @Override
-  public boolean exists(TransactionExecutor txn) throws IOException {
+  public boolean exists(Transaction txn) throws IOException {
+    LOG.info("exists damlkey={} in table={}", damlkey(), TABLE_NAME);
+
     final String query = String.format("select o from %s where damlkey = ?", TABLE_NAME);
     final List<IonValue> params = new ArrayList<>();
     params.add(Constants.MAPPER.writeValueAsIonValue(damlkey()));
@@ -194,19 +219,21 @@ public class QldbDamlLogEntry implements DamlKeyValueRow {
   }
 
   @Override
-  public boolean upsert(TransactionExecutor txn) throws IOException {
+  public boolean upsert(Transaction txn, DamlLedger ledger) throws IOException {
     if (exists(txn)) {
-      update(txn);
+      update(txn,ledger);
       return false;
     } else {
-      insert(txn);
+      insert(txn,ledger);
       return true;
     }
   }
 
   @Override
-  public boolean delete(TransactionExecutor txn) throws IOException {
+  public boolean delete(Transaction txn, DamlLedger ledger) throws IOException {
     if (exists(txn)) {
+      LOG.info("delete damlkey={} in table={}", damlkey(), TABLE_NAME);
+
       final String query = String.format("delete from %s where damlkey = ?", TABLE_NAME);
       final List<IonValue> params = new ArrayList<>();
       params.add(Constants.MAPPER.writeValueAsIonValue(damlkey()));

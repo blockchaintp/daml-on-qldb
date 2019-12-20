@@ -29,6 +29,7 @@ import scala.Tuple2;
 import scala.collection.JavaConverters;
 import scala.collection.immutable.Map;
 import software.amazon.qldb.QldbSession;
+import software.amazon.qldb.Transaction;
 
 public class QldbCommitter implements Runnable {
 
@@ -68,28 +69,31 @@ public class QldbCommitter implements Runnable {
   public void processSubmission(DamlLogEntryId damlLogEntryId, DamlSubmission submission) {
     QldbSession session = this.ledger.connect();
     java.util.Map<DamlStateKey, Option<DamlStateValue>> inputState = new HashMap<>();
-    session.execute(txn -> {
-      try {
-        for (DamlStateKey k : submission.getInputDamlStateList()) {
-          ByteString kbs = KeyValueCommitting.packDamlStateKey(k);
-          String skey = kbs.toStringUtf8();
-          QldbDamlState s = new QldbDamlState(skey);
-          if (s.exists(txn)) {
-            s.fetch(txn);
-            inputState.put(k, Option.apply(s.damlStateValue()));
-          } else {
-            inputState.put(k, Option.empty());
-          }
+    Transaction txn = session.startTransaction();
+    try {
+      for (DamlStateKey k : submission.getInputDamlStateList()) {
+        ByteString kbs = KeyValueCommitting.packDamlStateKey(k);
+        String skey = kbs.toStringUtf8();
+        QldbDamlState s = new QldbDamlState(skey);
+        if (s.exists(txn)) {
+          s.fetch(txn);
+          inputState.put(k, Option.apply(s.damlStateValue()));
+        } else {
+          inputState.put(k, Option.empty());
         }
-      } catch (IOException ioe) {
-        LOG.error("IOException fetching from QLDB", ioe);
-        txn.abort();
-        throw new RuntimeException(ioe);
       }
-    }, (retryAttempt) -> {
-      LOG.info("Retrying due to OCC conflict");
-    });
+      LOG.info("Commmitting...");
+      txn.commit();
+      txn.close();
+      session.close();
+    } catch (IOException ioe) {
+      LOG.error("IOException fetching from QLDB", ioe);
+      txn.abort();
+      session.close();
+      throw new RuntimeException(ioe);
+    }
 
+    LOG.info("Processing submission for logIdEntry={}", damlLogEntryId);
     Tuple2<DamlLogEntry, Map<DamlStateKey, DamlStateValue>> processedSubmissionScala = KeyValueCommitting
         .processSubmission(this.engine, damlLogEntryId, getCurrentRecordTime(), getDefaultConfiguration(), submission,
             participantId, mapToScalaImmutableMap(inputState));
@@ -98,21 +102,27 @@ public class QldbCommitter implements Runnable {
     java.util.Map<DamlStateKey, DamlStateValue> outputMap = scalaMapToMap(processedSubmissionScala._2);
 
     QldbDamlLogEntry newQldbLogEntry = QldbDamlLogEntry.create(damlLogEntryId, outputEntry);
-    session.execute(txn -> {
-      try {
-        newQldbLogEntry.upsert(txn);
-        for (java.util.Map.Entry<DamlStateKey, DamlStateValue> mapE : outputMap.entrySet()) {
-          QldbDamlState state = QldbDamlState.create(mapE.getKey(), mapE.getValue());
-          state.upsert(txn);
-        }
-      } catch (IOException ioe) {
-          LOG.error("IOException fetching from QLDB", ioe);
-          txn.abort();
-          throw new RuntimeException(ioe);
-        }
-    }, (retryAttempt) -> {
-      LOG.info("Retrying due to OCC conflict");
-    });
+    session = this.ledger.connect();
+    txn = session.startTransaction();
+    try {
+      newQldbLogEntry.upsert(txn,this.ledger);
+      for (java.util.Map.Entry<DamlStateKey, DamlStateValue> mapE : outputMap.entrySet()) {
+        QldbDamlState state = QldbDamlState.create(mapE.getKey(), mapE.getValue());
+        state.upsert(txn,this.ledger);
+        txn.commit();
+      }
+      LOG.info("Commmitting...");
+      txn.commit();
+      txn.close();
+      session.close();
+    } catch (IOException ioe) {
+      LOG.error("IOException fetching from QLDB", ioe);
+      txn.abort();
+      session.close();
+      throw new RuntimeException(ioe);
+    } catch (RuntimeException re) {
+      LOG.error("Runtime exception ",re);
+    }
   }
 
   @SuppressWarnings("deprecation")
