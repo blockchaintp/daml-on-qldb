@@ -29,7 +29,7 @@ services:
       - AWS_ACCESS_KEY_ID
       - LEDGER_NAME
     ports:
-      - "9000"
+      - "9000:9000"
     entrypoint: "bash -c \"\
       /opt/daml-on-qldb/entrypoint.sh --port 9000 \
         --jdbc-url jdbc:postgresql://postgres/postgres?user=postgres \
