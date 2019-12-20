@@ -1,6 +1,8 @@
 package com.blockchaintp.daml;
 
 import java.nio.ByteBuffer;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import com.amazonaws.AmazonServiceException;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
@@ -39,10 +41,14 @@ public final class DamlLedger {
 
   private PooledQldbDriver driver;
 
+  private LRUCache<String,byte[]> cache;
+
   public DamlLedger(final String ledgerName) {
     this.client = new QLDBServiceClient();
     this.ledgerName = ledgerName;
     init();
+
+    this.cache = new LRUCache<>(1000);
   }
 
   public void init() {
@@ -93,6 +99,25 @@ public final class DamlLedger {
     return s3.getObjectAsBytes(getreq).asByteArray();
   }
 
+  public byte[] getObject(final String key, boolean cacheable) {
+    if (!cacheable) {
+      return getObject(key);
+    } else {
+      synchronized (cache) {
+        if (cache.containsKey(key)) {
+          byte[] data = cache.get(key);
+          LOG.info("Cache hit for s3key={} size={}", key, data.length);
+          return data;
+        } else {
+          byte[] data = getObject(key);
+          LOG.info("Cache hit for s3key={} size={}", key, data.length);
+          cache.put(key, data);
+          return data;
+        }
+      }
+    }
+  }
+
   private boolean bucketExists(final String bucket) {
     try {
       final S3Client s3 = S3Client.builder().build();
@@ -127,4 +152,22 @@ public final class DamlLedger {
   synchronized public QldbSession connect() {
     return driver.getSession();
   }
+
+  private class LRUCache<K, V> extends LinkedHashMap<K, V> {
+    /**
+     *
+     */
+    private static final long serialVersionUID = 1L;
+    private int cacheSize;
+
+    public LRUCache(int cacheSize) {
+      super(16, 0.75f, true);
+      this.cacheSize = cacheSize;
+    }
+
+    protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+      return size() >= cacheSize;
+    }
+  }
+
 }
