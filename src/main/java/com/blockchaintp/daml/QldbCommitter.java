@@ -2,8 +2,11 @@ package com.blockchaintp.daml;
 
 import java.io.IOException;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import com.blockchaintp.daml.model.QldbDamlLogEntry;
 import com.blockchaintp.daml.model.QldbDamlState;
@@ -52,7 +55,7 @@ public class QldbCommitter implements Runnable {
   }
 
   public Timestamp getCurrentRecordTime() {
-    return new Timestamp(Clock.systemUTC().instant().toEpochMilli() * 1_000_000L);
+    return new Timestamp(TimeUnit.SECONDS.toMicros(Clock.systemUTC().instant().getEpochSecond()));
   }
 
   public SubmissionResult submit(DamlLogEntryId damlLogEntryId, DamlSubmission submission) {
@@ -68,30 +71,26 @@ public class QldbCommitter implements Runnable {
 
   public void processSubmission(DamlLogEntryId damlLogEntryId, DamlSubmission submission) {
     QldbSession session = this.ledger.connect();
-    java.util.Map<DamlStateKey, Option<DamlStateValue>> inputState = new HashMap<>();
     Transaction txn = session.startTransaction();
+    java.util.Map<DamlStateKey, Option<DamlStateValue>> inputState = new HashMap<>();
     try {
       for (DamlStateKey k : submission.getInputDamlStateList()) {
         ByteString kbs = KeyValueCommitting.packDamlStateKey(k);
         String skey = kbs.toStringUtf8();
         QldbDamlState s = new QldbDamlState(skey);
         if (s.exists(txn)) {
-          s.fetch(txn);
+          s.fetch(txn, this.ledger);
           inputState.put(k, Option.apply(s.damlStateValue()));
         } else {
           inputState.put(k, Option.empty());
         }
       }
-      LOG.info("Commmitting...");
-      txn.commit();
-      txn.close();
-      session.close();
     } catch (IOException ioe) {
-      LOG.error("IOException fetching from QLDB", ioe);
-      txn.abort();
-      session.close();
+      LOG.error("IOException committing data", ioe);
       throw new RuntimeException(ioe);
     }
+    session.close();
+    session = null;
 
     LOG.info("Processing submission for logIdEntry={}", damlLogEntryId);
     Tuple2<DamlLogEntry, Map<DamlStateKey, DamlStateValue>> processedSubmissionScala = KeyValueCommitting
@@ -101,28 +100,32 @@ public class QldbCommitter implements Runnable {
     DamlLogEntry outputEntry = processedSubmissionScala._1;
     java.util.Map<DamlStateKey, DamlStateValue> outputMap = scalaMapToMap(processedSubmissionScala._2);
 
-    QldbDamlLogEntry newQldbLogEntry = QldbDamlLogEntry.create(damlLogEntryId, outputEntry);
-    session = this.ledger.connect();
-    txn = session.startTransaction();
     try {
-      newQldbLogEntry.upsert(txn,this.ledger);
+      QldbDamlLogEntry newQldbLogEntry = QldbDamlLogEntry.create(damlLogEntryId, outputEntry);
+      List<QldbDamlState> stateList = new ArrayList<>();
       for (java.util.Map.Entry<DamlStateKey, DamlStateValue> mapE : outputMap.entrySet()) {
         QldbDamlState state = QldbDamlState.create(mapE.getKey(), mapE.getValue());
-        state.upsert(txn,this.ledger);
-        txn.commit();
+        stateList.add(state);
+        state.updateBulkStore(this.ledger);
       }
-      LOG.info("Commmitting...");
+
+      newQldbLogEntry.updateBulkStore(this.ledger);
+      for (java.util.Map.Entry<DamlStateKey, DamlStateValue> mapE : outputMap.entrySet()) {
+        QldbDamlState state = QldbDamlState.create(mapE.getKey(), mapE.getValue());
+        stateList.add(state);
+      }
+      session = this.ledger.connect();
+      txn = session.startTransaction();
+      newQldbLogEntry.upsert(txn, this.ledger);
+      for (QldbDamlState s : stateList) {
+        s.upsert(txn, this.ledger);
+      }
       txn.commit();
-      txn.close();
-      session.close();
-    } catch (IOException ioe) {
-      LOG.error("IOException fetching from QLDB", ioe);
-      txn.abort();
-      session.close();
+    } catch (Throwable ioe) {
+      LOG.error("IOException committing data", ioe);
       throw new RuntimeException(ioe);
-    } catch (RuntimeException re) {
-      LOG.error("Runtime exception ",re);
     }
+    session.close();
   }
 
   @SuppressWarnings("deprecation")
@@ -144,6 +147,9 @@ public class QldbCommitter implements Runnable {
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         LOG.warn("Committer thread has been interrupted at the main loop");
+        throw new RuntimeException(e);
+      } catch (Throwable e) {
+        LOG.warn("Committer thread has been interrupted at the main loop",e);
         throw new RuntimeException(e);
       }
     }

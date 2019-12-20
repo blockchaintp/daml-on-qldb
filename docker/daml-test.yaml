@@ -26,6 +26,7 @@ services:
       - AWS_REGION
       - AWS_SECRET_ACCESS_KEY
       - AWS_ACCESS_KEY
+      - AWS_ACCESS_KEY_ID
     entrypoint: "bash -c \"\
       /opt/daml-on-qldb/entrypoint.sh --port 9000 \
         --jdbc-url jdbc:postgresql://postgres/postgres?user=postgres \
@@ -51,7 +52,7 @@ services:
     # TransactionServiceIT - not clear why this fails, certain tests report "RESOURCE_EXHAUSTED" and thats all we get so
     #                        far
     entrypoint: "bash -xc \"\
-      sleep 60 && \
+      sleep 300 && \
       java -jar ledger-api-test-tool.jar \
         --timeout-scale-factor 4 \
         --concurrent-test-runs 1 \

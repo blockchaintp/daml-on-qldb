@@ -25,6 +25,7 @@ import scala.Tuple2;
 import scala.collection.JavaConverters;
 import software.amazon.qldb.QldbSession;
 import software.amazon.qldb.Transaction;
+import software.amazon.qldb.TransactionExecutor;
 
 public class QldbUpdateWatcher implements Runnable {
 
@@ -46,11 +47,11 @@ public class QldbUpdateWatcher implements Runnable {
 
   public List<QldbDamlLogEntry> fetchNextLogEntries(Transaction txn) throws IOException {
     List<QldbDamlLogEntry> retList = new ArrayList<>();
-    QldbDamlLogEntry log = QldbDamlLogEntry.getNextLogEntry(txn, this.offset);
+    QldbDamlLogEntry log = QldbDamlLogEntry.getNextLogEntry(txn, this.ledger, this.offset);
     while (log != null) {
       retList.add(log);
       this.offset = log.getOffset();
-      log = QldbDamlLogEntry.getNextLogEntry(txn, this.offset);
+      log = QldbDamlLogEntry.getNextLogEntry(txn, this.ledger, this.offset);
     }
     return retList;
   }
@@ -66,10 +67,9 @@ public class QldbUpdateWatcher implements Runnable {
   @Override
   public void run() {
     QldbSession session = this.ledger.connect();
-    Transaction txn =session.startTransaction();
+    Transaction txn = session.startTransaction();
     try {
       List<QldbDamlLogEntry> newEntries = this.fetchNextLogEntries(txn);
-      txn.commit();
       txn.close();
       boolean updatesSent = false;
       long startOffset = this.offset;
@@ -84,7 +84,7 @@ public class QldbUpdateWatcher implements Runnable {
         }
         this.offset = e.getOffset();
       }
-      if ( this.offset != startOffset ) {
+      if (this.offset != startOffset) {
         this.hbCount = 0;
       }
       if (!updatesSent) {
@@ -96,9 +96,9 @@ public class QldbUpdateWatcher implements Runnable {
         LOG.info("Sending heartbeat at offset {}", thisOffset);
         Tuple2.apply(thisOffset, new Heartbeat(this.getCurrentRecordTime()));
       }
-    } catch (IOException ioe) {
-      txn.abort();
-      LOG.error("Error fetching log entries at {}", this.offset);
+    } catch (Throwable ioe) {
+      LOG.error("IOException watching logs",ioe);
+      throw new RuntimeException(ioe);
     }
     session.close();
     this.executorPool.schedule(this, DEFAULT_POLL_INTERVAL_SECONDS, TimeUnit.SECONDS);
