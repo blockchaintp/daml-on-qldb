@@ -29,6 +29,7 @@ import software.amazon.qldb.TransactionExecutor;
 
 public class QldbUpdateWatcher implements Runnable {
 
+  private static final int MAX_LOG_ENTRIES_PER_FETCH = 40;
   private static final int DEFAULT_POLL_INTERVAL_SECONDS = 10;
   private static final Logger LOG = LoggerFactory.getLogger(QldbUpdateWatcher.class);
   private long offset;
@@ -48,10 +49,16 @@ public class QldbUpdateWatcher implements Runnable {
   public List<QldbDamlLogEntry> fetchNextLogEntries(Transaction txn) throws IOException {
     List<QldbDamlLogEntry> retList = new ArrayList<>();
     QldbDamlLogEntry log = QldbDamlLogEntry.getNextLogEntry(txn, this.ledger, this.offset);
+    int countOfLogEntries = 0;
     while (log != null) {
       retList.add(log);
       this.offset = log.getOffset();
-      log = QldbDamlLogEntry.getNextLogEntry(txn, this.ledger, this.offset);
+      countOfLogEntries++;
+      if (countOfLogEntries < MAX_LOG_ENTRIES_PER_FETCH) {
+        log = QldbDamlLogEntry.getNextLogEntry(txn, this.ledger, this.offset);
+      } else {
+        log = null;
+      }
     }
     return retList;
   }
