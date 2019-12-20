@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.List;
 
 import com.amazon.ion.IonStruct;
+import com.amazon.ion.IonText;
 import com.amazon.ion.IonValue;
 import com.blockchaintp.daml.Constants;
 import com.blockchaintp.daml.DamlLedger;
@@ -116,7 +117,6 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
     if (!hollow) {
       return this;
     }
-    refreshFromBulkStore(ledger);
     LOG.info("fetch id={} in table={}", getId(), tableName());
 
     final String query = String.format("select * from %s where id = ?", tableName());
@@ -128,8 +128,8 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
     } else {
       r.iterator().forEachRemaining(row -> {
         final IonStruct s = (IonStruct) row;
-        final IonValue v = s.get("s3Key");
-        this.s3Key = v.toString();
+        final IonText v = (IonText) s.get("s3Key");
+        this.s3Key = v.stringValue();
         this.hollow = false;
       });
       refreshFromBulkStore(ledger);
