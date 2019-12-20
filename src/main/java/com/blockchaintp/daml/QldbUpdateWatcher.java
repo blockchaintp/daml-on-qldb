@@ -25,12 +25,11 @@ import scala.Tuple2;
 import scala.collection.JavaConverters;
 import software.amazon.qldb.QldbSession;
 import software.amazon.qldb.Transaction;
-import software.amazon.qldb.TransactionExecutor;
 
 public class QldbUpdateWatcher implements Runnable {
 
   private static final int MAX_LOG_ENTRIES_PER_FETCH = 40;
-  private static final int DEFAULT_POLL_INTERVAL_SECONDS = 10;
+  private static final int DEFAULT_POLL_INTERVAL_SECONDS = 1;
   private static final Logger LOG = LoggerFactory.getLogger(QldbUpdateWatcher.class);
   private long offset;
   private UnicastProcessor<Tuple2<Offset, Update>> processor;
