@@ -46,6 +46,7 @@ public final class DamlLedger {
   }
 
   public void init() {
+    createS3LedgerStore();
     this.driver = createQldbDriver();
     if (!client.ledgerExists(ledgerName)) {
       LOG.info("Ledger with name: {} does not exist, therefore creating it", ledgerName);
@@ -59,8 +60,6 @@ public final class DamlLedger {
       }, (retryAttempt) -> LOG.info("Retrying due to OCC conflict"));
       session.close();
     }
-
-    createS3LedgerStore();
   }
 
   private void createS3LedgerStore() {
