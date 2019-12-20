@@ -42,11 +42,11 @@ To run the test suite:
   export AWS_REGION=us-east-1                  # the region you want the QLDB in,
                                                # NOTE: not all regions are valid
   export AWS_SECRET_ACCESS_KEY=your_secret_access_key
+  export LEDGER_NAME=daml-on-qldb              # Note you may need to change this in order to avoid S3 bucket name conflicts
   docker-compose -f docker/daml-test.yaml up
 ```
 
-By default `daml-on-qldb` will create a ledger named `daml-on-qldb` and an S3 bucket named `value-daml-on-qldb`.  The bucket name is based off of the ledger name.  To use a different ledger name update the daml-test.yaml to add the argument `--ledger my-ledger-name` to the startup of the daml-on-qldb process.
-
+By default `daml-on-qldb` will create a ledger named `daml-on-qldb` and an S3 bucket named `valuestore-daml-on-qldb`.  The bucket name is based off of the ledger name.  To use a different ledger name update the daml-test.yaml to add the argument `--ledger my-ledger-name` to the startup of the daml-on-qldb process. The `daml-test.yaml` and `daml-local.yaml` files have been written to take an environment variable `LEDGER_NAME` for convenience should you need to change.
 
 ## Run
 
@@ -61,6 +61,7 @@ A local instance of the `daml-on-qldb` may be run up according to the following 
 
   export AWS_REGION=us-east-1                  # the region you want the QLDB in,
                                                # NOTE: not all regions are valid
+  export LEDGER_NAME=daml-on-qldb              # NOTE: you may need to change this in order to avoid S3 bucket name conflicts
   export AWS_SECRET_ACCESS_KEY=your_secret_access_key
   docker-compose -f docker/daml-local.yaml up
 ```
