@@ -40,11 +40,11 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
   }
 
   public QldbDamlObject(@JsonProperty("id") final String newId) {
-    this(newId, Utils.hash512(ByteString.copyFromUtf8(newId).toByteArray()), null);
+    this(newId, null, null);
   }
 
   public QldbDamlObject(@JsonProperty("id") final String newId, final byte[] newData) {
-    this(newId, Utils.hash512(ByteString.copyFromUtf8(newId).toByteArray()), newData);
+    this(newId, Utils.hash512(newData), newData);
   }
 
   @Override
@@ -77,7 +77,7 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
 
   @Override
   public void refreshFromBulkStore(final DamlLedger ledger) {
-    this.s3data = ledger.getObject(getS3Key());
+    this.s3data = ledger.getObject(getS3Key(),true);
     LOG.info("Loaded {} bytes from bulk store",this.s3data.length);
   }
 

@@ -54,7 +54,7 @@ services:
     # TransactionServiceIT - not clear why this fails, certain tests report "RESOURCE_EXHAUSTED" and thats all we get so
     #                        far
     entrypoint: "bash -xc \"\
-      sleep 300 && \
+      sleep 60 && \
       java -jar ledger-api-test-tool.jar \
         --timeout-scale-factor 10 \
         --concurrent-test-runs 1 \
