@@ -56,7 +56,15 @@ pipeline {
           sh 'docker run --rm -v `pwd`:/project/daml-on-qldb daml-on-qldb-build-local:${ISOLATION_ID} find /project -type d -name target -exec chown -R $UID:$GROUPS {} \\;'
           sh 'mkdir -p test-dars && docker run --rm -v `pwd`/test-dars:/out ledger-api-testtool:${ISOLATION_ID} bash -c "java -jar ledger-api-test-tool.jar -x && cp *.dar /out"'
         }
-        sh 'docker-compose -f docker/daml-test.yaml build'
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    credentialsId: 'a61234f8-c9f7-49f3-b03c-f31ade1e885a',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                    
+          sh '''
+            docker-compose -f docker/daml-test.yaml build
+          '''
+        }
       }
     }
 
@@ -83,7 +91,19 @@ pipeline {
 
     stage('Integration Test') {
       steps {
-        sh 'docker-compose -p ${PROJECT_ID} -f docker/daml-test.yaml up --exit-code-from ledger-api-testtool'
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    credentialsId: 'a61234f8-c9f7-49f3-b03c-f31ade1e885a',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+          sh '''
+            export AWS_REGION=us-east-1;
+            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID;
+            export AWS_ACCESS_KEY=$AWS_ACCESS_KEY_ID;
+            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY;
+            export LEDGER_NAME=daml-on-qldb-jenkins;
+            docker-compose -p ${PROJECT_ID} -f docker/daml-test.yaml up --exit-code-from ledger-api-testtool
+          '''
+        }
       }
     }
 
