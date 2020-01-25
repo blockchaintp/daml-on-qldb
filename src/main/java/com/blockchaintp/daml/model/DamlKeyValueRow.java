@@ -2,8 +2,6 @@ package com.blockchaintp.daml.model;
 
 import java.io.IOException;
 
-import com.blockchaintp.daml.DamlLedger;
-
 import software.amazon.qldb.Result;
 import software.amazon.qldb.Transaction;
 
@@ -19,22 +17,22 @@ public interface DamlKeyValueRow {
 
   byte[] s3Data();
 
-  void refreshFromBulkStore(DamlLedger ledger) throws IOException;
+  void refreshFromBulkStore() throws IOException;
 
-  void updateBulkStore(DamlLedger ledger) throws IOException;
+  void updateBulkStore() throws IOException;
 
-  Result insert(Transaction txn, DamlLedger ledger) throws IOException;
+  Result insert(Transaction txn) throws IOException;
 
-  Result update(Transaction txn, DamlLedger ledger) throws IOException;
+  Result update(Transaction txn) throws IOException;
 
-  DamlKeyValueRow fetch(Transaction txn, DamlLedger ledger) throws IOException;
+  DamlKeyValueRow fetch(Transaction txn) throws IOException;
 
   boolean exists(Transaction txn) throws IOException;
 
-  boolean upsert(Transaction txn, DamlLedger ledger) throws IOException;
+  boolean upsert(Transaction txn) throws IOException;
 
-  boolean delete(Transaction txn, DamlLedger ledger) throws IOException;
+  boolean delete(Transaction txn) throws IOException;
 
   String tableName();
-
+  
 }

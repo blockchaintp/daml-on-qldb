@@ -60,10 +60,10 @@ To run the test suite:
 4. Run the test rig
 
   ```bash
-    docker-compose -f docker/daml-local.yaml up
+    docker-compose -f docker/daml-test.yaml up
   ```
 
-By default `daml-on-qldb` will create a ledger named `daml-on-qldb` and an S3 bucket named `valuestore-daml-on-qldb`.  The bucket name is based off of the ledger name.  To use a different ledger name update the daml-test.yaml to add the argument `--ledger my-ledger-name` to the startup of the daml-on-qldb process. The `daml-test.yaml` and `daml-local.yaml` files have been written to take an environment variable `LEDGER_NAME` for convenience should you need to change.
+By default `daml-on-qldb` will create a ledger named `daml-on-qldb` and an S3 bucket named `valuestore-daml-on-qldb`.  The bucket name is based off of the ledger name.  To use a different ledger name update the daml-test.yaml to add the argument `--ledger my-ledger-name` to the startup of the daml-on-qldb process. The `daml-test.yaml` and `daml-local.yaml` files have been written to take an environment variable `LEDGER_NAME` for convenience should you need to change, in which case the S3 bucket name will be `valuestore-$LEDGER_NAME`.
 
 ## Run
 

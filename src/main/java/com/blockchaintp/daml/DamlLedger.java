@@ -1,14 +1,18 @@
 package com.blockchaintp.daml;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.amazonaws.AmazonServiceException;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.qldbsession.AmazonQLDBSessionClientBuilder;
+import com.blockchaintp.daml.model.DistributedLedger;
 import com.blockchaintp.daml.model.QldbDamlLogEntry;
 import com.blockchaintp.daml.model.QldbDamlState;
 
@@ -25,7 +29,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.qldb.PooledQldbDriver;
 import software.amazon.qldb.QldbSession;
 
-public final class DamlLedger {
+public final class DamlLedger implements DistributedLedger {
 
   private static final Logger LOG = LoggerFactory.getLogger(DamlLedger.class);
 
@@ -41,23 +45,27 @@ public final class DamlLedger {
 
   private PooledQldbDriver driver;
 
-  private LRUCache<String,byte[]> cache;
+  private Map<String, byte[]> cache;
 
-  public DamlLedger(final String ledgerName) {
+  public DamlLedger(final String ledgerName, final int cacheSize) {
     this.client = new QLDBServiceClient();
     this.ledgerName = ledgerName;
     init();
 
-    this.cache = new LRUCache<>(1000);
+    this.cache = Collections.synchronizedMap(new LRUCache<>(cacheSize));
   }
 
-  public void init() {
+  public DamlLedger(final String ledgerName) {
+    this(ledgerName, 1000);
+  }
+
+  private void init() {
     createS3LedgerStore();
     this.driver = createQldbDriver();
-    if (!client.ledgerExists(ledgerName)) {
-      LOG.info("Ledger with name: {} does not exist, therefore creating it", ledgerName);
-      client.createLedger(ledgerName);
-      client.waitForActive(ledgerName);
+    if (!client.ledgerExists(getLedgerName())) {
+      LOG.info("Ledger with name: {} does not exist, therefore creating it", getLedgerName());
+      client.createLedger(getLedgerName());
+      client.waitForActive(getLedgerName());
       QldbSession session = connect();
       session.execute(txn -> {
         client.createTable(txn, QldbDamlState.TABLE_NAME);
@@ -78,49 +86,9 @@ public final class DamlLedger {
     }
   }
 
-  public String getBucketName() {
-    return "valuestore-" + this.ledgerName;
-  }
-
-  public S3Client getS3Client() {
-    return S3Client.builder().build();
-  }
-
-  public void putObject(final String key, final byte[] buffer) {
-    final S3Client s3 = getS3Client();
-    final PutObjectRequest poreq = PutObjectRequest.builder().bucket(getBucketName()).key(key).build();
-    s3.putObject(poreq, RequestBody.fromByteBuffer(ByteBuffer.wrap(buffer)));
-  }
-
-  public byte[] getObject(final String key) {
-    LOG.info("Fetching {} from bucket {}", key, getBucketName());
-    final S3Client s3 = getS3Client();
-    final GetObjectRequest getreq = GetObjectRequest.builder().bucket(getBucketName()).key(key).build();
-    return s3.getObjectAsBytes(getreq).asByteArray();
-  }
-
-  public byte[] getObject(final String key, boolean cacheable) {
-    if (!cacheable) {
-      return getObject(key);
-    } else {
-      synchronized (cache) {
-        if (cache.containsKey(key)) {
-          byte[] data = cache.get(key);
-          LOG.info("Cache hit for s3key={} size={}", key, data.length);
-          return data;
-        } else {
-          byte[] data = getObject(key);
-          LOG.info("Cache hit for s3key={} size={}", key, data.length);
-          cache.put(key, data);
-          return data;
-        }
-      }
-    }
-  }
-
   private boolean bucketExists(final String bucket) {
     try {
-      final S3Client s3 = S3Client.builder().build();
+      final S3Client s3 = getS3Client();
       final ListObjectsRequest lbreq = ListObjectsRequest.builder().bucket(bucket).maxKeys(0).build();
       s3.listObjects(lbreq);
       return true;
@@ -136,7 +104,7 @@ public final class DamlLedger {
     }
   }
 
-  public PooledQldbDriver createQldbDriver() {
+  private PooledQldbDriver createQldbDriver() {
     final AmazonQLDBSessionClientBuilder builder = AmazonQLDBSessionClientBuilder.standard();
     if (null != endpoint && null != region) {
       builder.setEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endpoint, region));
@@ -144,30 +112,82 @@ public final class DamlLedger {
     if (null != credentialsProvider) {
       builder.setCredentials(credentialsProvider);
     }
-    final PooledQldbDriver driver = PooledQldbDriver.builder().withLedger(ledgerName)
+    final PooledQldbDriver driver = PooledQldbDriver.builder().withLedger(getLedgerName())
         .withRetryLimit(Constants.RETRY_LIMIT).withSessionClientBuilder(builder).build();
     return driver;
+  }
+
+  private S3Client getS3Client() {
+    return S3Client.builder().build();
   }
 
   synchronized public QldbSession connect() {
     return driver.getSession();
   }
 
+  public String getLedgerName() {
+    return this.ledgerName;
+  }
+
+  public String getBucketName() {
+    return "valuestore-" + getLedgerName();
+  }
+
+  @Override
+  public void putObject(final String key, final byte[] buffer) {
+    final S3Client s3 = getS3Client();
+    final PutObjectRequest poreq = PutObjectRequest.builder().bucket(getBucketName()).key(key).build();
+    s3.putObject(poreq, RequestBody.fromByteBuffer(ByteBuffer.wrap(buffer)));
+  }
+
+  @Override
+  public byte[] getObject(final String key) {
+    LOG.info("Fetching {} from bucket {}", key, getBucketName());
+    final S3Client s3 = getS3Client();
+    final GetObjectRequest getreq = GetObjectRequest.builder().bucket(getBucketName()).key(key).build();
+    return s3.getObjectAsBytes(getreq).asByteArray();
+  }
+
+  @Override
+  public byte[] getObject(final String key, boolean cacheable) {
+    if (!cacheable) {
+      return getObject(key);
+    }
+    if (cache.containsKey(key)) {
+      byte[] data = cache.get(key);
+      LOG.info("Cache hit for s3key={} size={}", key, data.length);
+      return data;
+    }
+    byte[] data = getObject(key);
+    LOG.info("Cache put for s3key={} size={}", key, data.length);
+    cache.put(key, data);
+    return data;
+  }
+
+  @Override
+  public boolean existsObject(String key) {
+    if (!cache.containsKey(key)) {
+      try {
+        getObject(key);
+      } catch (NoSuchKeyException nske) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   private class LRUCache<K, V> extends LinkedHashMap<K, V> {
-    /**
-     *
-     */
     private static final long serialVersionUID = 1L;
-    private int cacheSize;
+    private final int cacheSize;
 
     public LRUCache(int cacheSize) {
       super(16, 0.75f, true);
       this.cacheSize = cacheSize;
     }
 
+    @Override
     protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
       return size() >= cacheSize;
     }
   }
-
 }
