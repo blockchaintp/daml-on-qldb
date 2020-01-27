@@ -124,7 +124,6 @@ pipeline {
 
   post {
       always {
-        junit '**/target/surefire-reports/**/*.xml'
         sh 'docker-compose -f docker/docker-compose-build.yaml down'
         sh 'docker-compose -f docker/daml-test.yaml down'
         sh 'docker run -v $PWD:/project/daml-on-qldb daml-on-qldb-build-local:${ISOLATION_ID} mvn -B clean'
