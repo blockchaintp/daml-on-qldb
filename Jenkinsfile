@@ -95,14 +95,20 @@ pipeline {
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     credentialsId: 'a61234f8-c9f7-49f3-b03c-f31ade1e885a',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-          sh '''
-            export AWS_REGION=us-east-1;
-            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID;
-            export AWS_ACCESS_KEY=$AWS_ACCESS_KEY_ID;
-            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY;
-            export LEDGER_NAME=daml-on-qldb-jenkins;
-            docker-compose -p ${PROJECT_ID} -f docker/daml-test.yaml up --exit-code-from ledger-api-testtool
-          '''
+          script {
+            try {
+              sh '''
+                export AWS_REGION=us-east-1;
+                export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID;
+                export AWS_ACCESS_KEY=$AWS_ACCESS_KEY_ID;
+                export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY;
+                export LEDGER_NAME=daml-on-qldb-jenkins;
+                docker-compose -p ${PROJECT_ID} -f docker/daml-test.yaml up --exit-code-from ledger-api-testtool
+              '''
+            } catch (err) {
+              currentBuild.result = 'UNSTABLE'
+            }
+          }
         }
       }
     }
