@@ -26,6 +26,7 @@ import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.StorageClass;
 import software.amazon.qldb.PooledQldbDriver;
 import software.amazon.qldb.QldbSession;
 
@@ -136,7 +137,8 @@ public final class DamlLedger implements DistributedLedger {
   @Override
   public void putObject(final String key, final byte[] buffer) {
     final S3Client s3 = getS3Client();
-    final PutObjectRequest poreq = PutObjectRequest.builder().bucket(getBucketName()).key(key).build();
+    final PutObjectRequest poreq = PutObjectRequest.builder().bucket(getBucketName()).key(key)
+        .storageClass(StorageClass.REDUCED_REDUNDANCY).build();
     s3.putObject(poreq, RequestBody.fromByteBuffer(ByteBuffer.wrap(buffer)));
   }
 
