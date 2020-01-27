@@ -37,9 +37,10 @@ import software.amazon.qldb.Transaction;
 public class QldbCommitter implements Runnable {
 
   private static Logger LOG = LoggerFactory.getLogger(QldbCommitter.class);
-  private Engine engine;
-  private DamlLedger ledger;
-  private String participantId;
+
+  private final Engine engine;
+  private final DamlLedger ledger;
+  private final String participantId;
 
   private LinkedBlockingQueue<Tuple2<DamlLogEntryId, DamlSubmission>> submissionQueue;
 
@@ -78,9 +79,9 @@ public class QldbCommitter implements Runnable {
       for (DamlStateKey k : submission.getInputDamlStateList()) {
         ByteString kbs = KeyValueCommitting.packDamlStateKey(k);
         String skey = kbs.toStringUtf8();
-        QldbDamlState s = new QldbDamlState(skey);
+        QldbDamlState s = new QldbDamlState(this.ledger, skey);
         if (s.exists(txn)) {
-          s.fetch(txn, this.ledger);
+          s.fetch(txn);
           stateRefreshList.add(s);
           inputState.put(k, Option.apply(s.damlStateValue()));
         } else {
@@ -88,7 +89,7 @@ public class QldbCommitter implements Runnable {
         }
       }
       for (QldbDamlState s: stateRefreshList) {
-        s.refreshFromBulkStore(this.ledger);
+        s.refreshFromBulkStore();
       }
     } catch (IOException ioe) {
       LOG.error("IOException committing data", ioe);
@@ -106,24 +107,24 @@ public class QldbCommitter implements Runnable {
     java.util.Map<DamlStateKey, DamlStateValue> outputMap = scalaMapToMap(processedSubmissionScala._2);
 
     try {
-      QldbDamlLogEntry newQldbLogEntry = QldbDamlLogEntry.create(damlLogEntryId, outputEntry);
+      QldbDamlLogEntry newQldbLogEntry = QldbDamlLogEntry.create(this.ledger, damlLogEntryId, outputEntry);
       List<QldbDamlState> stateList = new ArrayList<>();
       for (java.util.Map.Entry<DamlStateKey, DamlStateValue> mapE : outputMap.entrySet()) {
-        QldbDamlState state = QldbDamlState.create(mapE.getKey(), mapE.getValue());
+        QldbDamlState state = QldbDamlState.create(this.ledger, mapE.getKey(), mapE.getValue());
         stateList.add(state);
-        state.updateBulkStore(this.ledger);
+        state.updateBulkStore();
       }
 
-      newQldbLogEntry.updateBulkStore(this.ledger);
+      newQldbLogEntry.updateBulkStore();
       for (java.util.Map.Entry<DamlStateKey, DamlStateValue> mapE : outputMap.entrySet()) {
-        QldbDamlState state = QldbDamlState.create(mapE.getKey(), mapE.getValue());
+        QldbDamlState state = QldbDamlState.create(this.ledger, mapE.getKey(), mapE.getValue());
         stateList.add(state);
       }
       session = this.ledger.connect();
       txn = session.startTransaction();
-      newQldbLogEntry.upsert(txn, this.ledger);
+      newQldbLogEntry.upsert(txn);
       for (QldbDamlState s : stateList) {
-        s.upsert(txn, this.ledger);
+        s.upsert(txn);
       }
       txn.commit();
     } catch (Throwable ioe) {

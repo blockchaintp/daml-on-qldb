@@ -26,39 +26,40 @@ public class QldbDamlLogEntry extends QldbDamlObject {
 
   private static final Logger LOG = LoggerFactory.getLogger(QldbDamlLogEntry.class);
   public static final String TABLE_NAME = "kv_daml_log";
+
   private long offset;
 
-  public QldbDamlLogEntry(@JsonProperty("id") final String newId, @JsonProperty("s3Key") final String newS3Key,
+  public QldbDamlLogEntry(DamlLedger targetLedger, @JsonProperty("id") final String newId, @JsonProperty("s3Key") final String newS3Key,
       @JsonProperty("offset") final long newOffset, final byte[] newData) {
-    super(newId, newS3Key, newData);
+    super(targetLedger, newId, newS3Key, newData);
     this.offset = newOffset;
   }
 
-  public QldbDamlLogEntry(@JsonProperty("id") final String newId, final byte[] newData) {
-    super(newId, newData);
+  public QldbDamlLogEntry(DamlLedger targetLedger, @JsonProperty("id") final String newId, final byte[] newData) {
+    super(targetLedger, newId, newData);
     this.offset = -1L;
   }
 
-  public QldbDamlLogEntry(@JsonProperty("id") final String newId) {
-    super(newId);
+  public QldbDamlLogEntry(DamlLedger targetLedger, @JsonProperty("id") final String newId) {
+    super(targetLedger, newId);
     this.offset = -1L;
   }
 
-  public QldbDamlLogEntry(@JsonProperty("id") final String newId, @JsonProperty("s3Key") final String newS3Key,
+  public QldbDamlLogEntry(DamlLedger targetLedger, @JsonProperty("id") final String newId, @JsonProperty("s3Key") final String newS3Key,
       @JsonProperty("offset") final long newOffset) {
-    super(newId, newS3Key, null);
+    super(targetLedger, newId, newS3Key, null);
     this.offset = newOffset;
   }
 
-  public QldbDamlLogEntry(@JsonProperty("id") final String newId, @JsonProperty("offset") final long newOffset) {
-    super(newId);
+  public QldbDamlLogEntry(DamlLedger targetLedger, @JsonProperty("id") final String newId, @JsonProperty("offset") final long newOffset) {
+    super(targetLedger, newId);
     this.offset = newOffset;
   }
 
-  public static QldbDamlLogEntry create(final DamlLogEntryId pbEntryId, final DamlLogEntry pbEntry) {
+  public static QldbDamlLogEntry create(final DamlLedger targetLedger, final DamlLogEntryId pbEntryId, final DamlLogEntry pbEntry) {
     final String packedId = KeyValueCommitting.packDamlLogEntryId(pbEntryId).toStringUtf8();
     final byte[] data = KeyValueCommitting.packDamlLogEntry(pbEntry).toByteArray();
-    return new QldbDamlLogEntry(packedId, data);
+    return new QldbDamlLogEntry(targetLedger, packedId, data);
   }
 
   /**
@@ -124,9 +125,9 @@ public class QldbDamlLogEntry extends QldbDamlObject {
         LOG.info("got next log entry {}", s.toPrettyString());
         IonText idVal= (IonText) s.get("id");
         IonText s3KeyVal= (IonText) s.get("s3Key");
-        final QldbDamlLogEntry e = new QldbDamlLogEntry(idVal.stringValue(), s3KeyVal.stringValue(),
+        final QldbDamlLogEntry e = new QldbDamlLogEntry(ledger, idVal.stringValue(), s3KeyVal.stringValue(),
             Long.valueOf(s.get("offset").toString()));
-        e.refreshFromBulkStore(ledger);
+        e.refreshFromBulkStore();
         return e;
       } else {
         LOG.info("No current log entries on iterator");
@@ -136,14 +137,14 @@ public class QldbDamlLogEntry extends QldbDamlObject {
   }
 
   @Override
-  public Result insert(final Transaction txn, final DamlLedger ledger) throws IOException {
+  public Result insert(final Transaction txn) throws IOException {
     final long currentOffset = getMaxOffset(txn);
     if (currentOffset == -1L) {
       this.offset = 0;
     } else {
       this.offset = currentOffset + 1;
     }
-    return super.insert(txn, ledger);
+    return super.insert(txn);
   }
 
   @Override

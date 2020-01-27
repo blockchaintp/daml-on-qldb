@@ -33,3 +33,4 @@
 **/.externalNativeBuild
 **/.metals
 **/*.swp
+**/test-dars

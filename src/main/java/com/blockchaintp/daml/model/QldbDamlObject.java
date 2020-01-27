@@ -11,18 +11,18 @@ import com.amazon.ion.IonValue;
 import com.blockchaintp.daml.Constants;
 import com.blockchaintp.daml.DamlLedger;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.protobuf.ByteString;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import software.amazon.qldb.Result;
 import software.amazon.qldb.Transaction;
-import software.amazon.qldb.Transaction;
 
 public abstract class QldbDamlObject implements DamlKeyValueRow {
 
   private static final Logger LOG = LoggerFactory.getLogger(QldbDamlObject.class);
+
+  private final DamlLedger ledger;
 
   private String id;
   private String s3Key;
@@ -31,20 +31,25 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
 
   private transient boolean hollow;
 
-  public QldbDamlObject(@JsonProperty("id") final String newId, @JsonProperty("s3Key") final String newS3key,
-      final byte[] newData) {
+  public QldbDamlObject(final DamlLedger targetLedger, @JsonProperty("id") final String newId,
+      @JsonProperty("s3Key") final String newS3key, final byte[] newData) {
+    this.ledger = targetLedger;
     this.id = newId;
     this.s3Key = newS3key;
     this.s3data = newData;
     this.hollow = true;
   }
 
-  public QldbDamlObject(@JsonProperty("id") final String newId) {
-    this(newId, null, null);
+  public QldbDamlObject(final DamlLedger targetLedger, @JsonProperty("id") final String newId, final byte[] newData) {
+    this(targetLedger, newId, Utils.hash512(newData), newData);
   }
 
-  public QldbDamlObject(@JsonProperty("id") final String newId, final byte[] newData) {
-    this(newId, Utils.hash512(newData), newData);
+  public QldbDamlObject(final DamlLedger targetLedger, @JsonProperty("id") final String newId) {
+    this(targetLedger, newId, null, null);
+  }
+
+  protected DamlLedger getLedger() {
+    return this.ledger;
   }
 
   @Override
@@ -76,22 +81,22 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
   }
 
   @Override
-  public void refreshFromBulkStore(final DamlLedger ledger) {
-    this.s3data = ledger.getObject(getS3Key(),true);
-    LOG.info("Loaded {} bytes from bulk store",this.s3data.length);
+  public void refreshFromBulkStore() {
+    this.s3data = getLedger().getObject(getS3Key(), true);
+    LOG.info("Loaded {} bytes from bulk store", this.s3data.length);
   }
 
   @Override
-  public void updateBulkStore(final DamlLedger ledger) throws IOException {
+  public void updateBulkStore() throws IOException {
     if (this.s3data == null) {
       throw new IOException(String.format("s3data null on insert for id=%s", getId()));
     }
-    ledger.putObject(getS3Key(), s3Data());
+    getLedger().putObject(getS3Key(), s3Data());
     LOG.info("Saved {} bytes to bulk store",this.s3data.length);
   }
 
   @Override
-  public Result insert(final Transaction txn, final DamlLedger ledger) throws IOException {
+  public Result insert(final Transaction txn) throws IOException {
     LOG.info("insert id={} in table={}", getId(), tableName());
 
     final String query = String.format("insert into %s ?", tableName());
@@ -102,7 +107,7 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
   }
 
   @Override
-  public Result update(final Transaction txn, final DamlLedger ledger) throws IOException {
+  public Result update(final Transaction txn) throws IOException {
     LOG.info("update id={} in table={}", getId(), tableName());
 
     final String query = String.format("update %s set s3Key = ? where id = ?", tableName());
@@ -113,7 +118,7 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
   }
 
   @Override
-  public QldbDamlObject fetch(final Transaction txn, final DamlLedger ledger) throws IOException {
+  public DamlKeyValueRow fetch(final Transaction txn) throws IOException {
     if (!hollow) {
       return this;
     }
@@ -132,7 +137,7 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
         this.s3Key = v.stringValue();
         this.hollow = false;
       });
-      refreshFromBulkStore(ledger);
+      refreshFromBulkStore();
       return this;
     }
   }
@@ -148,18 +153,18 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
   }
 
   @Override
-  public boolean upsert(final Transaction txn, final DamlLedger ledger) throws IOException {
+  public boolean upsert(final Transaction txn) throws IOException {
     if (exists(txn)) {
-      update(txn, ledger);
+      update(txn);
       return false;
     } else {
-      insert(txn, ledger);
+      insert(txn);
       return true;
     }
   }
 
   @Override
-  public boolean delete(final Transaction txn, final DamlLedger ledger) throws IOException {
+  public boolean delete(final Transaction txn) throws IOException {
     if (exists(txn)) {
       LOG.info("delete id={} in table={}", getId(), tableName());
       final String query = String.format("delete from %s where id = ?", tableName());
