@@ -135,8 +135,8 @@ pipeline {
                     credentialsId: 'a61234f8-c9f7-49f3-b03c-f31ade1e885a',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
           sh '''
-            docker run -e AWS_REGION -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --entrypoint /bin/bash ledger-api-testtool:${ISOLATION_ID} -c "./aws-configure.sh && aws qldb delete-ledger --name ${ISOLATION_ID}"
-            docker run -e AWS_REGION -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --entrypoint /bin/bash ledger-api-testtool:${ISOLATION_ID} -c "./was-configure.sh && aws s3 rb s3://valuestore-${ISOLATION_ID} --force"
+            docker run -e AWS_REGION -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --entrypoint /bin/bash ledger-api-testtool:${ISOLATION_ID} -c "source ./aws-configure.sh && aws qldb delete-ledger --name ${ISOLATION_ID}"
+            docker run -e AWS_REGION -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --entrypoint /bin/bash ledger-api-testtool:${ISOLATION_ID} -c "source ./was-configure.sh && aws s3 rb s3://valuestore-${ISOLATION_ID} --force"
           '''
         }
         sh 'docker-compose -f docker/docker-compose-build.yaml down'
