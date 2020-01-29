@@ -147,7 +147,17 @@ public final class DamlLedger implements DistributedLedger {
     LOG.info("Fetching {} from bucket {}", key, getBucketName());
     final S3Client s3 = getS3Client();
     final GetObjectRequest getreq = GetObjectRequest.builder().bucket(getBucketName()).key(key).build();
-    return s3.getObjectAsBytes(getreq).asByteArray();
+    int attempts = 0;
+    // S3 can erroneously report that a bucket doesn't exist when it does
+    for (; attempts < 3; attempts++) {
+      try {
+        return s3.getObjectAsBytes(getreq).asByteArray();
+      } catch (final NoSuchBucketException nsbe) {
+        LOG.warn("Failed to find our bucket {}, retrying ...", getBucketName());
+      }
+    }
+    throw new RuntimeException(
+      String.format("Bucket %s not found after %d attempts - was it deleted?", getBucketName(), attempts));
   }
 
   @Override
