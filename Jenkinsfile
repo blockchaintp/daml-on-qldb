@@ -28,7 +28,7 @@ pipeline {
   }
 
   environment {
-    ISOLATION_ID = sh(returnStdout: true, script: 'echo $BUILD_TAG | sha256sum | cut -c1-64').trim()
+    ISOLATION_ID = sh(returnStdout: true, script: 'echo $BUILD_TAG | sha256sum | cut -c1-32').trim()
     PROJECT_ID = sh(returnStdout: true, script: 'echo $BUILD_TAG | sha256sum | cut -c1-32').trim()
   }
 
