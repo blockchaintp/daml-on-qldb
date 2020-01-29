@@ -21,6 +21,8 @@ RUN apt-get update -y && \
   apt-get install -y \
   curl \
   gnupg \
+  groff \
+  python3-pip \
   software-properties-common \
   tar \
   wget
@@ -43,6 +45,36 @@ RUN mkdir -p /opt/ledger-api-test-tool && \
   cd  /opt/ledger-api-test-tool && \
   wget -nv https://digitalassetsdk.bintray.com/DigitalAssetSDK/com/daml/ledger/testtool/ledger-api-test-tool/${DAML_REPO_VERSION}/ledger-api-test-tool-${DAML_REPO_VERSION}.jar && \
   mv ledger-api-test-tool-${DAML_REPO_VERSION}.jar ledger-api-test-tool.jar
+
+# Install AWS CLI v1 and create AWS config and credentials files. Pass the AWS environment variables as follows:
+#     % docker build --build-arg AWS_REGION --build-arg AWS_ACCESS_KEY_ID --build-arg AWS_SECRET_ACCESS_KEY
+#
+# If using docker-compose to create this image, include the AWS environment variables under the build target as follows:
+#     ledger-api-testtool:
+#         build:
+#             context: .
+#             args:
+#               - AWS_REGION
+#               - AWS_ACCESS_KEY_ID
+#               - AWS_SECRET_ACCESS_KEY
+
+RUN pip3 install awscli --upgrade
+
+ARG AWS_REGION
+ENV AWS_REGION=${AWS_REGION}
+ARG AWS_ACCESS_KEY_ID
+ENV AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+ARG AWS_SECRET_ACCESS_KEY
+ENV AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+
+RUN bash -c "\
+  mkdir -p $HOME/.aws && \
+  echo -n $'[default]\n' > $HOME/.aws/config && \
+  echo -n $'region = ${AWS_REGION}\n' >> $HOME/.aws/config && \
+  echo -n $'[default]\n' > $HOME/.aws/credentials && \
+  echo -n $'aws_access_key_id = ${AWS_ACCESS_KEY_ID}\n' >> $HOME/.aws/credentials && \
+  echo -n $'aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}\n' >> $HOME/.aws/credentials \
+"
 
 WORKDIR /opt/ledger-api-test-tool
 
