@@ -27,12 +27,12 @@ services:
       - ${HOME}/.m2/settings.xml:/root/.m2/settings.xml
       
   ledger-api-testtool:
+    environment:
+      - AWS_REGION
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
     build:
       context: .
-      args:
-        - AWS_REGION
-        - AWS_ACCESS_KEY_ID
-        - AWS_SECRET_ACCESS_KEY
       dockerfile: ledger-api-testtool.docker
     image: ledger-api-testtool:${ISOLATION_ID}
     container_name: ledger-api-testtool
