@@ -28,8 +28,10 @@ pipeline {
   }
 
   environment {
-    ISOLATION_ID = sh(returnStdout: true, script: 'echo $BUILD_TAG | sha256sum | cut -c1-64').trim()
+    ISOLATION_ID = sh(returnStdout: true, script: 'echo $BUILD_TAG | sha256sum | cut -c1-32').trim()
     PROJECT_ID = sh(returnStdout: true, script: 'echo $BUILD_TAG | sha256sum | cut -c1-32').trim()
+    LEDGER_NAME = sh(returnStdout: true, script: 'echo $BUILD_TAG | sha256sum | cut -c1-32').trim()
+    AWS_REGION = "us-east-1"
   }
 
   stages {
@@ -98,11 +100,9 @@ pipeline {
           script {
             try {
               sh '''
-                export AWS_REGION=us-east-1;
                 export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID;
                 export AWS_ACCESS_KEY=$AWS_ACCESS_KEY_ID;
                 export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY;
-                export LEDGER_NAME=daml-on-qldb-jenkins;
                 docker-compose -p ${PROJECT_ID} -f docker/daml-test.yaml up --exit-code-from ledger-api-testtool
               '''
             } catch (err) {
@@ -130,6 +130,15 @@ pipeline {
 
   post {
       always {
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    credentialsId: 'a61234f8-c9f7-49f3-b03c-f31ade1e885a',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+          sh '''
+            docker run -e AWS_REGION -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --entrypoint /bin/bash ledger-api-testtool:${ISOLATION_ID} -c "source ./aws-configure.sh && aws qldb delete-ledger --name ${ISOLATION_ID}"
+            docker run -e AWS_REGION -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --entrypoint /bin/bash ledger-api-testtool:${ISOLATION_ID} -c "source ./aws-configure.sh && aws s3 rb s3://valuestore-${ISOLATION_ID} --force"
+          '''
+        }
         sh 'docker-compose -f docker/docker-compose-build.yaml down'
         sh 'docker-compose -f docker/daml-test.yaml down'
         sh 'docker run -v $PWD:/project/daml-on-qldb daml-on-qldb-build-local:${ISOLATION_ID} mvn -B clean'
