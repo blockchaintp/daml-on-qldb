@@ -42,6 +42,8 @@ import com.digitalasset.daml.lf.archive.DarReader
 import com.digitalasset.daml_lf_dev.DamlLf.Archive
 import com.digitalasset.ledger.api.auth.AuthServiceWildcard
 import java.util.concurrent.CompletionStage;
+import com.digitalasset.ledger.api.auth.{AuthServiceWildcard, AuthServiceJWT}
+import com.digitalasset.jwt.{JwtVerifier, HMAC256Verifier}
 
 import org.slf4j.LoggerFactory
 
@@ -73,8 +75,18 @@ object DamlOnQldb extends App {
 
   val ledger = new QldbKvState(config.ledger,config.participantId);
 
-  //Replace this with a key based JWT service
-  val authService = AuthServiceWildcard
+  // Use the default key for this RPC to verify JWTs for now.
+  def hmac256(input:String) : AuthServiceJWT = {
+    val secret = input.substring(8,input.length())
+    val verifier:JwtVerifier = HMAC256Verifier(secret).getOrElse(throw new RuntimeException("Unable to instantiate JWT Verifier"))
+    return new AuthServiceJWT(verifier)
+  }
+
+  val authService = config.auth match {
+    case "wildcard" => AuthServiceWildcard
+    case  s if s.matches("""hmac256=([a-zA-Z0-9])+""") => hmac256(s)
+    case _ => AuthServiceWildcard
+  }
 
   config.archiveFiles.foreach { file =>
     for {
