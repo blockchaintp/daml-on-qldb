@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import com.blockchaintp.daml.exception.NonRecoverableErrorException;
 import com.blockchaintp.daml.model.QldbDamlLogEntry;
 import com.blockchaintp.daml.model.QldbDamlState;
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlLogEntry;
@@ -42,7 +43,7 @@ public class QldbCommitter implements Runnable {
   private final DamlLedger ledger;
   private final String participantId;
 
-  private LinkedBlockingQueue<Tuple2<DamlLogEntryId, DamlSubmission>> submissionQueue;
+  private LinkedBlockingQueue<SubmissionWrapper> submissionQueue;
 
   public QldbCommitter(Engine engine, DamlLedger ledger, String participantId) {
     this.engine = engine;
@@ -59,9 +60,10 @@ public class QldbCommitter implements Runnable {
     return new Timestamp(TimeUnit.SECONDS.toMicros(Clock.systemUTC().instant().getEpochSecond()));
   }
 
-  public SubmissionResult submit(DamlLogEntryId damlLogEntryId, DamlSubmission submission) {
+  public SubmissionResult submit(DamlLogEntryId damlLogEntryId, DamlSubmission damlSubmission) {
+    SubmissionWrapper submission = new SubmissionWrapper(damlLogEntryId, damlSubmission);
     try {
-      this.submissionQueue.put(Tuple2.apply(damlLogEntryId, submission));
+      this.submissionQueue.put(submission);
       return new SubmissionResult.Acknowledged$();
     } catch (InterruptedException ioe) {
       Thread.currentThread().interrupt();
@@ -70,13 +72,13 @@ public class QldbCommitter implements Runnable {
     }
   }
 
-  public void processSubmission(DamlLogEntryId damlLogEntryId, DamlSubmission submission) {
+  public void processSubmission(SubmissionWrapper submission) {
     QldbSession session = this.ledger.connect();
     Transaction txn = session.startTransaction();
     java.util.Map<DamlStateKey, Option<DamlStateValue>> inputState = new HashMap<>();
     try {
       List<QldbDamlState> stateRefreshList=new ArrayList<>();
-      for (DamlStateKey k : submission.getInputDamlStateList()) {
+      for (DamlStateKey k : submission.getDamlSubmission().getInputDamlStateList()) {
         ByteString kbs = KeyValueCommitting.packDamlStateKey(k);
         String skey = kbs.toStringUtf8();
         QldbDamlState s = new QldbDamlState(this.ledger, skey);
@@ -98,16 +100,16 @@ public class QldbCommitter implements Runnable {
     session.close();
     session = null;
 
-    LOG.info("Processing submission for logIdEntry={}", damlLogEntryId);
+    LOG.info("Processing submission for logIdEntry={}", submission.getDamlLogEntryId());
     Tuple2<DamlLogEntry, Map<DamlStateKey, DamlStateValue>> processedSubmissionScala = KeyValueCommitting
-        .processSubmission(this.engine, damlLogEntryId, getCurrentRecordTime(), getDefaultConfiguration(), submission,
-            participantId, mapToScalaImmutableMap(inputState));
+        .processSubmission(this.engine, submission.getDamlLogEntryId(), getCurrentRecordTime(),
+            getDefaultConfiguration(), submission.getDamlSubmission(), participantId, mapToScalaImmutableMap(inputState));
 
     DamlLogEntry outputEntry = processedSubmissionScala._1;
     java.util.Map<DamlStateKey, DamlStateValue> outputMap = scalaMapToMap(processedSubmissionScala._2);
 
     try {
-      QldbDamlLogEntry newQldbLogEntry = QldbDamlLogEntry.create(this.ledger, damlLogEntryId, outputEntry);
+      QldbDamlLogEntry newQldbLogEntry = QldbDamlLogEntry.create(this.ledger, submission.getDamlLogEntryId(), outputEntry);
       List<QldbDamlState> stateList = new ArrayList<>();
       for (java.util.Map.Entry<DamlStateKey, DamlStateValue> mapE : outputMap.entrySet()) {
         QldbDamlState state = QldbDamlState.create(this.ledger, mapE.getKey(), mapE.getValue());
@@ -148,8 +150,11 @@ public class QldbCommitter implements Runnable {
 
     while (true) {
       try {
-        Tuple2<DamlLogEntryId, DamlSubmission> submissionRequest = this.submissionQueue.take();
-        this.processSubmission(submissionRequest._1, submissionRequest._2);
+        SubmissionWrapper submission = this.submissionQueue.take();
+        this.processSubmission(submission);
+      } catch (NonRecoverableErrorException nree) {
+        LOG.error("{}: Cannot recover, shutting down...", nree);
+        System.exit(1);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         LOG.warn("Committer thread has been interrupted at the main loop");
@@ -158,6 +163,27 @@ public class QldbCommitter implements Runnable {
         LOG.warn("Committer thread has been interrupted at the main loop",e);
         throw new RuntimeException(e);
       }
+    }
+  }
+
+  /**
+   * DAML log entry a submission pair wrapper.
+   */
+  private class SubmissionWrapper {
+    private final DamlLogEntryId damlLogEntryId;
+    private final DamlSubmission damlSubmission;
+    
+    public SubmissionWrapper(final DamlLogEntryId newDamlLogEntryId, final DamlSubmission newDamlSubmission) {
+      this.damlLogEntryId = newDamlLogEntryId;
+      this.damlSubmission = newDamlSubmission;
+    }
+                                           
+    public DamlLogEntryId getDamlLogEntryId() {
+      return this.damlLogEntryId;
+    }
+
+    public DamlSubmission getDamlSubmission() {
+      return this.damlSubmission;
     }
   }
 }

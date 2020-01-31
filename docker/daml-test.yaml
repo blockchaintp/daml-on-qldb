@@ -53,10 +53,6 @@ services:
     #          support (setting time)
     # TransactionServiceIT - not clear why this fails, certain tests report "RESOURCE_EXHAUSTED" and thats all we get so
     #                        far
-    environment:
-      - AWS_REGION
-      - AWS_ACCESS_KEY_ID
-      - AWS_SECRET_ACCESS_KEY
     entrypoint: "bash -xc \"\
       sleep 60 && \
       java -jar ledger-api-test-tool.jar \
