@@ -15,6 +15,7 @@ import com.digitalasset.ledger.api.tls.TlsConfiguration
 final case class DamlOnQldbConfig(
     port: Int,
     ledger: String,
+    auth: String,
     archiveFiles: List[File],
     maxInboundMessageSize: Int,
     jdbcUrl: String,
@@ -44,6 +45,7 @@ object DamlOnQldbConfig {
     new DamlOnQldbConfig(
       0,
       "daml-on-qldb",
+      "wildcard",
       List.empty,
       DefaultMaxInboundMessageSize,
       "",
