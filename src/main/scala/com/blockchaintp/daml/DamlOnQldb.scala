@@ -11,43 +11,26 @@
 ------------------------------------------------------------------------------*/
 package com.blockchaintp.daml
 
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 
 import akka.actor.ActorSystem
-import akka.stream.scaladsl.{Sink, Source}
 import akka.stream.{ActorMaterializer, ActorMaterializerSettings, Supervision}
 import com.codahale.metrics.SharedMetricRegistries
-import scala.concurrent.duration._
 
-import com.daml.ledger.participant.state.v1.{
-  ParticipantId,
-  ReadService,
-  WriteService,
-  UploadPackagesResult
-}
-import com.digitalasset.ledger.api.domain.LedgerId
-import com.digitalasset.ledger.server.apiserver.{
-  ApiServer,
-  ApiServices,
-  LedgerApiServer
-}
-import com.digitalasset.daml.lf.engine.Engine
-import com.digitalasset.platform.index.{
-  StandaloneIndexServer,
-  StandaloneIndexerServer
-}
+import scala.concurrent.duration._
 import com.digitalasset.api.util.TimeProvider
 import com.digitalasset.platform.common.logging.NamedLoggerFactory
 import com.digitalasset.daml.lf.archive.DarReader
 import com.digitalasset.daml_lf_dev.DamlLf.Archive
-import com.digitalasset.ledger.api.auth.AuthServiceWildcard
-import java.util.concurrent.CompletionStage;
-import com.digitalasset.ledger.api.auth.{AuthServiceWildcard, AuthServiceJWT}
-import com.digitalasset.jwt.{JwtVerifier, HMAC256Verifier}
-
+import com.digitalasset.ledger.api.auth.{AuthServiceJWT, AuthServiceWildcard}
+import com.digitalasset.jwt.{HMAC256Verifier, JwtVerifier}
+import com.digitalasset.platform.apiserver.{ApiServerConfig, StandaloneApiServer}
+import com.digitalasset.platform.indexer.{IndexerConfig, StandaloneIndexerServer}
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.{ExecutionContext, Await, Future}
+import scala.concurrent.{Await, ExecutionContext}
+import scala.language.postfixOps
 import scala.util.Try
 import scala.util.control.NonFatal
 
@@ -73,13 +56,13 @@ object DamlOnQldb extends App {
   )
   implicit val ec: ExecutionContext = system.dispatcher
 
-  val ledger = new QldbKvState(config.ledger,config.participantId);
+  val ledger = new QldbKvState(config.ledger,config.participantId)
 
   // Use the default key for this RPC to verify JWTs for now.
   def hmac256(input:String) : AuthServiceJWT = {
     val secret = input.substring(8,input.length())
     val verifier:JwtVerifier = HMAC256Verifier(secret).getOrElse(throw new RuntimeException("Unable to instantiate JWT Verifier"))
-    return new AuthServiceJWT(verifier)
+    new AuthServiceJWT(verifier)
   }
 
   val authService = config.auth match {
@@ -93,6 +76,7 @@ object DamlOnQldb extends App {
       dar <- DarReader { case (_, x) => Try(Archive.parseFrom(x)) }
         .readArchiveFromFile(file)
     } yield ledger.uploadPackages(
+      UUID.randomUUID().toString,
       dar.all,
       Some("uploaded on participant startup")
     )
@@ -101,15 +85,15 @@ object DamlOnQldb extends App {
   val indexer = Await.result(
     StandaloneIndexerServer(
       ledger,
-      config.makePlatformConfig,
+      IndexerConfig(config.participantId, config.jdbcUrl, config.startupMode),
       NamedLoggerFactory.forParticipant(config.participantId),
       SharedMetricRegistries.getOrCreate(s"indexer-${config.participantId}"),
     ),
     30 second
   )
   val indexServer = Await.result(
-    new StandaloneIndexServer(
-      config.makePlatformConfig,
+    new StandaloneApiServer(
+      ApiServerConfig(config.participantId, config.archiveFiles, config.port, config.jdbcUrl, config.tlsConfig, TimeProvider.UTC, config.maxInboundMessageSize, None),
       ledger,
       ledger,
       authService,
@@ -133,12 +117,11 @@ object DamlOnQldb extends App {
   try {
     Runtime.getRuntime.addShutdownHook(new Thread(() => closeServer()))
   } catch {
-    case NonFatal(t) => {
+    case NonFatal(t) =>
       logger.error(
         "Shutting down Sandbox application because of initialization error",
         t
       )
       closeServer()
-    }
   }
 }
