@@ -6,12 +6,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.amazonaws.AmazonServiceException;
-import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
-import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.qldbsession.AmazonQLDBSessionClientBuilder;
+
+import com.blockchaintp.daml.exception.NonRecoverableErrorException;
 import com.blockchaintp.daml.model.DistributedLedger;
 import com.blockchaintp.daml.model.QldbDamlLogEntry;
 import com.blockchaintp.daml.model.QldbDamlState;
@@ -25,6 +25,8 @@ import software.amazon.awssdk.services.s3.model.CreateBucketConfiguration;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.StorageClass;
 import software.amazon.qldb.PooledQldbDriver;
@@ -147,7 +149,18 @@ public final class DamlLedger implements DistributedLedger {
     LOG.info("Fetching {} from bucket {}", key, getBucketName());
     final S3Client s3 = getS3Client();
     final GetObjectRequest getreq = GetObjectRequest.builder().bucket(getBucketName()).key(key).build();
-    return s3.getObjectAsBytes(getreq).asByteArray();
+    // S3 can erroneously report that a bucket doesn't exist when it does, so retry a few times
+    int attempts = 0;
+    for (; attempts < 3; attempts++) {
+      try {
+        return s3.getObjectAsBytes(getreq).asByteArray();
+      } catch (final NoSuchBucketException nsbe) {
+        LOG.warn("Failed to find our bucket {}, retrying ...", getBucketName());
+      }
+    }
+    throw new NonRecoverableErrorException(
+        String.format("%s: Bucket %s not found after %d attempts - was it deleted?",
+            NoSuchBucketException.class.getName(), attempts));
   }
 
   @Override
