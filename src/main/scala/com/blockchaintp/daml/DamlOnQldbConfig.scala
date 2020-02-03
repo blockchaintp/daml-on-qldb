@@ -5,12 +5,11 @@ package com.blockchaintp.daml
 
 import java.io.File
 
-import com.digitalasset.platform.index.config.Config
-import com.digitalasset.platform.index.config.StartupMode
 import com.daml.ledger.participant.state.v1.ParticipantId
 import com.digitalasset.api.util.TimeProvider
 import com.digitalasset.daml.lf.data.Ref.LedgerString
 import com.digitalasset.ledger.api.tls.TlsConfiguration
+import com.digitalasset.platform.indexer.IndexerStartupMode
 
 final case class DamlOnQldbConfig(
     port: Int,
@@ -21,23 +20,8 @@ final case class DamlOnQldbConfig(
     jdbcUrl: String,
     participantId: ParticipantId,
     tlsConfig: Option[TlsConfiguration],
-) {
-  def makePlatformConfig(): Config = {
-    return new Config(
-      this.port,
-      None,
-      List.empty,
-      this.maxInboundMessageSize,
-      TimeProvider.UTC, // TODO this can't be right
-      this.jdbcUrl,
-      this.tlsConfig,
-      this.participantId,
-      Vector.empty,
-      StartupMode.MigrateAndStart
-    )
-  }
-
-}
+    startupMode: IndexerStartupMode
+)
 
 object DamlOnQldbConfig {
   val DefaultMaxInboundMessageSize = 4194304
@@ -50,6 +34,7 @@ object DamlOnQldbConfig {
       DefaultMaxInboundMessageSize,
       "",
       LedgerString.assertFromString("unknown-participant"),
-      None
+      None,
+      IndexerStartupMode.MigrateAndStart
     )
 }

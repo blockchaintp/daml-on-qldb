@@ -18,7 +18,6 @@ import com.daml.ledger.participant.state.v1.SubmissionResult;
 import com.daml.ledger.participant.state.v1.SubmitterInfo;
 import com.daml.ledger.participant.state.v1.TransactionMeta;
 import com.daml.ledger.participant.state.v1.Update;
-import com.daml.ledger.participant.state.v1.UploadPackagesResult;
 import com.daml.ledger.participant.state.v1.WriteService;
 import com.digitalasset.daml.lf.data.Time.Timestamp;
 import com.digitalasset.daml.lf.engine.Engine;
@@ -26,7 +25,7 @@ import com.digitalasset.daml.lf.transaction.GenTransaction;
 import com.digitalasset.daml.lf.value.Value.ContractId;
 import com.digitalasset.daml.lf.value.Value.NodeId;
 import com.digitalasset.daml.lf.value.Value.VersionedValue;
-import com.digitalasset.daml_lf_dev.DamlLf.Archive;
+import com.digitalasset.daml_lf_dev.DamlLf;
 import com.digitalasset.ledger.api.health.HealthStatus;
 import com.digitalasset.ledger.api.health.Healthy;
 import com.google.protobuf.ByteString;
@@ -79,31 +78,19 @@ public class QldbKvState implements WriteService, ReadService {
   }
 
   @Override
-  public CompletionStage<UploadPackagesResult> uploadPackages( scala.collection.immutable.List<Archive> payload,
-      Option<String> optionalDescription) {
-
+  public CompletionStage<SubmissionResult> uploadPackages(final String submissionId,
+                                                          final scala.collection.immutable.List<DamlLf.Archive> payload, final Option<String> optionalDescription) {
     String sourceDescription = "Uploaded package";
     if (optionalDescription.nonEmpty()) {
       sourceDescription = optionalDescription.get();
     }
-    String submissionId = UUID.randomUUID().toString();
     DamlSubmission submission = KeyValueSubmission.archivesToSubmission(submissionId, payload, sourceDescription,
         this.getParticipantId());
 
     DamlLogEntryId damlLogEntryId = DamlLogEntryId.newBuilder().setEntryId(ByteString.copyFromUtf8(submissionId))
         .build();
     LOG.info("upload package with submissionid {}", submissionId);
-
-    SubmissionResult sr = this.committer.submit(damlLogEntryId, submission);
-    if (sr instanceof SubmissionResult.Acknowledged$) {
-      return CompletableFuture.completedFuture(new UploadPackagesResult.Ok$());
-    } else if (sr instanceof SubmissionResult.Overloaded$) {
-      return CompletableFuture.completedFuture(new UploadPackagesResult.Overloaded$());
-    } else if (sr instanceof SubmissionResult.NotSupported$) {
-      return CompletableFuture.completedFuture(new UploadPackagesResult.NotSupported$());
-    } else {
-      return CompletableFuture.completedFuture(new UploadPackagesResult.InternalError(sr.description()));
-    }
+    return CompletableFuture.completedFuture(this.committer.submit(damlLogEntryId, submission));
   }
 
   @Override
