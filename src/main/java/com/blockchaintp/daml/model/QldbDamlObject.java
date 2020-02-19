@@ -146,6 +146,7 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
   public boolean exists(final Transaction txn) throws IOException {
     LOG.info("exists id={} in table={}", getId(), tableName());
     final String query = String.format("select o from %s where id = ?", tableName());
+    LOG.info(String.format("QUERY = %s ID = %s", query, getId()));
     final List<IonValue> params = new ArrayList<>();
     params.add(Constants.MAPPER.writeValueAsIonValue(getId()));
     final Result r = txn.execute(query, params);
