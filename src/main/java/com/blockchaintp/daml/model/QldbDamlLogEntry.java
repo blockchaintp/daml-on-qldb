@@ -8,6 +8,7 @@ import java.util.List;
 import com.amazon.ion.IonStruct;
 import com.amazon.ion.IonText;
 import com.amazon.ion.IonValue;
+import com.amazonaws.util.Base64;
 import com.blockchaintp.daml.Constants;
 import com.blockchaintp.daml.DamlLedger;
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlLogEntry;
@@ -57,7 +58,7 @@ public class QldbDamlLogEntry extends QldbDamlObject {
   }
 
   public static QldbDamlLogEntry create(final DamlLedger targetLedger, final DamlLogEntryId pbEntryId, final DamlLogEntry pbEntry) {
-    final String packedId = KeyValueCommitting.packDamlLogEntryId(pbEntryId).toStringUtf8();
+    final String packedId = Base64.encodeAsString(KeyValueCommitting.packDamlLogEntryId(pbEntryId).toByteArray());
     final byte[] data = KeyValueCommitting.packDamlLogEntry(pbEntry).toByteArray();
     return new QldbDamlLogEntry(targetLedger, packedId, data);
   }
@@ -71,7 +72,7 @@ public class QldbDamlLogEntry extends QldbDamlObject {
   }
 
   public DamlLogEntryId damlLogEntryId() {
-    return KeyValueCommitting.unpackDamlLogEntryId(ByteString.copyFromUtf8(getId()));
+    return KeyValueCommitting.unpackDamlLogEntryId(ByteString.copyFrom(Base64.decode(getId())));
   }
 
   public DamlLogEntry damlLogEntry() {
