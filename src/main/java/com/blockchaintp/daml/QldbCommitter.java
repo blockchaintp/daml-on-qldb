@@ -116,12 +116,8 @@ public class QldbCommitter implements Runnable {
         stateList.add(state);
         state.updateBulkStore();
       }
-
       newQldbLogEntry.updateBulkStore();
-      for (java.util.Map.Entry<DamlStateKey, DamlStateValue> mapE : outputMap.entrySet()) {
-        QldbDamlState state = QldbDamlState.create(this.ledger, mapE.getKey(), mapE.getValue());
-        stateList.add(state);
-      }
+
       session = this.ledger.connect();
       txn = session.startTransaction();
       newQldbLogEntry.upsert(txn);
@@ -172,12 +168,12 @@ public class QldbCommitter implements Runnable {
   private class SubmissionWrapper {
     private final DamlLogEntryId damlLogEntryId;
     private final DamlSubmission damlSubmission;
-    
+
     public SubmissionWrapper(final DamlLogEntryId newDamlLogEntryId, final DamlSubmission newDamlSubmission) {
       this.damlLogEntryId = newDamlLogEntryId;
       this.damlSubmission = newDamlSubmission;
     }
-                                           
+
     public DamlLogEntryId getDamlLogEntryId() {
       return this.damlLogEntryId;
     }
