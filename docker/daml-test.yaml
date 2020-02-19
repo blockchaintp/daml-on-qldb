@@ -19,6 +19,8 @@ services:
 
   postgres:
     image: postgres
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
 
   daml-on-qldb:
     image: daml-on-qldb:${ISOLATION_ID}
