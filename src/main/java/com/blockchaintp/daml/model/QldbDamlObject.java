@@ -100,6 +100,7 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
     LOG.info("insert id={} in table={}", getId(), tableName());
 
     final String query = String.format("insert into %s ?", tableName());
+    LOG.info(String.format("QUERY = %s", query));
     final IonValue doc = Constants.MAPPER.writeValueAsIonValue(this);
     LOG.info("Inserting {}", doc.toPrettyString());
     final List<IonValue> params = Collections.singletonList(doc);
@@ -111,6 +112,7 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
     LOG.info("update id={} in table={}", getId(), tableName());
 
     final String query = String.format("update %s set s3Key = ? where id = ?", tableName());
+    LOG.info(String.format("QUERY = %s s3Key = %s ID = %s", query, getS3Key(), getId()));
     final List<IonValue> params = new ArrayList<>();
     params.add(Constants.MAPPER.writeValueAsIonValue(getS3Key()));
     params.add(Constants.MAPPER.writeValueAsIonValue(getId()));
@@ -169,6 +171,7 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
     if (exists(txn)) {
       LOG.info("delete id={} in table={}", getId(), tableName());
       final String query = String.format("delete from %s where id = ?", tableName());
+      LOG.info(String.format("QUERY = %s ID = %s", query, getId()));
       final List<IonValue> params = new ArrayList<>();
       params.add(Constants.MAPPER.writeValueAsIonValue(getId()));
       final Result r = txn.execute(query, params);
