@@ -21,7 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import software.amazon.qldb.Result;
-import software.amazon.qldb.Transaction;
+import software.amazon.qldb.TransactionExecutor;
 
 public class QldbDamlLogEntry extends QldbDamlObject {
 
@@ -30,30 +30,14 @@ public class QldbDamlLogEntry extends QldbDamlObject {
 
   private long offset;
 
-  public QldbDamlLogEntry(DamlLedger targetLedger, @JsonProperty("id") final String newId, @JsonProperty("s3Key") final String newS3Key,
-      @JsonProperty("offset") final long newOffset, final byte[] newData) {
-    super(targetLedger, newId, newS3Key, newData);
-    this.offset = newOffset;
-  }
-
-  public QldbDamlLogEntry(DamlLedger targetLedger, @JsonProperty("id") final String newId, final byte[] newData) {
+  private QldbDamlLogEntry(DamlLedger targetLedger, @JsonProperty("id") final String newId, final byte[] newData) {
     super(targetLedger, newId, newData);
-    this.offset = -1L;
-  }
-
-  public QldbDamlLogEntry(DamlLedger targetLedger, @JsonProperty("id") final String newId) {
-    super(targetLedger, newId);
     this.offset = -1L;
   }
 
   public QldbDamlLogEntry(DamlLedger targetLedger, @JsonProperty("id") final String newId, @JsonProperty("s3Key") final String newS3Key,
       @JsonProperty("offset") final long newOffset) {
     super(targetLedger, newId, newS3Key, null);
-    this.offset = newOffset;
-  }
-
-  public QldbDamlLogEntry(DamlLedger targetLedger, @JsonProperty("id") final String newId, @JsonProperty("offset") final long newOffset) {
-    super(targetLedger, newId);
     this.offset = newOffset;
   }
 
@@ -79,7 +63,7 @@ public class QldbDamlLogEntry extends QldbDamlObject {
     return KeyValueCommitting.unpackDamlLogEntry(ByteString.copyFrom(s3Data()));
   }
 
-  public static long getMaxOffset(final Transaction txn) {
+  public static long getMaxOffset(final TransactionExecutor txn) {
     LOG.info("fetch maxOffset");
 
     final String query = String.format("select max(offset) from %s", TABLE_NAME);
@@ -102,7 +86,7 @@ public class QldbDamlLogEntry extends QldbDamlObject {
     }
   }
 
-  public static QldbDamlLogEntry getNextLogEntry(final Transaction txn, final DamlLedger ledger, final long currentOffset)
+  public static QldbDamlLogEntry getNextLogEntry(final TransactionExecutor txn, final DamlLedger ledger, final long currentOffset)
       throws IOException {
     LOG.info("getNextLogEntry currentOffset={} in table={}", currentOffset, QldbDamlLogEntry.TABLE_NAME);
     long nextOffset = currentOffset;
@@ -138,7 +122,7 @@ public class QldbDamlLogEntry extends QldbDamlObject {
   }
 
   @Override
-  public Result insert(final Transaction txn) throws IOException {
+  public Result insert(final TransactionExecutor txn) throws IOException {
     final long currentOffset = getMaxOffset(txn);
     if (currentOffset == -1L) {
       this.offset = 0;

@@ -1,5 +1,11 @@
 package com.blockchaintp.daml;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import com.amazon.ion.IonValue;
 import com.amazonaws.services.qldb.AmazonQLDB;
 import com.amazonaws.services.qldb.AmazonQLDBClientBuilder;
 import com.amazonaws.services.qldb.model.CreateLedgerRequest;
@@ -10,10 +16,14 @@ import com.amazonaws.services.qldb.model.DescribeLedgerResult;
 import com.amazonaws.services.qldb.model.LedgerState;
 import com.amazonaws.services.qldb.model.PermissionsMode;
 import com.amazonaws.services.qldb.model.ResourceNotFoundException;
+import com.amazonaws.services.qldbsession.model.BadRequestException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import software.amazon.qldb.PooledQldbDriver;
+import software.amazon.qldb.QldbSession;
+import software.amazon.qldb.Result;
 import software.amazon.qldb.TransactionExecutor;
 
 public class QLDBServiceClient {
@@ -118,4 +128,42 @@ public class QLDBServiceClient {
     return;
   }
 
+  public void waitForTable(PooledQldbDriver driver, String tableName) {
+    QldbSession session = driver.getSession();
+    List<Object> tableExistsCond = new ArrayList<>();
+    while (tableExistsCond.size() == 0) {
+      session.execute(txn-> {
+        if (tableExists(txn, tableName)) {
+          tableExistsCond.add(new Object());
+        }
+      }, (retryAttempt) -> {
+        LOG.warn("OCC Conflict while checking if table exists");
+      });
+      try {
+        Thread.sleep(1_000L);
+      } catch (InterruptedException e) {
+        LOG.warn("Interrupted while sleeping");
+        throw new RuntimeException(e);
+      }
+    }
+    session.close();
+  }
+
+  public boolean tableExists(final TransactionExecutor txn, final String tableName) {
+    LOG.info(String.format("Checking if table %s exists yet", tableName));
+    final String query = String.format("select o.* from %s where id = ?", tableName);
+    try {
+      final List<IonValue> params = Collections
+          .singletonList(Constants.MAPPER.writeValueAsIonValue("hfdskhkdsaflkjdahskljf"));
+      final Result r = txn.execute(query, params);
+      LOG.info("Check query returned {}", r.isEmpty());
+      return true;
+    } catch (IOException e) {
+      LOG.error("Exception writing IonValue, shouldn't happen");
+      throw new RuntimeException(e);
+    } catch (BadRequestException t) {
+      LOG.warn("Check query threw BadRequestException still waiting for table");
+      return false;
+    }
+  }
 }

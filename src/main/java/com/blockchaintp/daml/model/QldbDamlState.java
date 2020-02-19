@@ -25,6 +25,10 @@ public final class QldbDamlState extends QldbDamlObject {
     super(targetLedger, newId);
   }
 
+  public QldbDamlState(final DamlLedger targetLedger, DamlStateKey pbEntryId) {
+    super(targetLedger, Base64.encodeAsString(KeyValueCommitting.packDamlStateKey(pbEntryId).toByteArray()));
+  }
+
   public static QldbDamlState create(final DamlLedger targetLedger, final DamlStateKey pbEntryId,
       final DamlStateValue pbEntry) {
     final String packedId = Base64.encodeAsString(KeyValueCommitting.packDamlStateKey(pbEntryId).toByteArray());
