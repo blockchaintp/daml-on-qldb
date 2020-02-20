@@ -162,8 +162,8 @@ public final class DamlLedger implements DistributedLedger {
       }
     }
     throw new NonRecoverableErrorException(
-        String.format("%s: Bucket %s not found after %d attempts - was it deleted?",
-            NoSuchBucketException.class.getName(), attempts));
+        String.format("%s: Bucket %s not found after %d attempts - was it deleted?",key,
+            getBucketName(), attempts));
   }
 
   @Override
