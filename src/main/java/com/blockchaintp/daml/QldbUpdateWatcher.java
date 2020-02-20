@@ -24,7 +24,7 @@ import io.reactivex.processors.UnicastProcessor;
 import scala.Tuple2;
 import scala.collection.JavaConverters;
 import software.amazon.qldb.QldbSession;
-import software.amazon.qldb.Transaction;
+import software.amazon.qldb.TransactionExecutor;
 
 public class QldbUpdateWatcher implements Runnable {
 
@@ -32,21 +32,22 @@ public class QldbUpdateWatcher implements Runnable {
   private static final int DEFAULT_POLL_INTERVAL_SECONDS = 1;
   private static final Logger LOG = LoggerFactory.getLogger(QldbUpdateWatcher.class);
   private long offset;
-  private UnicastProcessor<Tuple2<Offset, Update>> processor;
+  private final UnicastProcessor<Tuple2<Offset, Update>> processor;
 
-  private ScheduledExecutorService executorPool;
-  private DamlLedger ledger;
+  private final ScheduledExecutorService executorPool;
+  private final DamlLedger ledger;
   private long hbCount;
 
-  public QldbUpdateWatcher(long startingOffset, DamlLedger ledger, ScheduledExecutorService executorPool) {
+  public QldbUpdateWatcher(final long startingOffset, final DamlLedger ledger,
+      final ScheduledExecutorService executorPool) {
     this.offset = startingOffset;
     this.ledger = ledger;
     this.processor = UnicastProcessor.create();
     this.executorPool = executorPool;
   }
 
-  public List<QldbDamlLogEntry> fetchNextLogEntries(Transaction txn) throws IOException {
-    List<QldbDamlLogEntry> retList = new ArrayList<>();
+  public List<QldbDamlLogEntry> fetchNextLogEntries(final TransactionExecutor txn) throws IOException {
+    final List<QldbDamlLogEntry> retList = new ArrayList<>();
     QldbDamlLogEntry log = QldbDamlLogEntry.getNextLogEntry(txn, this.ledger, this.offset);
     int countOfLogEntries = 0;
     while (log != null) {
@@ -72,19 +73,26 @@ public class QldbUpdateWatcher implements Runnable {
 
   @Override
   public void run() {
-    QldbSession session = this.ledger.connect();
-    Transaction txn = session.startTransaction();
+    final QldbSession session = this.ledger.connect();
     try {
-      List<QldbDamlLogEntry> newEntries = this.fetchNextLogEntries(txn);
-      txn.close();
+      final List<QldbDamlLogEntry> newEntries = new ArrayList<>();
+      session.execute(txn -> {
+        try {
+          List<QldbDamlLogEntry> fetchedEntries = this.fetchNextLogEntries(txn);
+          newEntries.addAll(fetchedEntries);
+        } catch (IOException e1) {
+          LOG.error("Error fetching entries",e1);
+          throw new RuntimeException(e1);
+        }
+      }, (retryAttempts) -> LOG.info("Retrying due to OCC Failure"));
       boolean updatesSent = false;
-      long startOffset = this.offset;
-      for (QldbDamlLogEntry e : newEntries) {
-        Collection<Update> updates = JavaConverters
+      final long startOffset = this.offset;
+      for (final QldbDamlLogEntry e : newEntries) {
+        final Collection<Update> updates = JavaConverters
             .asJavaCollection(KeyValueConsumption.logEntryToUpdate(e.damlLogEntryId(), e.damlLogEntry()));
         long updateInLogEntryCount = 1;
-        for (Update u : updates) {
-          Offset thisOffset = Offset.apply(new long[] { e.getOffset(), updateInLogEntryCount++ });
+        for (final Update u : updates) {
+          final Offset thisOffset = Offset.apply(new long[] { e.getOffset(), updateInLogEntryCount++ });
           this.processor.onNext(Tuple2.apply(thisOffset, u));
           updatesSent = true;
         }
@@ -98,11 +106,11 @@ public class QldbUpdateWatcher implements Runnable {
         if (effectiveOffset < 0) {
           effectiveOffset = 0;
         }
-        Offset thisOffset = Offset.apply(new long[] { effectiveOffset, this.hbCount++ });
+        final Offset thisOffset = Offset.apply(new long[] { effectiveOffset, this.hbCount++ });
         LOG.info("Sending heartbeat at offset {}", thisOffset);
         Tuple2.apply(thisOffset, new Heartbeat(this.getCurrentRecordTime()));
       }
-    } catch (Throwable ioe) {
+    } catch (final Throwable ioe) {
       LOG.error("IOException watching logs",ioe);
       throw new RuntimeException(ioe);
     }

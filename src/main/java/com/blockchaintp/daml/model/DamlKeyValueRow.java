@@ -3,7 +3,7 @@ package com.blockchaintp.daml.model;
 import java.io.IOException;
 
 import software.amazon.qldb.Result;
-import software.amazon.qldb.Transaction;
+import software.amazon.qldb.TransactionExecutor;
 
 public interface DamlKeyValueRow {
 
@@ -21,18 +21,18 @@ public interface DamlKeyValueRow {
 
   void updateBulkStore() throws IOException;
 
-  Result insert(Transaction txn) throws IOException;
+  Result insert(TransactionExecutor txn) throws IOException;
 
-  Result update(Transaction txn) throws IOException;
+  Result update(TransactionExecutor txn) throws IOException;
 
-  DamlKeyValueRow fetch(Transaction txn) throws IOException;
+  DamlKeyValueRow fetch(TransactionExecutor txn) throws IOException;
 
-  boolean exists(Transaction txn) throws IOException;
+  boolean exists(TransactionExecutor txn) throws IOException;
 
-  boolean upsert(Transaction txn) throws IOException;
+  boolean upsert(TransactionExecutor txn) throws IOException;
 
-  boolean delete(Transaction txn) throws IOException;
+  boolean delete(TransactionExecutor txn) throws IOException;
 
   String tableName();
-  
+
 }

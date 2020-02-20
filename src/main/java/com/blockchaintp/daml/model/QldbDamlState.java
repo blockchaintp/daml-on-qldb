@@ -1,5 +1,6 @@
 package com.blockchaintp.daml.model;
 
+import com.amazonaws.util.Base64;
 import com.blockchaintp.daml.DamlLedger;
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlStateKey;
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlStateValue;
@@ -15,7 +16,7 @@ public final class QldbDamlState extends QldbDamlObject {
       @JsonProperty("s3Key") final String newS3key, final byte[] data) {
     super(targetLedger, newId, newS3key, data);
   }
-  
+
   public QldbDamlState(final DamlLedger targetLedger, @JsonProperty("id") final String id, final byte[] data) {
     super(targetLedger, id, data);
   }
@@ -24,15 +25,20 @@ public final class QldbDamlState extends QldbDamlObject {
     super(targetLedger, newId);
   }
 
+  public QldbDamlState(final DamlLedger targetLedger, DamlStateKey pbEntryId) {
+    super(targetLedger, Base64.encodeAsString(KeyValueCommitting.packDamlStateKey(pbEntryId).toByteArray()));
+  }
+
   public static QldbDamlState create(final DamlLedger targetLedger, final DamlStateKey pbEntryId,
       final DamlStateValue pbEntry) {
-    final String packedId = KeyValueCommitting.packDamlStateKey(pbEntryId).toStringUtf8();
+    final String packedId = Base64.encodeAsString(KeyValueCommitting.packDamlStateKey(pbEntryId).toByteArray());
+
     final byte[] data = KeyValueCommitting.packDamlStateValue(pbEntry).toByteArray();
     return new QldbDamlState(targetLedger, packedId, data);
   }
 
   public DamlStateKey damlStateKey() {
-    return KeyValueCommitting.unpackDamlStateKey(ByteString.copyFromUtf8(getId()));
+    return KeyValueCommitting.unpackDamlStateKey(ByteString.copyFrom(Base64.decode(getId())));
   }
 
   public DamlStateValue damlStateValue() {

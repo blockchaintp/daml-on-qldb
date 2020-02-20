@@ -76,6 +76,9 @@ public final class DamlLedger implements DistributedLedger {
         client.createTable(txn, "daml_time");
       }, (retryAttempt) -> LOG.info("Retrying due to OCC conflict"));
       session.close();
+      client.waitForTable(this.driver, QldbDamlState.TABLE_NAME);
+      client.waitForTable(this.driver, QldbDamlLogEntry.TABLE_NAME);
+      client.waitForTable(this.driver, "daml_time");
     }
   }
 
