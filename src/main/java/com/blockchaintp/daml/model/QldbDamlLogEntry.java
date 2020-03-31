@@ -8,6 +8,7 @@ import java.util.List;
 import com.amazon.ion.IonStruct;
 import com.amazon.ion.IonText;
 import com.amazon.ion.IonValue;
+import com.amazonaws.util.Base64;
 import com.blockchaintp.daml.Constants;
 import com.blockchaintp.daml.DamlLedger;
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlLogEntry;
@@ -20,7 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import software.amazon.qldb.Result;
-import software.amazon.qldb.Transaction;
+import software.amazon.qldb.TransactionExecutor;
 
 public class QldbDamlLogEntry extends QldbDamlObject {
 
@@ -29,19 +30,8 @@ public class QldbDamlLogEntry extends QldbDamlObject {
 
   private long offset;
 
-  public QldbDamlLogEntry(DamlLedger targetLedger, @JsonProperty("id") final String newId, @JsonProperty("s3Key") final String newS3Key,
-      @JsonProperty("offset") final long newOffset, final byte[] newData) {
-    super(targetLedger, newId, newS3Key, newData);
-    this.offset = newOffset;
-  }
-
-  public QldbDamlLogEntry(DamlLedger targetLedger, @JsonProperty("id") final String newId, final byte[] newData) {
+  private QldbDamlLogEntry(DamlLedger targetLedger, @JsonProperty("id") final String newId, final byte[] newData) {
     super(targetLedger, newId, newData);
-    this.offset = -1L;
-  }
-
-  public QldbDamlLogEntry(DamlLedger targetLedger, @JsonProperty("id") final String newId) {
-    super(targetLedger, newId);
     this.offset = -1L;
   }
 
@@ -51,13 +41,8 @@ public class QldbDamlLogEntry extends QldbDamlObject {
     this.offset = newOffset;
   }
 
-  public QldbDamlLogEntry(DamlLedger targetLedger, @JsonProperty("id") final String newId, @JsonProperty("offset") final long newOffset) {
-    super(targetLedger, newId);
-    this.offset = newOffset;
-  }
-
   public static QldbDamlLogEntry create(final DamlLedger targetLedger, final DamlLogEntryId pbEntryId, final DamlLogEntry pbEntry) {
-    final String packedId = KeyValueCommitting.packDamlLogEntryId(pbEntryId).toStringUtf8();
+    final String packedId = Base64.encodeAsString(KeyValueCommitting.packDamlLogEntryId(pbEntryId).toByteArray());
     final byte[] data = KeyValueCommitting.packDamlLogEntry(pbEntry).toByteArray();
     return new QldbDamlLogEntry(targetLedger, packedId, data);
   }
@@ -71,14 +56,14 @@ public class QldbDamlLogEntry extends QldbDamlObject {
   }
 
   public DamlLogEntryId damlLogEntryId() {
-    return KeyValueCommitting.unpackDamlLogEntryId(ByteString.copyFromUtf8(getId()));
+    return KeyValueCommitting.unpackDamlLogEntryId(ByteString.copyFrom(Base64.decode(getId())));
   }
 
   public DamlLogEntry damlLogEntry() {
     return KeyValueCommitting.unpackDamlLogEntry(ByteString.copyFrom(s3Data()));
   }
 
-  public static long getMaxOffset(final Transaction txn) {
+  public static long getMaxOffset(final TransactionExecutor txn) {
     LOG.info("fetch maxOffset");
 
     final String query = String.format("select max(offset) from %s", TABLE_NAME);
@@ -101,7 +86,7 @@ public class QldbDamlLogEntry extends QldbDamlObject {
     }
   }
 
-  public static QldbDamlLogEntry getNextLogEntry(final Transaction txn, final DamlLedger ledger, final long currentOffset)
+  public static QldbDamlLogEntry getNextLogEntry(final TransactionExecutor txn, final DamlLedger ledger, final long currentOffset)
       throws IOException {
     LOG.info("getNextLogEntry currentOffset={} in table={}", currentOffset, QldbDamlLogEntry.TABLE_NAME);
     long nextOffset = currentOffset;
@@ -137,7 +122,7 @@ public class QldbDamlLogEntry extends QldbDamlObject {
   }
 
   @Override
-  public Result insert(final Transaction txn) throws IOException {
+  public Result insert(final TransactionExecutor txn) throws IOException {
     final long currentOffset = getMaxOffset(txn);
     if (currentOffset == -1L) {
       this.offset = 0;

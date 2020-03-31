@@ -76,6 +76,9 @@ public final class DamlLedger implements DistributedLedger {
         client.createTable(txn, "daml_time");
       }, (retryAttempt) -> LOG.info("Retrying due to OCC conflict"));
       session.close();
+      client.waitForTable(this.driver, QldbDamlState.TABLE_NAME);
+      client.waitForTable(this.driver, QldbDamlLogEntry.TABLE_NAME);
+      client.waitForTable(this.driver, "daml_time");
     }
   }
 
@@ -159,8 +162,8 @@ public final class DamlLedger implements DistributedLedger {
       }
     }
     throw new NonRecoverableErrorException(
-        String.format("%s: Bucket %s not found after %d attempts - was it deleted?",
-            NoSuchBucketException.class.getName(), attempts));
+        String.format("%s: Bucket %s not found after %d attempts - was it deleted?",key,
+            getBucketName(), attempts));
   }
 
   @Override

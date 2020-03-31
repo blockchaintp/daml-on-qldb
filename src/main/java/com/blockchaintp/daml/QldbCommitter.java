@@ -74,30 +74,29 @@ public class QldbCommitter implements Runnable {
 
   public void processSubmission(SubmissionWrapper submission) {
     QldbSession session = this.ledger.connect();
-    Transaction txn = session.startTransaction();
     java.util.Map<DamlStateKey, Option<DamlStateValue>> inputState = new HashMap<>();
-    try {
-      List<QldbDamlState> stateRefreshList=new ArrayList<>();
+    List<QldbDamlState> stateRefreshList = new ArrayList<>();
+    session.execute(txn -> {
       for (DamlStateKey k : submission.getDamlSubmission().getInputDamlStateList()) {
-        ByteString kbs = KeyValueCommitting.packDamlStateKey(k);
-        String skey = kbs.toStringUtf8();
-        QldbDamlState s = new QldbDamlState(this.ledger, skey);
-        if (s.exists(txn)) {
-          s.fetch(txn);
-          stateRefreshList.add(s);
-          inputState.put(k, Option.apply(s.damlStateValue()));
-        } else {
-          inputState.put(k, Option.empty());
+        QldbDamlState s = new QldbDamlState(this.ledger, k);
+        try {
+          if (s.exists(txn)) {
+            s.fetch(txn);
+            stateRefreshList.add(s);
+            inputState.put(k, Option.apply(s.damlStateValue()));
+          } else {
+            inputState.put(k, Option.empty());
+          }
+        } catch (IOException e) {
+          LOG.error("Error in fetching items", e);
+          throw new RuntimeException(e);
         }
       }
-      for (QldbDamlState s: stateRefreshList) {
-        s.refreshFromBulkStore();
-      }
-    } catch (IOException ioe) {
-      LOG.error("IOException committing data", ioe);
-      throw new RuntimeException(ioe);
-    }
+    }, (retryAttempt) -> LOG.info("Retrying due to OCC conflict"));
     session.close();
+    for (QldbDamlState s : stateRefreshList) {
+      s.refreshFromBulkStore();
+    }
     session = null;
 
     LOG.info("Processing submission for logIdEntry={}", submission.getDamlLogEntryId());
@@ -108,31 +107,33 @@ public class QldbCommitter implements Runnable {
     DamlLogEntry outputEntry = processedSubmissionScala._1;
     java.util.Map<DamlStateKey, DamlStateValue> outputMap = scalaMapToMap(processedSubmissionScala._2);
 
+    QldbDamlLogEntry newQldbLogEntry = QldbDamlLogEntry.create(this.ledger, submission.getDamlLogEntryId(),
+        outputEntry);
+    List<QldbDamlState> stateList = new ArrayList<>();
     try {
-      QldbDamlLogEntry newQldbLogEntry = QldbDamlLogEntry.create(this.ledger, submission.getDamlLogEntryId(), outputEntry);
-      List<QldbDamlState> stateList = new ArrayList<>();
       for (java.util.Map.Entry<DamlStateKey, DamlStateValue> mapE : outputMap.entrySet()) {
         QldbDamlState state = QldbDamlState.create(this.ledger, mapE.getKey(), mapE.getValue());
         stateList.add(state);
         state.updateBulkStore();
       }
-
       newQldbLogEntry.updateBulkStore();
-      for (java.util.Map.Entry<DamlStateKey, DamlStateValue> mapE : outputMap.entrySet()) {
-        QldbDamlState state = QldbDamlState.create(this.ledger, mapE.getKey(), mapE.getValue());
-        stateList.add(state);
-      }
-      session = this.ledger.connect();
-      txn = session.startTransaction();
-      newQldbLogEntry.upsert(txn);
-      for (QldbDamlState s : stateList) {
-        s.upsert(txn);
-      }
-      txn.commit();
-    } catch (Throwable ioe) {
-      LOG.error("IOException committing data", ioe);
-      throw new RuntimeException(ioe);
+    } catch (IOException e) {
+      LOG.error("Error updating bulk store", e);
+      throw new RuntimeException(e);
     }
+
+    session = this.ledger.connect();
+    session.execute(txn -> {
+      try {
+        newQldbLogEntry.upsert(txn);
+        for (QldbDamlState s : stateList) {
+          s.upsert(txn);
+        }
+      } catch (IOException e) {
+        LOG.error("Error in upserting items", e);
+        throw new RuntimeException(e);
+      }
+    }, (retryAttemp) -> LOG.info("Retrying due to OCC conflict"));
     session.close();
   }
 
@@ -172,12 +173,12 @@ public class QldbCommitter implements Runnable {
   private class SubmissionWrapper {
     private final DamlLogEntryId damlLogEntryId;
     private final DamlSubmission damlSubmission;
-    
+
     public SubmissionWrapper(final DamlLogEntryId newDamlLogEntryId, final DamlSubmission newDamlSubmission) {
       this.damlLogEntryId = newDamlLogEntryId;
       this.damlSubmission = newDamlSubmission;
     }
-                                           
+
     public DamlLogEntryId getDamlLogEntryId() {
       return this.damlLogEntryId;
     }
