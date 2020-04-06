@@ -31,6 +31,7 @@
 | Mockito | Java application testing tool suite | Mockito  | https://site.mockito.org/         |
 | JUnit   | Java unit test tool                 | JUnit    | https://junit.org/junit5/         |
 | bash    | Linux shell scripting language      | GNU      | http://www.gnu.org/software/bash/ |
+| ledger-api-test-tool | DAML ledger API test tool | Digital Asset | https://repo.maven.apache.org/maven2/ |
 
 ## Markup Languages
 
