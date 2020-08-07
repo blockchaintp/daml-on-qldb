@@ -62,7 +62,6 @@ pipeline {
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     credentialsId: 'a61234f8-c9f7-49f3-b03c-f31ade1e885a',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    
           sh '''
             docker-compose -f docker/daml-test.yaml build
           '''
@@ -142,11 +141,6 @@ pipeline {
         sh 'docker-compose -f docker/docker-compose-build.yaml down'
         sh 'docker-compose -f docker/daml-test.yaml down'
         sh 'docker run -v $PWD:/project/daml-on-qldb daml-on-qldb-build-local:${ISOLATION_ID} mvn -B clean'
-        sh '''
-          for img in `docker images --filter reference="*:$ISOLATION_ID" --format "{{.Repository}}"`; do
-            docker rmi -f $img:$ISOLATION_ID
-          done
-        '''
       }
       success {
           archiveArtifacts '*.tgz, *.zip'
