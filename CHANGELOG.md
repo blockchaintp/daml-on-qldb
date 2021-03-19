@@ -1,8 +1,5 @@
 # CHANGELOG
 
-## Unreleased
-
-
 ## v0.1.4
 
 * Use maven central not bintray for DA jars [view commit](https://github.com/catenasys/daml-on-qldb/commit/bd9b061aabd287b2e396c057828c3c92b654ef84)
