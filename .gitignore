@@ -21,7 +21,7 @@
 **/.settings
 **/.classpath
 **/.checkstyle
-**/.vscode 
+**/.vscode
 **/target
 **/*.iml
 *.log
@@ -34,3 +34,5 @@
 **/.metals
 **/*.swp
 **/test-dars
+build
+pom.xml.versionsBackup

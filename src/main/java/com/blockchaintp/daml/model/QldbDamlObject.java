@@ -31,7 +31,7 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
 
   private transient boolean hollow;
 
-  public QldbDamlObject(final DamlLedger newLedger, @JsonProperty("id") final String newId,
+  protected QldbDamlObject(final DamlLedger newLedger, @JsonProperty("id") final String newId,
       @JsonProperty("s3Key") final String newS3key, final byte[] newData) {
     this.ledger = newLedger;
     this.id = newId;
@@ -40,11 +40,11 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
     this.hollow = true;
   }
 
-  public QldbDamlObject(final DamlLedger newLedger, @JsonProperty("id") final String newId, final byte[] newData) {
+  protected QldbDamlObject(final DamlLedger newLedger, @JsonProperty("id") final String newId, final byte[] newData) {
     this(newLedger, newId, Utils.hash512(newData), newData);
   }
 
-  public QldbDamlObject(final DamlLedger newLedger, @JsonProperty("id") final String newId) {
+  protected QldbDamlObject(final DamlLedger newLedger, @JsonProperty("id") final String newId) {
     this(newLedger, newId, null, null);
   }
 

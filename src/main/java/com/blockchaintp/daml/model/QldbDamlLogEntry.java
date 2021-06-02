@@ -89,11 +89,9 @@ public class QldbDamlLogEntry extends QldbDamlObject {
   public static QldbDamlLogEntry getNextLogEntry(final TransactionExecutor txn, final DamlLedger ledger, final long currentOffset)
       throws IOException {
     LOG.info("getNextLogEntry currentOffset={} in table={}", currentOffset, QldbDamlLogEntry.TABLE_NAME);
-    long nextOffset = currentOffset;
+    long nextOffset =  currentOffset + 1;
     if (currentOffset < 0) {
       nextOffset = 0;
-    } else {
-      nextOffset = currentOffset + 1;
     }
     final String query = String.format("select * from %s where offset = ?", QldbDamlLogEntry.TABLE_NAME);
     final List<IonValue> params = new ArrayList<>();

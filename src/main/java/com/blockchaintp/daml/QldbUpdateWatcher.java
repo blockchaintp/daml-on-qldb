@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.blockchaintp.daml.exception.NonRecoverableErrorException;
 import com.blockchaintp.daml.model.QldbDamlLogEntry;
 import com.daml.ledger.participant.state.kvutils.KeyValueConsumption;
 import com.daml.ledger.participant.state.v1.Offset;
@@ -81,8 +82,7 @@ public class QldbUpdateWatcher implements Runnable {
           List<QldbDamlLogEntry> fetchedEntries = this.fetchNextLogEntries(txn);
           newEntries.addAll(fetchedEntries);
         } catch (IOException e1) {
-          LOG.error("Error fetching entries",e1);
-          throw new RuntimeException(e1);
+          throw new NonRecoverableErrorException("Error fetching entries", e1);
         }
       }, (retryAttempts) -> LOG.info("Retrying due to OCC Failure"));
       boolean updatesSent = false;
@@ -110,9 +110,8 @@ public class QldbUpdateWatcher implements Runnable {
         LOG.info("Sending heartbeat at offset {}", thisOffset);
         Tuple2.apply(thisOffset, new Heartbeat(this.getCurrentRecordTime()));
       }
-    } catch (final Throwable ioe) {
-      LOG.error("IOException watching logs",ioe);
-      throw new RuntimeException(ioe);
+    } catch (final Exception ioe) {
+      throw new NonRecoverableErrorException("IOException watching logs", ioe);
     }
     session.close();
     this.executorPool.schedule(this, DEFAULT_POLL_INTERVAL_SECONDS, TimeUnit.SECONDS);

@@ -51,30 +51,10 @@ pipeline {
 
     stage('Build') {
       steps {
-        sh 'docker-compose -f docker/docker-compose-build.yaml build'
         configFileProvider([configFile(fileId: 'global-maven-settings', variable: 'MAVEN_SETTINGS')]) {
-          sh 'docker run --rm -v $HOME/.m2/repository:/root/.m2/repository -v $MAVEN_SETTINGS:/root/.m2/settings.xml -v `pwd`:/project/daml-on-qldb daml-on-qldb-build-local:${ISOLATION_ID} mvn -B clean compile'
-          sh 'docker run --rm -v $HOME/.m2/repository:/root/.m2/repository -v $MAVEN_SETTINGS:/root/.m2/settings.xml daml-on-qldb-build-local:${ISOLATION_ID} chown -R $UID:$GROUPS /root/.m2/repository'
-          sh 'docker run --rm -v `pwd`:/project/daml-on-qldb daml-on-qldb-build-local:${ISOLATION_ID} find /project -type d -name target -exec chown -R $UID:$GROUPS {} \\;'
-          sh 'mkdir -p test-dars && docker run --rm -v `pwd`/test-dars:/out ledger-api-testtool:${ISOLATION_ID} bash -c "java -jar ledger-api-test-tool.jar -x && cp *.dar /out"'
-        }
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
-                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    credentialsId: 'a61234f8-c9f7-49f3-b03c-f31ade1e885a',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
           sh '''
-            docker-compose -f docker/daml-test.yaml build
+            make clean build
           '''
-        }
-      }
-    }
-
-    stage('Test') {
-      steps {
-        configFileProvider([configFile(fileId: 'global-maven-settings', variable: 'MAVEN_SETTINGS')]) {
-          sh 'docker run --rm -v $HOME/.m2/repository:/root/.m2/repository -v $MAVEN_SETTINGS:/root/.m2/settings.xml -v `pwd`:/project/daml-on-qldb daml-on-qldb-build-local:${ISOLATION_ID} mvn -B test'
-          sh 'docker run --rm -v $HOME/.m2/repository:/root/.m2/repository -v $MAVEN_SETTINGS:/root/.m2/settings.xml daml-on-qldb-build-local:${ISOLATION_ID} chown -R $UID:$GROUPS /root/.m2/repository'
-          sh 'docker run --rm -v `pwd`:/project/daml-on-qldb daml-on-qldb-build-local:${ISOLATION_ID} find /project -type d -name target -exec chown -R $UID:$GROUPS {} \\;'
         }
       }
     }
@@ -82,49 +62,70 @@ pipeline {
     stage('Package') {
       steps {
         configFileProvider([configFile(fileId: 'global-maven-settings', variable: 'MAVEN_SETTINGS')]) {
-          sh 'docker run --rm -v $HOME/.m2/repository:/root/.m2/repository -v $MAVEN_SETTINGS:/root/.m2/settings.xml -v `pwd`:/project/daml-on-qldb daml-on-qldb-build-local:${ISOLATION_ID} mvn -B package verify'
-          sh 'docker run --rm -v $HOME/.m2/repository:/root/.m2/repository -v $MAVEN_SETTINGS:/root/.m2/settings.xml daml-on-qldb-build-local:${ISOLATION_ID} chown -R $UID:$GROUPS /root/.m2/repository'
-          sh 'docker run --rm -v `pwd`:/project/daml-on-qldb daml-on-qldb-build-local:${ISOLATION_ID} find /project -type d -name target -exec chown -R $UID:$GROUPS {} \\;'
+          sh '''
+            make package
+          '''
         }
-        sh 'docker-compose -f docker-compose-installed.yaml build'
       }
     }
 
-    stage('Integration Test') {
+    stage("Analyze") {
+      steps {
+        withSonarQubeEnv('sonarqube') {
+          configFileProvider([configFile(fileId: 'global-maven-settings', variable: 'MAVEN_SETTINGS')]) {
+            sh '''
+              make clean analyze
+            '''
+          }
+        }
+      }
+    }
+
+    stage("Quality gate") {
+      steps {
+        waitForQualityGate abortPipeline: true
+      }
+    }
+
+    stage('Test') {
       steps {
         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     credentialsId: 'a61234f8-c9f7-49f3-b03c-f31ade1e885a',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-          script {
-            try {
-              sh '''
-                export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID;
-                export AWS_ACCESS_KEY=$AWS_ACCESS_KEY_ID;
-                export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY;
-                docker-compose -p ${PROJECT_ID} -f docker/daml-test.yaml up --exit-code-from ledger-api-testtool
-              '''
-            } catch (err) {
-              currentBuild.result = 'UNSTABLE'
-            }
+          configFileProvider([configFile(fileId: 'global-maven-settings', variable: 'MAVEN_SETTINGS')]) {
+            sh '''
+              make test
+            '''
           }
+          step([$class: "TapPublisher", testResults: "build/daml-test.results"])
         }
       }
     }
 
     stage('Create Archives') {
       steps {
-        sh '''
-            REPO=$(git remote show -n origin | grep Fetch | awk -F'[/.]' '{print $6}')
-            VERSION=`git describe --dirty`
-            git archive HEAD --format=zip -9 --output=$REPO-$VERSION.zip
-            git archive HEAD --format=tgz -9 --output=$REPO-$VERSION.tgz
-        '''
-        archiveArtifacts artifacts: '**/target/*.zip'
-        archiveArtifacts artifacts: '**/target/*.jar'
+        configFileProvider([configFile(fileId: 'global-maven-settings', variable: 'MAVEN_SETTINGS')]) {
+          sh '''
+            make archive
+          '''
+        }
+        archiveArtifacts 'build/*.tgz, build/*.zip'
       }
     }
 
+    stage("Publish") {
+      when {
+        expression { env.BRANCH_NAME == "master" }
+      }
+      steps {
+        configFileProvider([configFile(fileId: 'global-maven-settings', variable: 'MAVEN_SETTINGS')]) {
+          sh '''
+            make clean publish
+          '''
+        }
+      }
+    }
   }
 
   post {
@@ -134,16 +135,12 @@ pipeline {
                     credentialsId: 'a61234f8-c9f7-49f3-b03c-f31ade1e885a',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
           sh '''
-            docker run -e AWS_REGION -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --entrypoint /bin/bash ledger-api-testtool:${ISOLATION_ID} -c "source ./aws-configure.sh && aws qldb delete-ledger --name ${ISOLATION_ID}"
-            docker run -e AWS_REGION -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --entrypoint /bin/bash ledger-api-testtool:${ISOLATION_ID} -c "source ./aws-configure.sh && aws s3 rb s3://valuestore-${ISOLATION_ID} --force"
+            make clean_aws
           '''
         }
-        sh 'docker-compose -f docker/docker-compose-build.yaml down'
-        sh 'docker-compose -f docker/daml-test.yaml down'
-        sh 'docker run -v $PWD:/project/daml-on-qldb daml-on-qldb-build-local:${ISOLATION_ID} mvn -B clean'
       }
       success {
-          archiveArtifacts '*.tgz, *.zip'
+        echo "Successful build"
       }
       aborted {
           error "Aborted, exiting now"

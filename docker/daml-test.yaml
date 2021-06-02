@@ -34,7 +34,8 @@ services:
       - 9000
     ports:
       - "9000:9000"
-    entrypoint: "bash -c \"\
+    entrypoint: "bash -xc \"\
+      env;
       /opt/daml-on-qldb/entrypoint.sh --port 9000 \
         --jdbc-url jdbc:postgresql://postgres/postgres?user=postgres \
         --ledger $$LEDGER_NAME \

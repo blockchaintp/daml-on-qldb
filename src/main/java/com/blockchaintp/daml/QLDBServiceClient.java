@@ -17,6 +17,7 @@ import com.amazonaws.services.qldb.model.LedgerState;
 import com.amazonaws.services.qldb.model.PermissionsMode;
 import com.amazonaws.services.qldb.model.ResourceNotFoundException;
 import com.amazonaws.services.qldbsession.model.BadRequestException;
+import com.blockchaintp.daml.exception.NonRecoverableErrorException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,8 +48,7 @@ public class QLDBServiceClient {
   public DescribeLedgerResult describeLedger(final String ledgerName) {
     LOG.info("Describing ledger with name: {}", ledgerName);
     DescribeLedgerRequest request = new DescribeLedgerRequest().withName(ledgerName);
-    DescribeLedgerResult result = this.client.describeLedger(request);
-    return result;
+    return this.client.describeLedger(request);
   }
 
   public boolean checkLedgerActive(final String ledgerName) {
@@ -62,8 +62,7 @@ public class QLDBServiceClient {
 
   public boolean ledgerExists(final String ledgerName) {
     try {
-      describeLedger(ledgerName).getState().equals(LedgerState.ACTIVE.name());
-      return true;
+      return null != describeLedger(ledgerName).getState();
     } catch (ResourceNotFoundException e) {
       LOG.info("Ledger with name {} does not exist", ledgerName);
       return false;
@@ -82,7 +81,7 @@ public class QLDBServiceClient {
             waitObj.wait(Constants.DEFAULT_POLL_INTERVAL_MS);
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
+            throw new NonRecoverableErrorException(e);
           }
         }
       }
@@ -113,7 +112,7 @@ public class QLDBServiceClient {
             waitObj.wait(Constants.DEFAULT_POLL_INTERVAL_MS);
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
+            throw new NonRecoverableErrorException(e);
           }
         }
       }
@@ -125,25 +124,25 @@ public class QLDBServiceClient {
     final String createTable = String.format("create table %s", tableName);
     txn.execute(createTable);
     LOG.info("Created table with name {} successfully", tableName);
-    return;
   }
 
   public void waitForTable(PooledQldbDriver driver, String tableName) {
     QldbSession session = driver.getSession();
     List<Object> tableExistsCond = new ArrayList<>();
-    while (tableExistsCond.size() == 0) {
+    while (tableExistsCond.isEmpty()) {
       session.execute(txn-> {
         if (tableExists(txn, tableName)) {
           tableExistsCond.add(new Object());
         }
-      }, (retryAttempt) -> {
-        LOG.warn("OCC Conflict while checking if table exists");
-      });
+      }, retryAttempt ->
+        LOG.warn("OCC Conflict while checking if table exists")
+      );
       try {
         Thread.sleep(1_000L);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         LOG.warn("Interrupted while sleeping");
-        throw new RuntimeException(e);
+        throw new NonRecoverableErrorException(e);
       }
     }
     session.close();
@@ -160,7 +159,7 @@ public class QLDBServiceClient {
       return true;
     } catch (IOException e) {
       LOG.error("Exception writing IonValue, shouldn't happen");
-      throw new RuntimeException(e);
+      throw new NonRecoverableErrorException(e);
     } catch (BadRequestException t) {
       LOG.warn("Check query threw BadRequestException still waiting for table");
       return false;
