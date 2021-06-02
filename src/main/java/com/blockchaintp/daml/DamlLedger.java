@@ -74,7 +74,7 @@ public final class DamlLedger implements DistributedLedger {
         client.createTable(txn, QldbDamlState.TABLE_NAME);
         client.createTable(txn, QldbDamlLogEntry.TABLE_NAME);
         client.createTable(txn, "daml_time");
-      }, (retryAttempt) -> LOG.info("Retrying due to OCC conflict"));
+      }, retryAttempt -> LOG.info("Retrying due to OCC conflict"));
       session.close();
       client.waitForTable(this.driver, QldbDamlState.TABLE_NAME);
       client.waitForTable(this.driver, QldbDamlLogEntry.TABLE_NAME);
@@ -104,7 +104,7 @@ public final class DamlLedger implements DistributedLedger {
       if (ase.getErrorCode().equals("NoSuchBucket")) {
         return false;
       } else {
-        throw new RuntimeException(
+        throw new NonRecoverableErrorException(
             String.format("S3Bucket named %s exists but this account does not have access to it", bucket));
       }
     }
@@ -118,16 +118,15 @@ public final class DamlLedger implements DistributedLedger {
     if (null != credentialsProvider) {
       builder.setCredentials(credentialsProvider);
     }
-    final PooledQldbDriver driver = PooledQldbDriver.builder().withLedger(getLedgerName())
+    return PooledQldbDriver.builder().withLedger(getLedgerName())
         .withRetryLimit(Constants.RETRY_LIMIT).withSessionClientBuilder(builder).build();
-    return driver;
   }
 
   private S3Client getS3Client() {
     return S3Client.builder().build();
   }
 
-  synchronized public QldbSession connect() {
+  public synchronized QldbSession connect() {
     return driver.getSession();
   }
 

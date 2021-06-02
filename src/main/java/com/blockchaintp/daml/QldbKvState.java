@@ -138,13 +138,13 @@ public class QldbKvState implements WriteService, ReadService {
     if (!beginAfter.isEmpty()) {
       Offset o = beginAfter.get();
       Collection<Object> oComponents = JavaConverters.asJavaCollection(o.components());
-      for (Object oc : oComponents) {
-        offset = Long.valueOf(oc.toString());
-        break;
+
+      if ( !oComponents.isEmpty()) {
+        offset = Long.valueOf(oComponents.iterator().next().toString());
       }
     }
-    QldbUpdateWatcher watcher = new QldbUpdateWatcher(offset, this.ledger, this.executorPool);
-    Thread t = new Thread(watcher,QldbUpdateWatcher.class.getName()+"-from-"+offset);
+    var watcher = new QldbUpdateWatcher(offset, this.ledger, this.executorPool);
+    var t = new Thread(watcher,QldbUpdateWatcher.class.getName()+"-from-"+offset);
     t.start();
 
     return watcher.toSource();

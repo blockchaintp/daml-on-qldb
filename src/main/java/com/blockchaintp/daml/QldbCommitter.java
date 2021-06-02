@@ -22,7 +22,6 @@ import com.daml.ledger.participant.state.v1.SubmissionResult;
 import com.daml.ledger.participant.state.v1.TimeModel;
 import com.digitalasset.daml.lf.data.Time.Timestamp;
 import com.digitalasset.daml.lf.engine.Engine;
-import com.google.protobuf.ByteString;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,11 +32,10 @@ import scala.Tuple2;
 import scala.collection.JavaConverters;
 import scala.collection.immutable.Map;
 import software.amazon.qldb.QldbSession;
-import software.amazon.qldb.Transaction;
 
 public class QldbCommitter implements Runnable {
 
-  private static Logger LOG = LoggerFactory.getLogger(QldbCommitter.class);
+  private static final Logger LOG = LoggerFactory.getLogger(QldbCommitter.class);
 
   private final Engine engine;
   private final DamlLedger ledger;
@@ -68,7 +66,7 @@ public class QldbCommitter implements Runnable {
     } catch (InterruptedException ioe) {
       Thread.currentThread().interrupt();
       LOG.warn("Committer thread has been interrupted!");
-      throw new RuntimeException(ioe);
+      throw new NonRecoverableErrorException(ioe);
     }
   }
 
@@ -88,16 +86,14 @@ public class QldbCommitter implements Runnable {
             inputState.put(k, Option.empty());
           }
         } catch (IOException e) {
-          LOG.error("Error in fetching items", e);
-          throw new RuntimeException(e);
+          throw new NonRecoverableErrorException("Error in fetching items", e);
         }
       }
-    }, (retryAttempt) -> LOG.info("Retrying due to OCC conflict"));
+    }, retryAttempt -> LOG.info("Retrying due to OCC conflict"));
     session.close();
     for (QldbDamlState s : stateRefreshList) {
       s.refreshFromBulkStore();
     }
-    session = null;
 
     LOG.info("Processing submission for logIdEntry={}", submission.getDamlLogEntryId());
     Tuple2<DamlLogEntry, Map<DamlStateKey, DamlStateValue>> processedSubmissionScala = KeyValueCommitting
@@ -107,7 +103,7 @@ public class QldbCommitter implements Runnable {
     DamlLogEntry outputEntry = processedSubmissionScala._1;
     java.util.Map<DamlStateKey, DamlStateValue> outputMap = scalaMapToMap(processedSubmissionScala._2);
 
-    QldbDamlLogEntry newQldbLogEntry = QldbDamlLogEntry.create(this.ledger, submission.getDamlLogEntryId(),
+    var newQldbLogEntry = QldbDamlLogEntry.create(this.ledger, submission.getDamlLogEntryId(),
         outputEntry);
     List<QldbDamlState> stateList = new ArrayList<>();
     try {
@@ -118,8 +114,7 @@ public class QldbCommitter implements Runnable {
       }
       newQldbLogEntry.updateBulkStore();
     } catch (IOException e) {
-      LOG.error("Error updating bulk store", e);
-      throw new RuntimeException(e);
+      throw new NonRecoverableErrorException("Error updating bulk store",e);
     }
 
     session = this.ledger.connect();
@@ -130,10 +125,9 @@ public class QldbCommitter implements Runnable {
           s.upsert(txn);
         }
       } catch (IOException e) {
-        LOG.error("Error in upserting items", e);
-        throw new RuntimeException(e);
+        throw new NonRecoverableErrorException("Error in upserting items", e);
       }
-    }, (retryAttemp) -> LOG.info("Retrying due to OCC conflict"));
+    }, retryAttempt -> LOG.info("Retrying due to OCC conflict"));
     session.close();
   }
 
@@ -148,23 +142,24 @@ public class QldbCommitter implements Runnable {
 
   @Override
   public void run() {
-
-    while (true) {
+    var keepRunning = true;
+    var exitStatus = 0;
+    while (keepRunning) {
       try {
         SubmissionWrapper submission = this.submissionQueue.take();
         this.processSubmission(submission);
       } catch (NonRecoverableErrorException nree) {
-        LOG.error("{}: Cannot recover, shutting down...", nree);
-        System.exit(1);
+        LOG.error("Cannot recover, shutting down...", nree);
+        keepRunning = false;
+        exitStatus = 1;
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         LOG.warn("Committer thread has been interrupted at the main loop");
-        throw new RuntimeException(e);
-      } catch (Throwable e) {
-        LOG.warn("Committer thread has been interrupted at the main loop",e);
-        throw new RuntimeException(e);
+        keepRunning = false;
+        exitStatus = 2;
       }
     }
+    System.exit(exitStatus);
   }
 
   /**

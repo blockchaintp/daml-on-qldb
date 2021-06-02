@@ -1,6 +1,9 @@
 package com.blockchaintp.daml.model;
 
 import javax.xml.bind.DatatypeConverter;
+
+import com.blockchaintp.daml.exception.NonRecoverableErrorException;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -10,19 +13,15 @@ public final class Utils {
   }
 
   public static String hash512(final byte[] data) {
-    String result = null;
     try {
-      MessageDigest messageDigest = MessageDigest.getInstance("SHA-512");
+      var messageDigest = MessageDigest.getInstance("SHA-512");
 
       messageDigest.update(data);
 
-
       byte[] digest = messageDigest.digest();
-      result = DatatypeConverter.printHexBinary(digest).toLowerCase();
-
+      return DatatypeConverter.printHexBinary(digest).toLowerCase();
     } catch (NoSuchAlgorithmException nsae) {
-      nsae.printStackTrace();
+      throw new NonRecoverableErrorException(nsae);
     }
-    return result;
   }
 }
