@@ -8,25 +8,23 @@ repos:
   rev: v0.1.0  # Use the ref you want to point at
   hooks:
     - id: checkstyle
-      exclude: ".*/src/test/*"
+      exclude: ".*/src/test/.*"
       args:
         - -c
-        - build-tools/src/main/resources/checkstyle.xml
+        - google_checks.xml
     - id: cpd
-      exclude: ".*/src/test/*"
-    - id: pmd
-      exclude: ".*/src/test/*"
+      exclude: ".*/src/test/.*"
 -   repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v7.5.0  # Use the sha / tag you want to point at
+    rev: v7.27.0  # Use the sha / tag you want to point at
     hooks:
     - id: eslint
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v3.1.0
+  rev: v4.0.1
   hooks:
     - id: trailing-whitespace
     - id: end-of-file-fixer
     - id: check-yaml
-      exclude: "charts/*"
+      exclude: "charts/.*"
       args:
         - --allow-multiple-documents
     - id: check-added-large-files
@@ -36,7 +34,7 @@ repos:
     - id: detect-private-key
     - id: mixed-line-ending
 - repo: https://github.com/jumanjihouse/pre-commit-hooks
-  rev: 2.1.4
+  rev: 2.1.5
   hooks:
     - id: markdownlint
     - id: shellcheck
@@ -47,7 +45,7 @@ repos:
         - -i
         - "2"
 - repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: v1.1.7
+  rev: v1.1.10
   hooks:
     - id: forbid-tabs
 - repo: https://github.com/doublify/pre-commit-clang-format
