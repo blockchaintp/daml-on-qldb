@@ -6,6 +6,8 @@ import com.fasterxml.jackson.dataformat.ion.ionvalue.IonValueMapper;
 
 public final class Constants {
 
+  private Constants() {}
+
   public static final long DEFAULT_POLL_INTERVAL_MS = 10_000L;
   public static final int RETRY_LIMIT = 10;
   public static final IonObjectMapper MAPPER = new IonValueMapper(IonSystemBuilder.standard().build());
