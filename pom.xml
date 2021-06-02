@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>daml-on-qldb</groupId>
   <artifactId>daml-on-qldb</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.1.5-SNAPSHOT</version>
   <name>DAML on QLDB</name>
   <packaging>jar</packaging>
   <description>Implementation of DAML SDK with a QLDB backend</description>

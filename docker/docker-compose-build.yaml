@@ -16,16 +16,16 @@ version: '2.1'
 
 services:
 
-  daml-on-qldb-build:
+  toolchain:
     build:
       context: .
       dockerfile: daml-on-qldb-build.docker
-    image: daml-on-qldb-build-local:${ISOLATION_ID}
-    container_name: daml-on-qldb-build-local
+    image: toolchain:${ISOLATION_ID}
+    container_name: toolchain
     volumes:
       - ../:/project/daml-on-qldb
       - ${HOME}/.m2/settings.xml:/root/.m2/settings.xml
-      
+
   ledger-api-testtool:
     environment:
       - AWS_REGION
