@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## Unreleased
+
+* fix: don't print stack trace [view commit](https://github.com/catenasys/daml-on-qldb/commit/f6ffbf1e770520843238ca3ea599a2495b8f0b61)
+* fix: correct sonar issues [view commit](https://github.com/catenasys/daml-on-qldb/commit/4c40c615ebd478955f7c211ed0000818c96244a5)
+
 ## v0.1.4
 
 * Use maven central not bintray for DA jars [view commit](https://github.com/catenasys/daml-on-qldb/commit/bd9b061aabd287b2e396c057828c3c92b654ef84)
