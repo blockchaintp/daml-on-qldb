@@ -50,7 +50,7 @@ RUN pip3 install awscli --upgrade
 
 WORKDIR /opt/ledger-api-test-tool
 
-COPY ./scripts/aws-configure.sh .
+COPY ./docker/scripts/aws-configure.sh .
 RUN chmod +x ./aws-configure.sh
 
 CMD ["java", "-jar","ledger-api-test-tool.jar"]

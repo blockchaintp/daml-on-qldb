@@ -14,8 +14,8 @@
 # ------------------------------------------------------------------------------
 FROM maven:3-jdk-11
 
-RUN mkdir -p /project/daml-on-qldb
+RUN mkdir -p /project
 
-WORKDIR /project/daml-on-qldb
+WORKDIR /project
 ENV BUILD_UID=0
 CMD mvn -B package

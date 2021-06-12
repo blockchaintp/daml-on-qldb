@@ -23,3 +23,5 @@ services:
       dockerfile: docker/daml-on-qldb.docker
     image: daml-on-qldb:${ISOLATION_ID}
     container_name: daml-on-qldb
+    volumes:
+      - ./:/project
