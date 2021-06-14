@@ -13,7 +13,7 @@ distclean: clean_docker clean_dirs_daml clean_markers
 
 build: $(MARKERS)/build_mvn $(MARKERS)/build_ledgertest
 
-package: $(MARKERS)/package_mvn $(MARKERS)/package_mvn
+package: $(MARKERS)/package_mvn $(MARKERS)/package_docker
 
 test: $(MARKERS)/test_mvn $(MARKERS)/test_daml
 
