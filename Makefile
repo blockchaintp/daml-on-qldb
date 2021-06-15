@@ -21,6 +21,11 @@ analyze: analyze_sonar_mvn
 
 publish: $(MARKERS)/publish_mvn
 
+$(MARKERS): test-dars
+
+test-dars:
+	mkdir -p test-dars
+
 .PHONY: check_env
 check_env:
 	@if [ -z "$$AWS_ACCESS_KEY_ID" ] || \
@@ -28,10 +33,6 @@ check_env:
 		echo "Env vars AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be set"; \
 		exit 1; \
 	fi
-
-$(MARKERS): test-dars
-test-dars:
-	mkdir -p test-dars
 
 .PHONY: clean_dirs_daml
 clean_dirs_daml: fix_permissions
@@ -45,7 +46,7 @@ $(MARKERS)/build_ledgertest:
 		-c "java -jar ledger-api-test-tool.jar -x && cp *.dar /out"
 	touch $@
 
-$(MARKERS)/package_docker: $(MARKERS)/package_mvn
+$(MARKERS)/package_docker: build $(MARKERS)/package_mvn
 	docker-compose -f docker-compose.yaml build
 	touch $@
 
