@@ -36,7 +36,9 @@ SONAR_AUTH_TOKEN ?=
 ##
 # Maven related settings
 ##
-MAVEN_SETTINGS ?=
+MAVEN_SETTINGS ?= $(shell if [ -r $(HOME)/.m2/settings.xml ]; then \
+	echo $(HOME)/.m2/settings.xml; else echo ""; fi)
+
 MAVEN_REVISION != if [ "$(LONG_VERSION)" = "$(VERSION)" ] || \
 	(echo "$(LONG_VERSION)" | grep -q dirty); then \
         bump_ver=$(VERSION); \
@@ -48,7 +50,7 @@ MAVEN_REVISION != if [ "$(LONG_VERSION)" = "$(VERSION)" ] || \
 	echo $$bump_ver ; fi
 
 cmd_test:
-
+	if [ -r $(HOME)/.m2/settings.xml ]; then echo $(HOME)/.m2/settings.xml; else echo ""; fi
 
 MAVEN_REPO_BASE ?= https://dev.catenasys.com/repository/catenasys-maven
 MAVEN_REPO_TARGET != if [ "$(LONG_VERSION)" = "$(VERSION)" ] || \
@@ -130,7 +132,7 @@ project_%:
 
 # Maven Version of Sonar Analysis
 .PHONY: analyze_sonar_mvn
-analyze_sonar_mvn:
+analyze_sonar_mvn: $(MARKERS)/build_toolchain_docker
 	[ -z "$(SONAR_AUTH_TOKEN)" ] || \
 		if [ -z "$(CHANGE_BRANCH)" ]; then \
 			$(DOCKER_MVN) package sonar:sonar \

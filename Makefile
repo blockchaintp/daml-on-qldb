@@ -45,11 +45,11 @@ $(MARKERS)/build_ledgertest:
 		-c "java -jar ledger-api-test-tool.jar -x && cp *.dar /out"
 	touch $@
 
-$(MARKERS)/package_docker:
+$(MARKERS)/package_docker: $(MARKERS)/package_mvn
 	docker-compose -f docker-compose.yaml build
 	touch $@
 
-$(MARKERS)/test_daml:
+$(MARKERS)/test_daml: $(MARKERS)/package_docker
 	docker-compose -f docker/daml-test.yaml build
 	docker-compose -p $(ISOLATION_ID) -f docker/daml-test.yaml down \
 		-v || true
