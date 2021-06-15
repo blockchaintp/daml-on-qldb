@@ -36,7 +36,7 @@ check_env:
 
 .PHONY: clean_dirs_daml
 clean_dirs_daml: fix_permissions
-	rm -rf build test-dars
+	rm -rf test-dars
 
 $(MARKERS)/build_ledgertest:
 	docker build -f docker/ledger-api-testtool.docker -t \

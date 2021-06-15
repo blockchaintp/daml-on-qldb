@@ -268,7 +268,8 @@ fix_permissions:
 # This will reset the build status possible causing steps to rerun
 .PHONY: clean_markers
 clean_markers:
-	rm -rf $(MARKERS)/*
+	rm -rf $(MARKERS)
+	rm -rf build
 
 $(MARKERS)/build_mvn: $(MARKERS)/build_toolchain_docker
 	$(DOCKER_MVN) compile
