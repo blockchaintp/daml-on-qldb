@@ -149,7 +149,9 @@ public class QLDBServiceClient {
   }
 
   public boolean tableExists(final TransactionExecutor txn, final String tableName) {
-    LOG.info(String.format("Checking if table %s exists yet", tableName));
+    if (LOG.isInfoEnabled()) {
+      LOG.info(String.format("Checking if table %s exists yet", tableName));
+    }
     final String query = String.format("select o.* from %s where id = ?", tableName);
     try {
       final List<IonValue> params = Collections

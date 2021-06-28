@@ -97,22 +97,33 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
 
   @Override
   public Result insert(final TransactionExecutor txn) throws IOException {
-    LOG.info("insert id={} in table={}", getId(), tableName());
+    if (LOG.isInfoEnabled()) {
+      LOG.info("insert id={} in table={}", getId(), tableName());
+    }
 
     final String query = String.format("insert into %s ?", tableName());
-    LOG.info(String.format("QUERY = %s", query));
+
+    if (LOG.isInfoEnabled()) {
+      LOG.info(String.format("QUERY = %s", query));
+    }
     final IonValue doc = Constants.MAPPER.writeValueAsIonValue(this);
-    LOG.info("Inserting {}", doc.toPrettyString());
+    if (LOG.isInfoEnabled()) {
+      LOG.info("Inserting {}", doc.toPrettyString());
+    }
     final List<IonValue> params = Collections.singletonList(doc);
     return txn.execute(query, params);
   }
 
   @Override
   public Result update(final TransactionExecutor txn) throws IOException {
-    LOG.info("update id={} in table={}", getId(), tableName());
+    if (LOG.isInfoEnabled()) {
+      LOG.info("update id={} in table={}", getId(), tableName());
+    }
 
     final String query = String.format("update %s set s3Key = ? where id = ?", tableName());
-    LOG.info(String.format("QUERY = %s s3Key = %s ID = %s", query, getS3Key(), getId()));
+    if (LOG.isInfoEnabled()) {
+      LOG.info(String.format("QUERY = %s s3Key = %s ID = %s", query, getS3Key(), getId()));
+    }
     final List<IonValue> params = new ArrayList<>();
     params.add(Constants.MAPPER.writeValueAsIonValue(getS3Key()));
     params.add(Constants.MAPPER.writeValueAsIonValue(getId()));
@@ -124,7 +135,9 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
     if (!hollow) {
       return this;
     }
-    LOG.info("fetch id={} in table={}", getId(), tableName());
+    if (LOG.isInfoEnabled()) {
+      LOG.info("fetch id={} in table={}", getId(), tableName());
+    }
 
     final String query = String.format("select o.* from %s AS o where id = ?", tableName());
     final List<IonValue> params = Collections.singletonList(Constants.MAPPER.writeValueAsIonValue(getId()));
@@ -145,9 +158,13 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
 
   @Override
   public boolean exists(final TransactionExecutor txn) throws IOException {
-    LOG.info("exists id={} in table={}", getId(), tableName());
+    if (LOG.isInfoEnabled()) {
+      LOG.info("exists id={} in table={}", getId(), tableName());
+    }
     final String query = String.format("select o.* from %s AS o where id = ?", tableName());
-    LOG.info(String.format("QUERY = %s ID = %s", query, getId()));
+    if (LOG.isInfoEnabled()) {
+      LOG.info(String.format("QUERY = %s ID = %s", query, getId()));
+    }
     final List<IonValue> params = Collections.singletonList(Constants.MAPPER.writeValueAsIonValue(getId()));
     final Result r = txn.execute(query, params);
     return !r.isEmpty();
@@ -167,9 +184,13 @@ public abstract class QldbDamlObject implements DamlKeyValueRow {
   @Override
   public boolean delete(final TransactionExecutor txn) throws IOException {
     if (exists(txn)) {
-      LOG.info("delete id={} in table={}", getId(), tableName());
+      if (LOG.isInfoEnabled()) {
+        LOG.info("delete id={} in table={}", getId(), tableName());
+      }
       final String query = String.format("delete from %s where id = ?", tableName());
-      LOG.info(String.format("QUERY = %s ID = %s", query, getId()));
+      if (LOG.isInfoEnabled()) {
+        LOG.info(String.format("QUERY = %s ID = %s", query, getId()));
+      }
       final List<IonValue> params = new ArrayList<>();
       params.add(Constants.MAPPER.writeValueAsIonValue(getId()));
       final Result r = txn.execute(query, params);

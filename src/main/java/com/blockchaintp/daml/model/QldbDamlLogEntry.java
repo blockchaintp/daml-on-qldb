@@ -105,7 +105,9 @@ public class QldbDamlLogEntry extends QldbDamlObject {
       if (iter.hasNext()) {
         final IonValue row = iter.next();
         final IonStruct s = (IonStruct) row;
-        LOG.info("got next log entry {}", s.toPrettyString());
+        if (LOG.isInfoEnabled()) {
+          LOG.info("got next log entry {}", s.toPrettyString());
+        }
         IonText idVal= (IonText) s.get("id");
         IonText s3KeyVal= (IonText) s.get("s3Key");
         final QldbDamlLogEntry e = new QldbDamlLogEntry(ledger, idVal.stringValue(), s3KeyVal.stringValue(),
