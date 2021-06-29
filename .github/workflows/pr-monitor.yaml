@@ -1,7 +1,7 @@
 on:
   schedule:
     # 9:25 am Mon-Fri, just in time for stand up
-    - cron:  '25 13 * * 1-5'
+    - cron: '25 13 * * 1-5'
 
 jobs:
   pr-monitor-job:

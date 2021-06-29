@@ -11,19 +11,22 @@ The basic build uses docker to pull down its toolchain and compile.
 
 1. Clone the repository.
 
-  ```$ git clone git@github.com:blockchaintp/daml-on-sawtooth.git```
+```$ git clone git@github.com:blockchaintp/daml-on-sawtooth.git```
 
-4. set export the build identifier environment variable.  This is used to distinguish different variations of builds on the same machine.
+4. set export the build identifier environment variable. This is used to distinguish different variations of builds on
+   the same machine.
 
-  ```$ export ISOLATION_ID=my-local-build```
+```$ export ISOLATION_ID=my-local-build```
 
-5. Execute the local build script. This will compile and package all of the java, as well as prepare docker images for local execution.
+5. Execute the local build script. This will compile and package all of the java, as well as prepare docker images for
+   local execution.
 
 ```$ bin/build.sh```
 
 ### Building in an IDE
 
-The docker based toolchain is our standard way of building, but fundamentally this project is a standard maven build with no unusual elements.  So the jar artifacts may be built simply by
+The docker based toolchain is our standard way of building, but fundamentally this project is a standard maven build
+with no unusual elements. So the jar artifacts may be built simply by
 
 ```mvn clean package```
 
@@ -63,7 +66,11 @@ To run the test suite:
     docker-compose -f docker/daml-test.yaml up
   ```
 
-By default `daml-on-qldb` will create a ledger named `daml-on-qldb` and an S3 bucket named `valuestore-daml-on-qldb`.  The bucket name is based off of the ledger name.  To use a different ledger name update the daml-test.yaml to add the argument `--ledger my-ledger-name` to the startup of the daml-on-qldb process. The `daml-test.yaml` and `daml-local.yaml` files have been written to take an environment variable `LEDGER_NAME` for convenience should you need to change, in which case the S3 bucket name will be `valuestore-$LEDGER_NAME`.
+By default `daml-on-qldb` will create a ledger named `daml-on-qldb` and an S3 bucket named `valuestore-daml-on-qldb`.
+The bucket name is based off of the ledger name. To use a different ledger name update the daml-test.yaml to add the
+argument `--ledger my-ledger-name` to the startup of the daml-on-qldb process. The `daml-test.yaml`
+and `daml-local.yaml` files have been written to take an environment variable `LEDGER_NAME` for convenience should you
+need to change, in which case the S3 bucket name will be `valuestore-$LEDGER_NAME`.
 
 ## Run
 

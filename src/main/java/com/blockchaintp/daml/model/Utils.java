@@ -1,9 +1,8 @@
 package com.blockchaintp.daml.model;
 
+import com.blockchaintp.daml.exception.NoSHA512SupportException;
+
 import javax.xml.bind.DatatypeConverter;
-
-import com.blockchaintp.daml.exception.NonRecoverableErrorException;
-
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -21,7 +20,7 @@ public final class Utils {
       byte[] digest = messageDigest.digest();
       return DatatypeConverter.printHexBinary(digest).toLowerCase();
     } catch (NoSuchAlgorithmException nsae) {
-      throw new NonRecoverableErrorException(nsae);
+      throw new NoSHA512SupportException(nsae);
     }
   }
 }

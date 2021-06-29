@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!-- * Copyright 2019 Blockchain Technology Partners * * Licensed under the Apache License, Version 2.0 (the "License"); * you may not use this file except in compliance with the License. * You may obtain a copy of the License at * * http://www.apache.org/licenses/LICENSE-2.0 * * Unless required by applicable law or agreed to in writing, software * distributed under the License is distributed on an "AS IS" BASIS, * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. * See the License for the specific language governing permissions and * limitations under the License. -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>daml-on-qldb</groupId>
   <artifactId>daml-on-qldb</artifactId>
@@ -43,6 +44,11 @@
         <finalName>${project.artifactId}</finalName>
         <plugins>
           <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>versions-maven-plugin</artifactId>
+            <version>2.8.1</version>
+          </plugin>
+          <plugin>
             <artifactId>maven-jar-plugin</artifactId>
             <configuration>
               <classifier>jdk8</classifier>
@@ -74,19 +80,6 @@
   </properties>
   <dependencyManagement>
     <dependencies>
-      <!-- Unit testing -->
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.12</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.mockito</groupId>
-        <artifactId>mockito-core</artifactId>
-        <version>2.27.0</version>
-        <scope>test</scope>
-      </dependency>
       <!-- DAML Dependencies -->
       <dependency>
         <groupId>com.google.protobuf</groupId>
@@ -98,41 +91,21 @@
         <artifactId>protobuf-java-util</artifactId>
         <version>${protobuf.version}</version>
       </dependency>
-      <dependency>
-        <groupId>com.daml.ledger</groupId>
-        <artifactId>participant-state_${scala.lang.version}</artifactId>
-        <version>${daml.sdk.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.digitalasset.ledger</groupId>
-        <artifactId>ledger-api-auth_${scala.lang.version}</artifactId>
-        <version>${daml.sdk.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.digitalasset.platform</groupId>
-        <artifactId>sandbox_${scala.lang.version}</artifactId>
-        <version>${daml.sdk.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.daml.ledger</groupId>
-        <artifactId>participant-state-kvutils_${scala.lang.version}</artifactId>
-        <version>${daml.sdk.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.daml.ledger</groupId>
-        <artifactId>participant-state-index_${scala.lang.version}</artifactId>
-        <version>${daml.sdk.version}</version>
-      </dependency>
       <!-- Logging -->
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
-        <version>1.8.0-beta4</version>
+        <version>2.0.0-alpha2</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-jdk14</artifactId>
-        <version>1.8.0-beta4</version>
+        <version>2.0.0-alpha2</version>
+      </dependency>
+      <dependency>
+        <groupId>kr.pe.kwonnam.slf4j-lambda</groupId>
+        <artifactId>slf4j-lambda-core</artifactId>
+        <version>0.1</version>
       </dependency>
       <!-- Apache Commons and Useful things -->
       <dependency>
@@ -149,7 +122,7 @@
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>bom</artifactId>
-        <version>2.10.39</version>
+        <version>2.15.79</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -157,17 +130,22 @@
       <dependency>
         <groupId>software.amazon.qldb</groupId>
         <artifactId>amazon-qldb-driver-java</artifactId>
-        <version>1.0.2</version>
+        <version>2.3.1</version>
       </dependency>
       <dependency>
-        <groupId>com.amazonaws</groupId>
-        <artifactId>aws-java-sdk-qldb</artifactId>
-        <version>1.11.724</version>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>qldbsession</artifactId>
+        <version>2.16.98</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>qldb</artifactId>
+        <version>2.16.98</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId>
         <artifactId>jackson-dataformat-ion</artifactId>
-        <version>2.10.0.pr1</version>
+        <version>2.12.4</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -181,23 +159,27 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-jdk14</artifactId>
     </dependency>
-    <!-- AWS QLDB -->
+    <dependency>
+      <groupId>kr.pe.kwonnam.slf4j-lambda</groupId>
+      <artifactId>slf4j-lambda-core</artifactId>
+    </dependency>
+    <!-- AWS -->
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>s3</artifactId>
     </dependency>
     <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>qldb</artifactId>
+    </dependency>
+    <dependency>
       <groupId>javax.xml.bind</groupId>
       <artifactId>jaxb-api</artifactId>
-      <version>2.3.1</version>
+      <version>2.4.0-b180830.0359</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.qldb</groupId>
       <artifactId>amazon-qldb-driver-java</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.amazonaws</groupId>
-      <artifactId>aws-java-sdk-qldb</artifactId>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -213,29 +195,33 @@
       <artifactId>protobuf-java-util</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.daml.ledger</groupId>
-      <artifactId>participant-state_${scala.lang.version}</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.digitalasset.ledger</groupId>
-      <artifactId>ledger-api-auth_${scala.lang.version}</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.digitalasset.platform</groupId>
-      <artifactId>sandbox_${scala.lang.version}</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.daml.ledger</groupId>
-      <artifactId>participant-state-kvutils_${scala.lang.version}</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.daml.ledger</groupId>
-      <artifactId>participant-state-index_${scala.lang.version}</artifactId>
-    </dependency>
-    <dependency>
       <groupId>io.reactivex.rxjava2</groupId>
       <artifactId>rxjava</artifactId>
-      <version>2.2.8</version>
+      <version>2.2.21</version>
+    </dependency>
+    <!-- Test deps -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <version>5.8.0-M1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>3.11.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>3.11.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>1.2.17</version>
     </dependency>
   </dependencies>
   <build>
@@ -246,8 +232,20 @@
         <version>1.6.2</version>
       </extension>
     </extensions>
+    <testSourceDirectory>src/test</testSourceDirectory>
     <pluginManagement>
       <plugins>
+        <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>2.19.1</version>
+          <dependencies>
+            <dependency>
+              <groupId>org.junit.platform</groupId>
+              <artifactId>junit-platform-surefire-provider</artifactId>
+              <version>1.0.1</version>
+            </dependency>
+          </dependencies>
+        </plugin>
         <plugin>
           <groupId>net.alchim31.maven</groupId>
           <artifactId>scala-maven-plugin</artifactId>
@@ -346,7 +344,8 @@
           <artifactId>protobuf-maven-plugin</artifactId>
           <version>0.6.1</version>
           <configuration>
-            <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
+            <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}
+            </protocArtifact>
             <protoSourceRoot>${proto.directory}</protoSourceRoot>
           </configuration>
           <executions>
@@ -468,5 +467,4 @@
       </plugin>
     </plugins>
   </build>
-
 </project>

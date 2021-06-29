@@ -19,7 +19,7 @@
 pipeline {
   agent { node { label 'worker' } }
 
-  triggers {cron('H H * * *')}
+  triggers { cron('H H * * *') }
 
   options {
     ansiColor('xterm')
@@ -37,15 +37,15 @@ pipeline {
   stages {
     stage('Fetch Tags') {
       steps {
-        checkout([$class: 'GitSCM', branches: [[name: "${GIT_BRANCH}"]],
-            doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [],
-            userRemoteConfigs: [[credentialsId: 'github-credentials',noTags:false, url: "${GIT_URL}"]],
-            extensions: [
-                  [$class: 'CloneOption',
-                  shallow: false,
-                  noTags: false,
-                  timeout: 60]
-            ]])
+        checkout([$class                           : 'GitSCM', branches: [[name: "${GIT_BRANCH}"]],
+                  doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [],
+                  userRemoteConfigs                : [[credentialsId: 'github-credentials', noTags: false, url: "${GIT_URL}"]],
+                  extensions                       : [
+                    [$class : 'CloneOption',
+                     shallow: false,
+                     noTags : false,
+                     timeout: 60]
+                  ]])
       }
     }
 
@@ -84,10 +84,10 @@ pipeline {
 
     stage('Test') {
       steps {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
-                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    credentialsId: 'a61234f8-c9f7-49f3-b03c-f31ade1e885a',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+        withCredentials([[$class           : 'AmazonWebServicesCredentialsBinding',
+                          accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                          credentialsId    : 'a61234f8-c9f7-49f3-b03c-f31ade1e885a',
+                          secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
           configFileProvider([configFile(fileId: 'global-maven-settings', variable: 'MAVEN_SETTINGS')]) {
             sh '''
               make test
@@ -124,24 +124,24 @@ pipeline {
   }
 
   post {
-      always {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
-                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    credentialsId: 'a61234f8-c9f7-49f3-b03c-f31ade1e885a',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-          sh '''
+    always {
+      withCredentials([[$class           : 'AmazonWebServicesCredentialsBinding',
+                        accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                        credentialsId    : 'a61234f8-c9f7-49f3-b03c-f31ade1e885a',
+                        secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+        sh '''
             make clean_aws
           '''
-        }
       }
-      success {
-        echo "Successful build"
-      }
-      aborted {
-          error "Aborted, exiting now"
-      }
-      failure {
-          error "Failed, exiting now"
-      }
+    }
+    success {
+      echo "Successful build"
+    }
+    aborted {
+      error "Aborted, exiting now"
+    }
+    failure {
+      error "Failed, exiting now"
+    }
   }
 }
