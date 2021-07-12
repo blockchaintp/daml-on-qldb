@@ -81,10 +81,16 @@ public class S3StoreIntegrationTest {
     Assertions.assertEquals(
       Optional.empty(),
       store.get(new Key("nothere"), byte[].class));
+
+    var keys = new ArrayList<Key<String>>();
+    keys.add(new Key("nothere"));
+    Assertions.assertEquals(
+      Map.of(),
+      store.get(keys, byte[].class));
   }
 
   @Test
-  public void single_item_put_and_get_are_symetric() throws StoreWriteException, StoreReadException {
+  public void single_item_put_and_get_are_symmetric() throws StoreWriteException, StoreReadException {
     final var id = UUID.randomUUID();
     final var k = new Key("id");
     final var v = new Value(new byte[]{1, 2, 3});
@@ -111,7 +117,7 @@ public class S3StoreIntegrationTest {
 
 
   @Test
-  public void multiple_item_put_and_get_are_symetric() throws StoreWriteException, StoreReadException {
+  public void multiple_item_put_and_get_are_symmetric() throws StoreWriteException, StoreReadException {
     final var id = UUID.randomUUID();
     var map = new HashMap<Key<String>, Value<byte[]>>();
 
@@ -148,18 +154,21 @@ public class S3StoreIntegrationTest {
   }
 
   private void compareUpserted(HashMap<Key<String>, Value<byte[]>> map, List<Key<String>> sortedkeys, Map<Key<String>, Value<byte[]>> rx) {
-    Assertions.assertIterableEquals(
-      sortedkeys
-        .stream()
-        .map(map::get)
-        .map(v -> v.toNative())
-        .collect(Collectors.toList()),
-      sortedkeys
-        .stream()
-        .map(rx::get)
-        .map(k -> k.toNative())
-        .collect(Collectors.toList())
-    );
+    var left = sortedkeys
+      .stream()
+      .map(map::get)
+      .map(v -> v.toNative())
+      .collect(Collectors.toList());
+
+    var right = sortedkeys
+      .stream()
+      .map(rx::get)
+      .map(k -> k.toNative())
+      .collect(Collectors.toList());
+
+    for (int i = 0; i != left.size(); i++) {
+      Assertions.assertArrayEquals(left.get(i), right.get(i));
+    }
   }
 
 }

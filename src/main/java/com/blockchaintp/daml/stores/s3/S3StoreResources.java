@@ -6,6 +6,7 @@ import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 
 import java.util.concurrent.CompletableFuture;
@@ -17,7 +18,7 @@ public class S3StoreResources implements RequiresAWSResources {
 
   public S3StoreResources(S3AsyncClient client, String ledgerName, String tableName) {
     this.client = client;
-    this.bucketName = "valuestore-ledger-" + ledgerName + "-table-" + tableName;
+    this.bucketName = "vs-" + ledgerName + "-table-" + tableName;
   }
 
   private boolean bucketExists() {
@@ -47,6 +48,14 @@ public class S3StoreResources implements RequiresAWSResources {
       .bucket(bucketName)
       .build())
       .join();
+
+    while (!bucketExists()) {
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
   }
 
   @Override
@@ -70,14 +79,15 @@ public class S3StoreResources implements RequiresAWSResources {
           .contents()
           .stream()
           .map(k ->
-            client.deleteBucket(DeleteBucketRequest
+            client.deleteObject(DeleteObjectRequest
               .builder()
-              .bucket(k.key())
+              .bucket(bucketName)
+              .key(k.key())
               .build()))
           .toArray(CompletableFuture[]::new)
     ).join();
 
-    var bucketDeletion = client.deleteBucket(
+    client.deleteBucket(
       DeleteBucketRequest
         .builder()
         .bucket(bucketName)

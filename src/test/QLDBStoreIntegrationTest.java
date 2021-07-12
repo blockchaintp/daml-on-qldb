@@ -110,7 +110,7 @@ public class QLDBStoreIntegrationTest {
   }
 
   @Test
-  public void single_item_put_and_get_are_symetric() throws StoreWriteException, StoreReadException {
+  public void single_item_put_and_get_are_symmetric() throws StoreWriteException, StoreReadException {
     final var id = UUID.randomUUID();
     final var k = new Key(ionSystem.singleValue(String.format("\'%s'", id)));
     final var v = new Value(ionSystem.singleValue(String.format(
@@ -135,7 +135,7 @@ public class QLDBStoreIntegrationTest {
   }
 
   @Test
-  public void multiple_item_put_and_get_are_symetric() throws StoreWriteException, StoreReadException {
+  public void multiple_item_put_and_get_are_symmetric() throws StoreWriteException, StoreReadException {
     final var map = new HashMap<Key<IonValue>, Value<IonValue>>();
     for (int i = 0; i < 40; i++) {
       final var id = UUID.randomUUID();

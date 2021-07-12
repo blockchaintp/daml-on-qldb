@@ -35,7 +35,7 @@ public class S3Store implements BlobStore {
                  UnaryOperator<GetObjectRequest.Builder> getModifications,
                  UnaryOperator<PutObjectRequest.Builder> putModifications) {
 
-    this.bucketName = "valuestore-ledger-" + ledgerName + "-table-" + tableName;
+    this.bucketName = "vs-" + ledgerName + "-table-" + tableName;
     this.clientBuilder = client;
     this.getModifications = getModifications;
     this.putModifications = putModifications;
@@ -101,6 +101,7 @@ public class S3Store implements BlobStore {
     return futures
       .entrySet()
       .stream()
+      .filter(v -> v.getValue().join() != null)
       .collect(Collectors.toMap(
         k -> k.getKey(),
         v -> v.getValue().join()
@@ -127,14 +128,14 @@ public class S3Store implements BlobStore {
       .collect(Collectors.toMap(
         Map.Entry::getKey,
         kv -> putObject(client,
-          (String) kv.getValue().toNative(),
+          (String) kv.getKey().toNative(),
           (byte[]) kv.getValue().toNative()))
       );
 
     var waitOn = futures.entrySet().stream()
       .map(Map.Entry::getValue)
       .collect(Collectors.toList())
-      .toArray();
+      .toArray(CompletableFuture[]::new);
 
     CompletableFuture.allOf((CompletableFuture<ResponseBytes<GetObjectResponse>>[]) waitOn).join();
   }
