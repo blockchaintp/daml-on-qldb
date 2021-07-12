@@ -50,7 +50,7 @@ public class QLDBStoreIntegrationTest {
 
   @BeforeEach
   public void establishStore() throws StoreWriteException {
-    this.ledger = UUID.randomUUID().toString().replace("-","");
+    this.ledger = UUID.randomUUID().toString().replace("-", "");
 
     final var sessionBuilder = QldbSessionClient.builder()
       .region(Region.EU_WEST_2)
@@ -95,9 +95,18 @@ public class QLDBStoreIntegrationTest {
   }
 
   @Test
-  void get_non_existent_items_returns_null() throws StoreReadException {
-    Assertions.assertNull(
-      store.get(new Key(ionSystem.singleValue("nothere"))));
+  void get_non_existent_items_returns_none() throws StoreReadException {
+    Assertions.assertEquals(
+      Optional.empty(),
+      store.get(new Key(ionSystem.singleValue("nothere")), IonValue.class));
+
+
+    var params = new ArrayList<Key<IonValue>>();
+    params.add(new Key(ionSystem.singleValue("nothere")));
+
+    Assertions.assertEquals(
+      Map.of(),
+      store.get(params, IonValue.class));
   }
 
   @Test
@@ -111,7 +120,7 @@ public class QLDBStoreIntegrationTest {
     store.put(k, v);
     Assertions.assertEquals(
       v.toString(),
-      store.get(k).toString()
+      store.get(k, IonValue.class).get().toString()
     );
 
     final var v2 = new Value(ionSystem.singleValue(String.format(
@@ -121,7 +130,7 @@ public class QLDBStoreIntegrationTest {
     store.put(k, v2);
     Assertions.assertEquals(
       v2.toString(),
-      store.get(k).toString()
+      store.get(k, IonValue.class).get().toString()
     );
   }
 
@@ -151,18 +160,18 @@ public class QLDBStoreIntegrationTest {
 
     // Put our initial list of values, will issue insert
     store.put(map.entrySet().stream().collect(Collectors.toList()));
-    var rx = store.get(sortedkeys);
+    var rx = store.get(sortedkeys, IonValue.class);
 
     compareUpserted(map, sortedkeys, rx);
 
     // Put it again, will issue update
     store.put(map.entrySet().stream().collect(Collectors.toList()));
-    var rx2 = store.get(sortedkeys);
+    var rx2 = store.get(sortedkeys, IonValue.class);
 
     compareUpserted(map, sortedkeys, rx2);
   }
 
-  private void compareUpserted(HashMap<Key<IonValue>, Value<IonValue>> map, List<Key<IonValue>> sortedkeys, Map<Key<IonValue>, Value<Object>> rx) {
+  private void compareUpserted(HashMap<Key<IonValue>, Value<IonValue>> map, List<Key<IonValue>> sortedkeys, Map<Key<IonValue>, Value<IonValue>> rx) {
     Assertions.assertIterableEquals(
       sortedkeys
         .stream()

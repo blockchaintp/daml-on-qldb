@@ -8,15 +8,16 @@ import com.blockchaintp.daml.serviceinterface.exception.StoreWriteException;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class PostgresStore implements BlobStore {
   @Override
-  public Value get(Key key) throws StoreReadException {
-    return null;
+  public <K, V> Optional<Value<V>> get(Key<K> key, Class<V> valueClass) throws StoreReadException {
+    return Optional.empty();
   }
 
   @Override
-  public <K, V> Map<Key<K>, Value<V>> get(List<Key<K>> listOfKeys) {
+  public <K, V> Map<Key<K>, Value<V>> get(List<Key<K>> listOfKeys, Class<V> valueClass) {
     return null;
   }
 

@@ -21,7 +21,7 @@ public class S3StoreResources implements RequiresAWSResources {
   }
 
   private boolean bucketExists() {
-    LOG.debug("Check bucket {} exists", ()-> bucketName);
+    LOG.debug("Check bucket {} exists", () -> bucketName);
     var ourBucket = client.listBuckets()
       .thenApply(r ->
         r.buckets()
@@ -66,15 +66,15 @@ public class S3StoreResources implements RequiresAWSResources {
 
     CompletableFuture.allOf(
       (CompletableFuture<DeleteBucketRequest>[])
-      keys
-        .contents()
-        .stream()
-        .map(k ->
-      client.deleteBucket(DeleteBucketRequest
-        .builder()
-        .bucket(k.key())
-        .build()))
-      .toArray(CompletableFuture[]::new)
+        keys
+          .contents()
+          .stream()
+          .map(k ->
+            client.deleteBucket(DeleteBucketRequest
+              .builder()
+              .bucket(k.key())
+              .build()))
+          .toArray(CompletableFuture[]::new)
     ).join();
 
     var bucketDeletion = client.deleteBucket(

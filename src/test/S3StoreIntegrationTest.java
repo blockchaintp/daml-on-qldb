@@ -1,10 +1,8 @@
-import com.amazon.ion.IonValue;
 import com.blockchaintp.daml.serviceinterface.Key;
 import com.blockchaintp.daml.serviceinterface.Value;
 import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
 import com.blockchaintp.daml.serviceinterface.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.s3.S3Store;
-import com.blockchaintp.daml.stores.s3.S3StoreBuilder;
 import com.blockchaintp.daml.stores.s3.S3StoreResources;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
@@ -16,7 +14,6 @@ import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.S3Client;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -46,8 +43,8 @@ public class S3StoreIntegrationTest {
 
   @BeforeEach
   public void create_test_bucket() {
-    var ledgerId = UUID.randomUUID().toString().substring(0,10);
-    var tableId = UUID.randomUUID().toString().substring(0,10);
+    var ledgerId = UUID.randomUUID().toString().substring(0, 10);
+    var tableId = UUID.randomUUID().toString().substring(0, 10);
 
     SdkAsyncHttpClient httpClient =
       NettyNioAsyncHttpClient.builder()
@@ -80,31 +77,35 @@ public class S3StoreIntegrationTest {
 
 
   @Test
-  void get_non_existent_items_returns_null() throws StoreReadException {
-    Assertions.assertNull(
-      store.get(new Key("nothere")));
+  void get_non_existent_items_returns_none() throws StoreReadException {
+    Assertions.assertEquals(
+      Optional.empty(),
+      store.get(new Key("nothere"), byte[].class));
   }
 
   @Test
   public void single_item_put_and_get_are_symetric() throws StoreWriteException, StoreReadException {
     final var id = UUID.randomUUID();
     final var k = new Key("id");
-    final var v = new Value(new byte[]{1,2,3});
+    final var v = new Value(new byte[]{1, 2, 3});
 
     //Insert
     store.put(k, v);
+
+    var putValue = store.get(k, byte[].class);
     Assertions.assertArrayEquals(
       (byte[]) v.toNative(),
-      (byte[]) store.get(k).toNative()
+      (byte[]) v.toNative()
     );
 
-    final var v2 = new Value(new byte[] {3,2,1});
+    final var v2 = new Value(new byte[]{3, 2, 1});
 
     //Update
     store.put(k, v2);
+    Optional<Value<byte[]>> justPut = store.get(k, byte[].class);
     Assertions.assertArrayEquals(
       (byte[]) v2.toNative(),
-      (byte[]) store.get(k).toNative()
+      (byte[]) justPut.get().toNative()
     );
   }
 
@@ -112,13 +113,13 @@ public class S3StoreIntegrationTest {
   @Test
   public void multiple_item_put_and_get_are_symetric() throws StoreWriteException, StoreReadException {
     final var id = UUID.randomUUID();
-    var map = new HashMap<Key<String>,Value<byte[]>>();
+    var map = new HashMap<Key<String>, Value<byte[]>>();
 
-    for (int i = 0;i != 40;i++ ) {
-      final var k = new Key(String.format("id%d",i));
-      final var v = new Value(new byte[]{1,2,3});
+    for (int i = 0; i != 40; i++) {
+      final var k = new Key(String.format("id%d", i));
+      final var v = new Value(new byte[]{1, 2, 3});
 
-      map.put(k,v);
+      map.put(k, v);
     }
 
     var sortedkeys = map.entrySet()
@@ -135,18 +136,18 @@ public class S3StoreIntegrationTest {
 
     // Put our initial list of values, will issue insert
     store.put(map.entrySet().stream().collect(Collectors.toList()));
-    var rx = store.get(sortedkeys);
+    var rx = store.get(sortedkeys, byte[].class);
 
     compareUpserted(map, sortedkeys, rx);
 
     // Put it again, will issue update
     store.put(map.entrySet().stream().collect(Collectors.toList()));
-    var rx2 = store.get(sortedkeys);
+    var rx2 = store.get(sortedkeys, byte[].class);
 
     compareUpserted(map, sortedkeys, rx2);
   }
 
-  private void compareUpserted(HashMap<Key<String>, Value<IonValue>> map, List<Key<IonValue>> sortedkeys, Map<Key<String>, Value<IonValue>> rx) {
+  private void compareUpserted(HashMap<Key<String>, Value<byte[]>> map, List<Key<String>> sortedkeys, Map<Key<String>, Value<byte[]>> rx) {
     Assertions.assertIterableEquals(
       sortedkeys
         .stream()

@@ -5,7 +5,8 @@ public class StoreReadException extends StoreException {
     super(error, cause);
   }
 
-    public StoreReadException(Throwable e) {
-      super(e);
-    }
+  public StoreReadException(Throwable e) {
+    super(e);
+  }
+
 }

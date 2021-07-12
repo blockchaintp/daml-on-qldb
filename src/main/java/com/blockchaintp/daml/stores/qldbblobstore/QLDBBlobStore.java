@@ -8,6 +8,7 @@ import com.blockchaintp.daml.serviceinterface.exception.StoreWriteException;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class QLDBBlobStore implements TransactionLog {
 
@@ -32,12 +33,12 @@ public class QLDBBlobStore implements TransactionLog {
   }
 
   @Override
-  public <K, V> Value<V> get(Key<K> key) throws StoreReadException {
+  public <K, V> Optional<Value<V>> get(Key<K> key, Class<V> valueClass) throws StoreReadException {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public <K, V> Map<Key<K>, Value<V>> get(List<Key<K>> listOfKeys) throws StoreReadException {
+  public <K, V> Map<Key<K>, Value<V>> get(List<Key<K>> listOfKeys, Class<V> valueClass) throws StoreReadException {
     throw new UnsupportedOperationException();
   }
 }

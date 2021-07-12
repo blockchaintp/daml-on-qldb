@@ -14,7 +14,6 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 import software.amazon.awssdk.services.s3.model.*;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,47 +47,46 @@ public class S3Store implements BlobStore {
 
   private CompletableFuture<Optional<ResponseBytes<GetObjectResponse>>> getObject(S3AsyncClient client, String key) {
     var get = client.getObject(getModifications.apply(GetObjectRequest
-        .builder())
-        .bucket(bucketName)
-        .key(key)
-        .build(), AsyncResponseTransformer.toBytes());
+      .builder())
+      .bucket(bucketName)
+      .key(key)
+      .build(), AsyncResponseTransformer.toBytes());
     return get.exceptionally(e -> {
-        if (e.getCause() instanceof NoSuchKeyException) {
-          return null;
-        } else {
-          throw new CompletionException(new StoreReadException(e));
-        }
+      if (e.getCause() instanceof NoSuchKeyException) {
+        return null;
+      } else {
+        throw new CompletionException(new StoreReadException(e));
+      }
     }).thenApply(x -> Optional.ofNullable(x));
-  };
+  }
+
+  ;
 
   @Override
-  public <K, V> Value<V> get(Key<K> key) throws StoreReadException {
+  public <K, V> Optional<Value<V>> get(Key<K> key, Class<V> valueClass) throws StoreReadException {
     LOG.info("Get {} from bucket {}", key::toNative, () -> bucketName);
 
-    var response = getObject(clientBuilder.build(),(String) key.toNative())
+    var response = getObject(clientBuilder.build(), (String) key.toNative())
       .join();
 
-    if (response.isPresent()) {
-      return new Value(response.get().asByteArray());
-    } else {
-      return null;
-    }
+    return response
+      .map(x -> new Value(x.asByteArray()));
   }
 
   @Override
-  public <K, V> Map<Key<K>, Value<V>> get(List<Key<K>> listOfKeys) {
+  public <K, V> Map<Key<K>, Value<V>> get(List<Key<K>> listOfKeys, Class<V> valueClass) {
     var client = clientBuilder.build();
     var futures = listOfKeys.stream()
       .collect(Collectors.toMap(
         k -> new Key(k.toNative()),
-        k -> getObject(client,(String) k.toNative())
-              .thenApply(x -> {
-                if (x.isPresent()) {
-                  return new Value(x.get().asByteArray());
-                } else {
-                  return null;
-                }
-              })
+        k -> getObject(client, (String) k.toNative())
+          .thenApply(x -> {
+            if (x.isPresent()) {
+              return new Value(x.get().asByteArray());
+            } else {
+              return null;
+            }
+          })
       ));
 
     var waitOn = futures
@@ -109,7 +107,7 @@ public class S3Store implements BlobStore {
       ));
   }
 
-  protected CompletableFuture<PutObjectResponse> putObject(S3AsyncClient client,String key, byte[] blob) {
+  protected CompletableFuture<PutObjectResponse> putObject(S3AsyncClient client, String key, byte[] blob) {
     return client.putObject(putModifications.apply(PutObjectRequest
       .builder())
       .bucket(bucketName)
@@ -119,7 +117,7 @@ public class S3Store implements BlobStore {
 
   @Override
   public <K, V> void put(Key<K> key, Value<V> value) throws StoreWriteException {
-    putObject(clientBuilder.build(),(String) key.toNative(), (byte[]) value.toNative()).join();
+    putObject(clientBuilder.build(), (String) key.toNative(), (byte[]) value.toNative()).join();
   }
 
   @Override
@@ -128,8 +126,10 @@ public class S3Store implements BlobStore {
     var futures = listOfPairs.stream()
       .collect(Collectors.toMap(
         Map.Entry::getKey,
-        kv -> putObject(client,(String) kv.getValue().toNative(),
-          (byte[]) kv.getValue().toNative())));
+        kv -> putObject(client,
+          (String) kv.getValue().toNative(),
+          (byte[]) kv.getValue().toNative()))
+      );
 
     var waitOn = futures.entrySet().stream()
       .map(Map.Entry::getValue)

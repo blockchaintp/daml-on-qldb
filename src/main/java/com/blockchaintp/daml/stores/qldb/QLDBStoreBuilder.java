@@ -1,10 +1,7 @@
 package com.blockchaintp.daml.stores.qldb;
 
 import com.amazon.ion.IonSystem;
-import software.amazon.awssdk.services.qldb.QldbClientBuilder;
 import software.amazon.qldb.QldbDriver;
-
-import java.util.Optional;
 
 public class QLDBStoreBuilder {
 

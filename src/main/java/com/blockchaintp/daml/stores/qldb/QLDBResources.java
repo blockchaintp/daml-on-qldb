@@ -3,7 +3,6 @@ package com.blockchaintp.daml.stores.qldb;
 import com.blockchaintp.daml.stores.RequiresAWSResources;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
-import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.services.qldb.QldbClient;
 import software.amazon.awssdk.services.qldb.model.*;
 import software.amazon.qldb.QldbDriver;
@@ -35,11 +34,10 @@ public class QLDBResources implements RequiresAWSResources {
           .build()
       ).state());
 
-      LOG.debug("Check ledger state, currently {}", ()-> current.get());
+      LOG.debug("Check ledger state, currently {}", () -> current.get());
 
       return current.get().equals(state);
-    }
-    catch (Throwable e) {
+    } catch (Throwable e) {
       if (current.get() == null && state.equals(LedgerState.DELETED)) {
         return true;
       }
@@ -67,7 +65,7 @@ public class QLDBResources implements RequiresAWSResources {
           .deletionProtection(false)
           .build());
 
-      while(!ledgerState(LedgerState.ACTIVE)) {
+      while (!ledgerState(LedgerState.ACTIVE)) {
         try {
           Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -108,7 +106,7 @@ public class QLDBResources implements RequiresAWSResources {
       return;
     }
 
-    while(!ledgerState(LedgerState.DELETED)) {
+    while (!ledgerState(LedgerState.DELETED)) {
       try {
         Thread.sleep(1000);
       } catch (InterruptedException e) {
