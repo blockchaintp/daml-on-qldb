@@ -1,12 +1,9 @@
 package com.blockchaintp.daml.stores.qldbs3store;
 
-import com.amazon.ion.IonBlob;
-import com.amazon.ion.IonSystem;
 import com.blockchaintp.daml.serviceinterface.Key;
 import com.blockchaintp.daml.serviceinterface.StoreReader;
 import com.blockchaintp.daml.serviceinterface.Value;
 import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
-import com.blockchaintp.daml.stores.qldb.QldbStore;
 import com.blockchaintp.daml.stores.s3.S3Store;
 import com.google.protobuf.ByteString;
 
@@ -17,38 +14,29 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Checks QLDB contains the hash before reading value from s3
+ * Reads straight from s3 using an index
  */
-public class VerifiedReader implements StoreReader<ByteString, ByteString> {
+public class UnVerifiedReader implements StoreReader<ByteString, ByteString> {
 
-  private final QldbStore qldb;
   private final S3Store s3;
-  private final IonSystem ion;
 
-  public VerifiedReader(QldbStore qldb, S3Store s3, IonSystem ion) {
-    this.qldb = qldb;
+  public UnVerifiedReader(S3Store s3) {
     this.s3 = s3;
-    this.ion = ion;
   }
 
   @Override
   public Optional<Value<ByteString>> get(Key<ByteString> key) throws StoreReadException {
-    var qldbRef = qldb.get(
-      new Key<>(ion.singleValue(key.toNative().toStringUtf8()))
-    );
 
-    if (qldbRef.isPresent()) {
-      var hashField = (IonBlob) qldbRef.get()
-        .toNative()
-        .get("hash");
+    var s3Index = s3.get(new Key<>(String.format("index/%s",
+      key.toNative().toStringUtf8())));
 
-      Optional<Value<byte[]>> s3Val = s3.get(new Key<>(DatatypeConverter.printHexBinary(hashField.getBytes())));
-
-      return s3Val.map(x -> new Value<>(
-        ByteString.copyFrom(x.toNative())));
-    } else {
-      return Optional.empty();
+    if (s3Index.isPresent()) {
+      return s3.get(
+        new Key<>(DatatypeConverter.printHexBinary(s3Index.get().toNative()))
+      ).map(v -> v.map(ByteString::copyFrom));
     }
+
+    return Optional.empty();
   }
 
   @Override

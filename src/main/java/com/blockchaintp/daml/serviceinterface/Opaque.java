@@ -1,9 +1,10 @@
 package com.blockchaintp.daml.serviceinterface;
 
+import java.io.Serializable;
 import java.util.Objects;
 
-public abstract class Opaque<T> {
-  private final T value;
+public abstract class Opaque<T> implements Serializable {
+  protected final T value;
 
   protected Opaque(T value) {
     this.value = value;
@@ -12,6 +13,7 @@ public abstract class Opaque<T> {
   public T toNative() {
     return this.value;
   }
+
 
   @Override
   public String toString() {

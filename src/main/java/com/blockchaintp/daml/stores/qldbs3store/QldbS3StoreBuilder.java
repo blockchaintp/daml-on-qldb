@@ -17,8 +17,9 @@ public class QldbS3StoreBuilder {
   private S3Store s3Store;
   private StoreReader<ByteString, ByteString> reader;
   private UnaryOperator<byte[]> hashFn;
+  private boolean writeS3Index = false;
 
-  public QldbS3StoreBuilder QLDBS3StoreBuilder(IonSystem ion, QldbStore qldbStore, S3Store s3Store) {
+  public QldbS3StoreBuilder(IonSystem ion, QldbStore qldbStore, S3Store s3Store) {
     this.ion = ion;
     this.qldbStore = qldbStore;
     this.s3Store = s3Store;
@@ -34,12 +35,20 @@ public class QldbS3StoreBuilder {
       }
     };
     this.reader = new VerifiedReader(qldbStore, s3Store, ion);
+  }
+
+  public QldbS3StoreBuilder verified(boolean verified) {
+    if (verified) {
+      this.reader = new VerifiedReader(qldbStore, s3Store, ion);
+    } else {
+      this.reader = new UnVerifiedReader(s3Store);
+    }
 
     return this;
   }
 
-  public QldbS3StoreBuilder verified() {
-    this.reader = new VerifiedReader(qldbStore, s3Store, ion);
+  public QldbS3StoreBuilder withS3Index(boolean writeS3Index) {
+    this.writeS3Index = writeS3Index;
 
     return this;
   }
@@ -52,6 +61,7 @@ public class QldbS3StoreBuilder {
 
   public QldbS3Store build() {
     return new QldbS3Store(
+      writeS3Index,
       reader,
       qldbStore,
       s3Store,

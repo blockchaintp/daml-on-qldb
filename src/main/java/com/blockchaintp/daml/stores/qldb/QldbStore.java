@@ -80,14 +80,14 @@ public class QldbStore implements TransactionLog<IonValue, IonStruct> {
 
     try {
       final var r = driver.execute(
-        // Invoke as varargs variant for stubbing reasons
+        /// Invoke as varargs variant for stubbing reasons
         (Executor<Result>) ex -> ex.execute(query,
           listOfKeys.stream()
             .map(Opaque::toNative)
             .toArray(IonValue[]::new)
         ));
 
-      //Pull id out of the struct to use for our result map
+      /// Pull id out of the struct to use for our result map
       return StreamSupport.stream(r.spliterator(), false)
         .map(IonStruct.class::cast)
         .collect(Collectors.toMap(
@@ -102,10 +102,6 @@ public class QldbStore implements TransactionLog<IonValue, IonStruct> {
 
   /**
    * Put a single item to QLDB efficiently, conditionally and atomically using update or insert depending if the item exists
-   *
-   * @param key
-   * @param value
-   * @throws StoreWriteException
    */
   @Override
   public void put(Key<IonValue> key, Value<IonStruct> value) throws StoreWriteException {
@@ -134,7 +130,6 @@ public class QldbStore implements TransactionLog<IonValue, IonStruct> {
    * TODO: (Harder) QLDB will complain if a transaction causes a modification of more than 4Mb of data, which cannot be determined up front, the whole transaction would need to be retried with a smaller set of documents, losing atomicity
    *
    * @param listOfPairs A key / value list of IonValues and IonStructs
-   * @throws StoreWriteException
    */
   @Override
   public void put(List<Map.Entry<Key<IonValue>, Value<IonStruct>>> listOfPairs) throws StoreWriteException {
@@ -211,11 +206,11 @@ public class QldbStore implements TransactionLog<IonValue, IonStruct> {
 
   @Override
   public void sendEvent(String topic, String data) throws StoreWriteException {
-
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void sendEvent(List<Map.Entry<String, String>> listOfPairs) throws StoreWriteException {
-
+    throw new UnsupportedOperationException();
   }
 }

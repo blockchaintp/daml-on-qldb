@@ -1,31 +1,28 @@
 package com.blockchaintp.daml.stores.qldbs3store;
 
+import com.amazon.ion.IonStruct;
 import com.amazon.ion.IonSystem;
-import com.blockchaintp.daml.serviceinterface.Key;
-import com.blockchaintp.daml.serviceinterface.StoreReader;
-import com.blockchaintp.daml.serviceinterface.TransactionLog;
-import com.blockchaintp.daml.serviceinterface.Value;
+import com.amazon.ion.IonValue;
+import com.blockchaintp.daml.serviceinterface.*;
 import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
 import com.blockchaintp.daml.serviceinterface.exception.StoreWriteException;
-import com.blockchaintp.daml.stores.qldb.QldbStore;
-import com.blockchaintp.daml.stores.s3.S3Store;
 import com.google.protobuf.ByteString;
 
 import javax.xml.bind.DatatypeConverter;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.UnaryOperator;
 
 public class QldbS3Store implements TransactionLog<ByteString, ByteString> {
 
-  private final QldbStore qldb;
-  private final S3Store s3;
+  private final boolean writeS3Index;
+  private final Store<IonValue, IonStruct> qldb;
+  private final Store<String, byte[]> s3;
   private final StoreReader<ByteString, ByteString> reader;
   private final IonSystem ion;
   private final UnaryOperator<byte[]> hashFn;
 
-  public QldbS3Store(StoreReader<ByteString, ByteString> reader, QldbStore qldb, S3Store s3, IonSystem ion, UnaryOperator<byte[]> hashFn) {
+  public QldbS3Store(boolean writeS3Index, StoreReader<ByteString, ByteString> reader, Store<IonValue, IonStruct> qldb, Store<String, byte[]> s3, IonSystem ion, UnaryOperator<byte[]> hashFn) {
+    this.writeS3Index = writeS3Index;
     this.reader = reader;
     this.qldb = qldb;
     this.s3 = s3;
@@ -33,17 +30,19 @@ public class QldbS3Store implements TransactionLog<ByteString, ByteString> {
     this.hashFn = hashFn;
   }
 
-
   @Override
   public void put(Key<ByteString> key, Value<ByteString> value) throws StoreWriteException {
     var bytes = value.toNative().toByteArray();
     var hash = hashFn.apply(bytes);
     var qldbKey = ion.singleValue(key.toNative().toStringUtf8());
 
-    s3.put(
-      new Key<>(DatatypeConverter.printHexBinary(hash)),
-      new Value<>(bytes)
-    );
+    var hexKey = DatatypeConverter.printHexBinary(hash);
+
+    if (writeS3Index) {
+      writeIndexedBlob(key, bytes, hash, hexKey);
+    } else {
+      writeBlob(bytes, hexKey);
+    }
 
     var ionStruct = ion.newEmptyStruct();
     ionStruct.add("id", qldbKey);
@@ -52,6 +51,29 @@ public class QldbS3Store implements TransactionLog<ByteString, ByteString> {
       new Key<>(qldbKey),
       new Value<>(ionStruct)
     );
+  }
+
+
+  private void writeBlob(byte[] bytes, String hexKey) throws StoreWriteException {
+    s3.put(
+      new Key<>(hexKey),
+      new Value<>(bytes)
+    );
+  }
+
+  private void writeIndexedBlob(Key<ByteString> key, byte[] bytes, byte[] hash, String hexKey) throws StoreWriteException {
+    s3.put(Arrays.asList(
+      new AbstractMap.SimpleEntry<>(
+        new Key<>(hexKey),
+        new Value<>(bytes)
+      ),
+      new AbstractMap.SimpleEntry<>(
+        new Key<>(String.format("index/%s",
+          key.toNative().toStringUtf8()
+        )),
+        new Value<>(hash)
+      )
+    ));
   }
 
   @Override

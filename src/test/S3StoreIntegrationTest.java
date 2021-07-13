@@ -1,11 +1,15 @@
 import com.blockchaintp.daml.serviceinterface.Key;
 import com.blockchaintp.daml.serviceinterface.Opaque;
+import com.blockchaintp.daml.serviceinterface.Store;
 import com.blockchaintp.daml.serviceinterface.Value;
 import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
 import com.blockchaintp.daml.serviceinterface.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.s3.S3Store;
 import com.blockchaintp.daml.stores.s3.S3StoreResources;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
@@ -17,7 +21,7 @@ import java.util.stream.Collectors;
 
 public class S3StoreIntegrationTest {
 
-  private S3Store store;
+  private Store<String, byte[]> store;
   private S3StoreResources resources;
 
 
@@ -60,10 +64,10 @@ public class S3StoreIntegrationTest {
   void get_non_existent_items_returns_none() throws StoreReadException {
     Assertions.assertEquals(
       Optional.empty(),
-      store.get(new Key("nothere")));
+      store.get(new Key<>("nothere")));
 
     var keys = new ArrayList<Key<String>>();
-    keys.add(new Key("nothere"));
+    keys.add(new Key<>("nothere"));
     Assertions.assertEquals(
       Map.of(),
       store.get(keys));
@@ -72,8 +76,8 @@ public class S3StoreIntegrationTest {
   @Test
   void single_item_put_and_get_are_symmetric() throws StoreWriteException, StoreReadException {
     final var id = UUID.randomUUID();
-    final var k = new Key("id");
-    final var v = new Value(new byte[]{1, 2, 3});
+    final var k = new Key<>("id");
+    final var v = new Value<>(new byte[]{1, 2, 3});
 
     //Insert
     store.put(k, v);
@@ -84,7 +88,7 @@ public class S3StoreIntegrationTest {
       (byte[]) v.toNative()
     );
 
-    final var v2 = new Value(new byte[]{3, 2, 1});
+    final var v2 = new Value<>(new byte[]{3, 2, 1});
 
     //Update
     store.put(k, v2);

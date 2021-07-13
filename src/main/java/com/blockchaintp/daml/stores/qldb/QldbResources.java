@@ -62,10 +62,11 @@ public class QldbResources implements RequiresAWSResources {
           .build());
 
       while (!ledgerState(LedgerState.ACTIVE)) {
+        //noinspection CatchMayIgnoreException
         try {
+          //noinspection BusyWait
           Thread.sleep(1000);
         } catch (InterruptedException e) {
-          e.printStackTrace();
         }
       }
     }
@@ -104,6 +105,7 @@ public class QldbResources implements RequiresAWSResources {
 
     while (!ledgerState(LedgerState.DELETED)) {
       try {
+        //noinspection BusyWait
         Thread.sleep(1000);
       } catch (InterruptedException e) {
         e.printStackTrace();

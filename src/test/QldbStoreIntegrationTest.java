@@ -8,11 +8,10 @@ import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
 import com.blockchaintp.daml.serviceinterface.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.qldb.QldbResources;
 import com.blockchaintp.daml.stores.qldb.QldbStore;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.qldb.QldbClient;
@@ -23,30 +22,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 
-/**
- * Happy path testing, best done via integration or simulation
- */
 public class QldbStoreIntegrationTest {
   private QldbStore store;
   private IonSystem ionSystem;
   private QldbResources resources;
-
-  @BeforeAll
-  public static void enableAwsSDKTracing() {
-    var console = new ConsoleAppender(); //create appender
-    //configure the appender
-    var PATTERN = "**AWS** %d [%p|%c|%C{1}] %m%n";
-    console.setLayout(new PatternLayout(PATTERN));
-    console.setThreshold(Level.INFO);
-    console.activateOptions();
-    console.setName("test");
-    Logger.getRootLogger().addAppender(console);
-  }
-
-  @AfterAll
-  public static void disableAWsSdkTracing() {
-    Logger.getRootLogger().removeAppender("test");
-  }
 
   @BeforeEach
   void establishStore() throws StoreWriteException {

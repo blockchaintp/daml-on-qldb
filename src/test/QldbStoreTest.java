@@ -11,6 +11,7 @@ import software.amazon.qldb.exceptions.QldbDriverException;
 
 import static org.mockito.Mockito.*;
 
+@SuppressWarnings("unchecked")
 class QldbStoreTest {
 
   @Test
@@ -24,6 +25,6 @@ class QldbStoreTest {
     final var ion = IonSystemBuilder.standard().build();
 
     var qldbStoreReadException = Assertions.assertThrows(StoreReadException.class,
-      () -> closedStore.get(new Key(ion.singleValue("identity"))));
+      () -> closedStore.get(new Key<>(ion.singleValue("identity"))));
   }
 }

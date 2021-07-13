@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
@@ -56,24 +57,35 @@ public class S3Store implements BlobStore<String, byte[]> {
       if (e.getCause() instanceof NoSuchKeyException) {
         return null;
       } else {
-        throw new CompletionException(new StoreReadException(e));
+        throw new CompletionException(e.getCause());
       }
     }).thenApply(Optional::ofNullable);
+  }
+
+  <T> T guardRead(Supplier<T> op) throws StoreReadException {
+    try {
+      return op.get();
+    } catch (CompletionException e) {
+      throw new StoreReadException(e.getCause());
+    }
   }
 
   @Override
   public Optional<Value<byte[]>> get(Key<String> key) throws StoreReadException {
     LOG.info("Get {} from bucket {}", key::toNative, () -> bucketName);
 
-    var response = getObject(clientBuilder.build(), key.toNative())
-      .join();
+    return guardRead(() -> {
+      var response =
+        getObject(clientBuilder.build(), key.toNative())
+          .join();
 
-    return response
-      .map(x -> new Value<>(x.asByteArray()));
+      return response
+        .map(x -> new Value<>(x.asByteArray()));
+    });
   }
 
   @Override
-  public Map<Key<String>, Value<byte[]>> get(List<Key<String>> listOfKeys) {
+  public Map<Key<String>, Value<byte[]>> get(List<Key<String>> listOfKeys) throws StoreReadException {
     var client = clientBuilder.build();
     var futures = listOfKeys.stream()
       .collect(Collectors.toMap(
@@ -86,16 +98,18 @@ public class S3Store implements BlobStore<String, byte[]> {
       .values())
       .toArray(CompletableFuture[]::new);
 
-    CompletableFuture.allOf(waitOn).join();
+    return guardRead(() -> {
+      CompletableFuture.allOf(waitOn).join();
 
-    return futures
-      .entrySet()
-      .stream()
-      .filter(v -> v.getValue().join() != null)
-      .collect(Collectors.toMap(
-        Map.Entry::getKey,
-        v -> v.getValue().join()
-      ));
+      return futures
+        .entrySet()
+        .stream()
+        .filter(v -> v.getValue().join() != null)
+        .collect(Collectors.toMap(
+          Map.Entry::getKey,
+          v -> v.getValue().join()
+        ));
+    });
   }
 
   protected CompletableFuture<PutObjectResponse> putObject(S3AsyncClient client, String key, byte[] blob) {
@@ -106,9 +120,18 @@ public class S3Store implements BlobStore<String, byte[]> {
       .build(), AsyncRequestBody.fromBytes(blob));
   }
 
+
+  void guardWrite(Runnable op) throws StoreWriteException {
+    try {
+      op.run();
+    } catch (CompletionException e) {
+      throw new StoreWriteException(e.getCause());
+    }
+  }
+
   @Override
   public void put(Key<String> key, Value<byte[]> value) throws StoreWriteException {
-    putObject(clientBuilder.build(), key.toNative(), value.toNative()).join();
+    guardWrite(() -> putObject(clientBuilder.build(), key.toNative(), value.toNative()).join());
   }
 
   @Override
@@ -122,10 +145,13 @@ public class S3Store implements BlobStore<String, byte[]> {
           kv.getValue().toNative()))
       );
 
-    var waitOn = new ArrayList<>(futures.values())
-      .toArray(CompletableFuture[]::new);
+    guardWrite(() -> {
+      var waitOn = new ArrayList<>(futures.values())
+        .toArray(CompletableFuture[]::new);
 
-    CompletableFuture.allOf(waitOn).join();
+      CompletableFuture.allOf(waitOn).join();
+
+    });
   }
 
   @Override
