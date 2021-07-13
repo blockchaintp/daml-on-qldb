@@ -14,7 +14,7 @@ import java.util.concurrent.CompletableFuture;
 public class S3StoreResources implements RequiresAWSResources {
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(S3StoreResources.class);
   private final String bucketName;
-  private S3AsyncClient client;
+  private final S3AsyncClient client;
 
   public S3StoreResources(S3AsyncClient client, String ledgerName, String tableName) {
     this.client = client;
@@ -74,17 +74,16 @@ public class S3StoreResources implements RequiresAWSResources {
       .join();
 
     CompletableFuture.allOf(
-      (CompletableFuture<DeleteBucketRequest>[])
-        keys
-          .contents()
-          .stream()
-          .map(k ->
-            client.deleteObject(DeleteObjectRequest
-              .builder()
-              .bucket(bucketName)
-              .key(k.key())
-              .build()))
-          .toArray(CompletableFuture[]::new)
+      keys
+        .contents()
+        .stream()
+        .map(k ->
+          client.deleteObject(DeleteObjectRequest
+            .builder()
+            .bucket(bucketName)
+            .key(k.key())
+            .build()))
+        .toArray(CompletableFuture[]::new)
     ).join();
 
     client.deleteBucket(

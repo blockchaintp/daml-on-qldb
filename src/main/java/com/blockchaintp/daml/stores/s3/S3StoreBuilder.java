@@ -8,7 +8,7 @@ import java.util.function.UnaryOperator;
 
 public class S3StoreBuilder {
 
-  private S3AsyncClientBuilder client;
+  private final S3AsyncClientBuilder client;
   private String ledgerName;
   private UnaryOperator<PutObjectRequest.Builder> putModifications = x -> x;
   private UnaryOperator<GetObjectRequest.Builder> getModifications = x -> x;

@@ -10,14 +10,14 @@ import software.amazon.qldb.QldbDriver;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.StreamSupport;
 
-public class QLDBResources implements RequiresAWSResources {
-  private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QLDBResources.class);
-  private QldbClient infrastructureClient;
-  private QldbDriver driver;
-  private String ledger;
-  private String table;
+public class QldbResources implements RequiresAWSResources {
+  private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QldbResources.class);
+  private final QldbClient infrastructureClient;
+  private final QldbDriver driver;
+  private final String ledger;
+  private final String table;
 
-  public QLDBResources(QldbClient infrastructureClient, QldbDriver driver, String ledger, String table) {
+  public QldbResources(QldbClient infrastructureClient, QldbDriver driver, String ledger, String table) {
     this.infrastructureClient = infrastructureClient;
     this.driver = driver;
     this.ledger = ledger;
@@ -34,15 +34,11 @@ public class QLDBResources implements RequiresAWSResources {
           .build()
       ).state());
 
-      LOG.debug("Check ledger state, currently {}", () -> current.get());
+      LOG.debug("Check ledger state, currently {}", current::get);
 
       return current.get().equals(state);
     } catch (Throwable e) {
-      if (current.get() == null && state.equals(LedgerState.DELETED)) {
-        return true;
-      }
-
-      return false;
+      return current.get() == null && state.equals(LedgerState.DELETED);
     }
   }
 

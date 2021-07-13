@@ -14,6 +14,7 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 import software.amazon.awssdk.services.s3.model.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -22,7 +23,7 @@ import java.util.concurrent.CompletionException;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
-public class S3Store implements BlobStore {
+public class S3Store implements BlobStore<String, byte[]> {
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(S3Store.class);
   private final String bucketName;
   private final S3AsyncClientBuilder clientBuilder;
@@ -57,43 +58,32 @@ public class S3Store implements BlobStore {
       } else {
         throw new CompletionException(new StoreReadException(e));
       }
-    }).thenApply(x -> Optional.ofNullable(x));
+    }).thenApply(Optional::ofNullable);
   }
 
-  ;
-
   @Override
-  public <K, V> Optional<Value<V>> get(Key<K> key, Class<V> valueClass) throws StoreReadException {
+  public Optional<Value<byte[]>> get(Key<String> key) throws StoreReadException {
     LOG.info("Get {} from bucket {}", key::toNative, () -> bucketName);
 
-    var response = getObject(clientBuilder.build(), (String) key.toNative())
+    var response = getObject(clientBuilder.build(), key.toNative())
       .join();
 
     return response
-      .map(x -> new Value(x.asByteArray()));
+      .map(x -> new Value<>(x.asByteArray()));
   }
 
   @Override
-  public <K, V> Map<Key<K>, Value<V>> get(List<Key<K>> listOfKeys, Class<V> valueClass) {
+  public Map<Key<String>, Value<byte[]>> get(List<Key<String>> listOfKeys) {
     var client = clientBuilder.build();
     var futures = listOfKeys.stream()
       .collect(Collectors.toMap(
-        k -> new Key(k.toNative()),
-        k -> getObject(client, (String) k.toNative())
-          .thenApply(x -> {
-            if (x.isPresent()) {
-              return new Value(x.get().asByteArray());
-            } else {
-              return null;
-            }
-          })
+        k -> new Key<>(k.toNative()),
+        k -> getObject(client, k.toNative())
+          .thenApply(x -> x.map(getObjectResponseResponseBytes -> new Value<>(getObjectResponseResponseBytes.asByteArray())).orElse(null))
       ));
 
-    var waitOn = futures
-      .entrySet()
-      .stream()
-      .map(Map.Entry::getValue)
-      .collect(Collectors.toList())
+    var waitOn = new ArrayList<>(futures
+      .values())
       .toArray(CompletableFuture[]::new);
 
     CompletableFuture.allOf(waitOn).join();
@@ -103,7 +93,7 @@ public class S3Store implements BlobStore {
       .stream()
       .filter(v -> v.getValue().join() != null)
       .collect(Collectors.toMap(
-        k -> k.getKey(),
+        Map.Entry::getKey,
         v -> v.getValue().join()
       ));
   }
@@ -117,27 +107,25 @@ public class S3Store implements BlobStore {
   }
 
   @Override
-  public <K, V> void put(Key<K> key, Value<V> value) throws StoreWriteException {
-    putObject(clientBuilder.build(), (String) key.toNative(), (byte[]) value.toNative()).join();
+  public void put(Key<String> key, Value<byte[]> value) throws StoreWriteException {
+    putObject(clientBuilder.build(), key.toNative(), value.toNative()).join();
   }
 
   @Override
-  public <K, V> void put(List<Map.Entry<Key<K>, Value<V>>> listOfPairs) throws StoreWriteException {
+  public void put(List<Map.Entry<Key<String>, Value<byte[]>>> listOfPairs) throws StoreWriteException {
     var client = clientBuilder.build();
     var futures = listOfPairs.stream()
       .collect(Collectors.toMap(
         Map.Entry::getKey,
         kv -> putObject(client,
-          (String) kv.getKey().toNative(),
-          (byte[]) kv.getValue().toNative()))
+          kv.getKey().toNative(),
+          kv.getValue().toNative()))
       );
 
-    var waitOn = futures.entrySet().stream()
-      .map(Map.Entry::getValue)
-      .collect(Collectors.toList())
+    var waitOn = new ArrayList<>(futures.values())
       .toArray(CompletableFuture[]::new);
 
-    CompletableFuture.allOf((CompletableFuture<ResponseBytes<GetObjectResponse>>[]) waitOn).join();
+    CompletableFuture.allOf(waitOn).join();
   }
 
   @Override

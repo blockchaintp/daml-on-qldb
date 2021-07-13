@@ -12,10 +12,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class S3StoreTest {
 
-
   public class Stub {
 
-    public S3AsyncClient get() {
+    S3AsyncClient get() {
       final var client = mock(S3AsyncClient.class);
 
       when(client.putObject(any(PutObjectRequest.class), any(AsyncRequestBody.class)))

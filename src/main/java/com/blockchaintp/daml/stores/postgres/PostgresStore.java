@@ -10,24 +10,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class PostgresStore implements BlobStore {
+public class PostgresStore implements BlobStore<String, byte[]> {
   @Override
-  public <K, V> Optional<Value<V>> get(Key<K> key, Class<V> valueClass) throws StoreReadException {
+  public Optional<Value<byte[]>> get(Key<String> key) throws StoreReadException {
     return Optional.empty();
   }
 
   @Override
-  public <K, V> Map<Key<K>, Value<V>> get(List<Key<K>> listOfKeys, Class<V> valueClass) {
+  public Map<Key<String>, Value<byte[]>> get(List<Key<String>> listOfKeys) {
     return null;
   }
 
   @Override
-  public <K, V> void put(Key<K> key, Value<V> value) throws StoreWriteException {
+  public void put(Key<String> key, Value<byte[]> value) throws StoreWriteException {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public <K, V> void put(List<Map.Entry<Key<K>, Value<V>>> listOfPairs) throws StoreWriteException {
+  public void put(List<Map.Entry<Key<String>, Value<byte[]>>> listOfPairs) throws StoreWriteException {
     throw new UnsupportedOperationException();
   }
 

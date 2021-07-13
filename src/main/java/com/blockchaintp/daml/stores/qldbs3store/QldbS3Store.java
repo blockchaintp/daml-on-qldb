@@ -1,4 +1,4 @@
-package com.blockchaintp.daml.stores.qldbblobstore;
+package com.blockchaintp.daml.stores.qldbs3store;
 
 import com.amazon.ion.IonSystem;
 import com.blockchaintp.daml.serviceinterface.Key;
@@ -11,20 +11,21 @@ import com.blockchaintp.daml.stores.qldb.QldbStore;
 import com.blockchaintp.daml.stores.s3.S3Store;
 import com.google.protobuf.ByteString;
 
+import javax.xml.bind.DatatypeConverter;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
 
-public class QldbBlobStore implements TransactionLog {
+public class QldbS3Store implements TransactionLog<ByteString, ByteString> {
 
-  private QldbStore qldb;
-  private S3Store s3;
-  private StoreReader reader;
-  private IonSystem ion;
-  private UnaryOperator<byte[]> hashFn;
+  private final QldbStore qldb;
+  private final S3Store s3;
+  private final StoreReader<ByteString, ByteString> reader;
+  private final IonSystem ion;
+  private final UnaryOperator<byte[]> hashFn;
 
-  public QldbBlobStore(StoreReader reader, QldbStore qldb, S3Store s3, IonSystem ion, UnaryOperator<byte[]> hashFn) {
+  public QldbS3Store(StoreReader<ByteString, ByteString> reader, QldbStore qldb, S3Store s3, IonSystem ion, UnaryOperator<byte[]> hashFn) {
     this.reader = reader;
     this.qldb = qldb;
     this.s3 = s3;
@@ -34,25 +35,28 @@ public class QldbBlobStore implements TransactionLog {
 
 
   @Override
-  public <K, V> void put(Key<K> key, Value<V> value) throws StoreWriteException {
-    var castKey = (ByteString) key.toNative();
-    var castValue = (ByteString) value.toNative();
-    var hash = ByteString.copyFrom(hashFn.apply(castValue.toByteArray()));
+  public void put(Key<ByteString> key, Value<ByteString> value) throws StoreWriteException {
+    var bytes = value.toNative().toByteArray();
+    var hash = hashFn.apply(bytes);
+    var qldbKey = ion.singleValue(key.toNative().toStringUtf8());
 
-    s3.put(new Key(hash.toString()),new Value(castValue.toByteArray()));
+    s3.put(
+      new Key<>(DatatypeConverter.printHexBinary(hash)),
+      new Value<>(bytes)
+    );
 
     var ionStruct = ion.newEmptyStruct();
-    ionStruct.add("id", ion.singleValue(castKey.toString()));
-    ionStruct.add("hash",ion.singleValue(castValue.toByteArray()));
+    ionStruct.add("id", qldbKey);
+    ionStruct.add("hash", ion.newBlob(hash));
     qldb.put(
-      new Key(ion.singleValue(hash.toString())),
-      new Value(ionStruct)
+      new Key<>(qldbKey),
+      new Value<>(ionStruct)
     );
   }
 
   @Override
-  public <K, V> void put(List<Map.Entry<Key<K>, Value<V>>> listOfPairs) throws StoreWriteException {
-    for (var kv: listOfPairs) {
+  public void put(List<Map.Entry<Key<ByteString>, Value<ByteString>>> listOfPairs) throws StoreWriteException {
+    for (var kv : listOfPairs) {
       this.put(kv.getKey(), kv.getValue());
     }
   }
@@ -68,12 +72,12 @@ public class QldbBlobStore implements TransactionLog {
   }
 
   @Override
-  public <K, V> Optional<Value<V>> get(Key<K> key, Class<V> valueClass) throws StoreReadException {
-    return reader.get(key,valueClass);
+  public Optional<Value<ByteString>> get(Key<ByteString> key) throws StoreReadException {
+    return reader.get(key);
   }
 
   @Override
-  public <K, V> Map<Key<K>, Value<V>> get(List<Key<K>> listOfKeys, Class<V> valueClass) throws StoreReadException {
-    return reader.get(listOfKeys,valueClass);
+  public Map<Key<ByteString>, Value<ByteString>> get(List<Key<ByteString>> listOfKeys) throws StoreReadException {
+    return reader.get(listOfKeys);
   }
 }

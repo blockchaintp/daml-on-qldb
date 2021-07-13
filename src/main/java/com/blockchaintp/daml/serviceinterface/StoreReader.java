@@ -9,8 +9,8 @@ import java.util.Optional;
 /**
  *
  */
-public interface StoreReader {
-  <K, V> Optional<Value<V>> get(Key<K> key, Class<V> valueClass) throws StoreReadException;
+public interface StoreReader<K, V> {
+  Optional<Value<V>> get(Key<K> key) throws StoreReadException;
 
-  <K, V> Map<Key<K>, Value<V>> get(List<Key<K>> listOfKeys, Class<V> valueClass) throws StoreReadException;
+  Map<Key<K>, Value<V>> get(List<Key<K>> listOfKeys) throws StoreReadException;
 }

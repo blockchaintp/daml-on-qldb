@@ -1,9 +1,9 @@
 package com.blockchaintp.daml.stores.qldb;
 
 import com.amazon.ion.IonStruct;
-import com.amazon.ion.IonSystem;
 import com.amazon.ion.IonValue;
 import com.blockchaintp.daml.serviceinterface.Key;
+import com.blockchaintp.daml.serviceinterface.Opaque;
 import com.blockchaintp.daml.serviceinterface.TransactionLog;
 import com.blockchaintp.daml.serviceinterface.Value;
 import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
@@ -12,41 +12,36 @@ import com.google.common.collect.Sets;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import software.amazon.qldb.Executor;
-import software.amazon.qldb.ExecutorNoReturn;
 import software.amazon.qldb.QldbDriver;
 import software.amazon.qldb.Result;
 import software.amazon.qldb.exceptions.QldbDriverException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class QLDBStore implements TransactionLog {
+public class QldbStore implements TransactionLog<IonValue, IonStruct> {
 
-  private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QLDBStore.class);
+  private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QldbStore.class);
 
   private final QldbDriver driver;
   private final String table;
-  private final IonSystem ion;
-  private String ledger;
 
-  public QLDBStore(QldbDriver driver,
-                   String ledger,
-                   String table,
-                   IonSystem ion) {
-    this.ledger = ledger;
+  public QldbStore(QldbDriver driver,
+                   String table) {
     this.driver = driver;
     this.table = table;
-    this.ion = ion;
   }
 
-  public static QLDBStoreBuilder forDriver(QldbDriver driver) {
-    return QLDBStoreBuilder.forDriver(driver);
+  public static QldbStoreBuilder forDriver(QldbDriver driver) {
+    return QldbStoreBuilder.forDriver(driver);
   }
 
-  public <K, V> Optional<Value<V>> get(Key<K> key, Class<V> valueClass) throws StoreReadException {
+  @Override
+  public Optional<Value<IonStruct>> get(Key<IonValue> key) throws StoreReadException {
     LOG.info("get id={} in table={}", () -> key, () -> table);
     final var query = String.format("select o.* from %s AS o where o.id = ?", table);
     LOG.info("QUERY = {}", () -> query);
@@ -54,13 +49,15 @@ public class QLDBStore implements TransactionLog {
     try {
       final var r = driver.execute(
         (Executor<Result>) ex -> ex.execute(query,
-          (IonValue) key.toNative()
+          key.toNative()
         ));
 
       if (!r.iterator().hasNext()) {
         return Optional.empty();
       } else {
-        return Optional.of(new Value((V) r.iterator().next()));
+        return Optional.of(new Value<>(
+          (IonStruct) r.iterator().next()
+        ));
       }
 
     } catch (QldbDriverException e) {
@@ -70,7 +67,7 @@ public class QLDBStore implements TransactionLog {
   }
 
   @Override
-  public <K, V> Map<Key<K>, Value<V>> get(List<Key<K>> listOfKeys, Class<V> valueclass) throws StoreReadException {
+  public Map<Key<IonValue>, Value<IonStruct>> get(List<Key<IonValue>> listOfKeys) throws StoreReadException {
     LOG.info("get ids=({}) in table={}", () -> listOfKeys, () -> table);
 
     final var query = String.format("select o.* from %s as o where o.id in ( %s )",
@@ -86,7 +83,7 @@ public class QLDBStore implements TransactionLog {
         // Invoke as varargs variant for stubbing reasons
         (Executor<Result>) ex -> ex.execute(query,
           listOfKeys.stream()
-            .map(k -> (IonValue) k.toNative())
+            .map(Opaque::toNative)
             .toArray(IonValue[]::new)
         ));
 
@@ -94,8 +91,8 @@ public class QLDBStore implements TransactionLog {
       return StreamSupport.stream(r.spliterator(), false)
         .map(IonStruct.class::cast)
         .collect(Collectors.toMap(
-          k -> new Key(k.get("id")),
-          v -> new Value(v)
+          k -> new Key<>(k.get("id")),
+          Value::new
         ));
     } catch (QldbDriverException e) {
       throw new StoreReadException("Driver", e);
@@ -108,28 +105,24 @@ public class QLDBStore implements TransactionLog {
    *
    * @param key
    * @param value
-   * @param <K>
-   * @param <V>
    * @throws StoreWriteException
    */
   @Override
-  public <K, V> void put(Key<K> key, Value<V> value) throws StoreWriteException {
-    final var id = (IonValue) key.toNative();
-    final var doc = (IonValue) value.toNative();
+  public void put(Key<IonValue> key, Value<IonStruct> value) throws StoreWriteException {
 
-    LOG.info("upsert id={} in table={}", () -> id, () -> table);
+    LOG.info("upsert id={} in table={}", () -> key, () -> table);
 
     driver.execute(tx -> {
       var exists = tx.execute(
         String.format("select o.id from %s as o where o.id = ?", table),
-        id);
+        key.toNative());
 
       if (exists.isEmpty()) {
         final var query = String.format("insert into %s value ?", table);
-        tx.execute(query, doc);
+        tx.execute(query, value.toNative());
       } else {
         final var query = String.format("update %s as o set o = ? where o.id = ?", table);
-        tx.execute(query, doc, id);
+        tx.execute(query, value.toNative(), key.toNative());
       }
     });
   }
@@ -141,22 +134,20 @@ public class QLDBStore implements TransactionLog {
    * TODO: (Harder) QLDB will complain if a transaction causes a modification of more than 4Mb of data, which cannot be determined up front, the whole transaction would need to be retried with a smaller set of documents, losing atomicity
    *
    * @param listOfPairs A key / value list of IonValues and IonStructs
-   * @param <K>
-   * @param <V>
    * @throws StoreWriteException
    */
   @Override
-  public <K, V> void put(List<Map.Entry<Key<K>, Value<V>>> listOfPairs) throws StoreWriteException {
+  public void put(List<Map.Entry<Key<IonValue>, Value<IonStruct>>> listOfPairs) throws StoreWriteException {
     LOG.debug("upsert ids={} in table={}", () -> listOfPairs
         .stream()
         .map(Map.Entry::getKey)
         .collect(Collectors.toList()),
       () -> table);
 
-    driver.execute((ExecutorNoReturn) txn -> {
+    driver.execute(txn -> {
       var keys = listOfPairs
         .stream()
-        .map(k -> (IonValue) k.getKey().toNative())
+        .map(k -> k.getKey().toNative())
         .collect(Collectors.toSet());
 
       var exists =
@@ -169,7 +160,7 @@ public class QLDBStore implements TransactionLog {
                 .map(k -> "?")
                 .collect(Collectors.joining(","))
             ),
-            keys.stream().collect(Collectors.toList())
+            new ArrayList<>(keys)
           ).spliterator(), false)
           .collect(Collectors.toSet());
 
@@ -183,8 +174,8 @@ public class QLDBStore implements TransactionLog {
       var valueMap = listOfPairs
         .stream()
         .collect(Collectors.toMap(
-          k -> (IonValue) k.getKey().toNative(),
-          v -> (IonValue) v.getValue().toNative()
+          k -> k.getKey().toNative(),
+          v -> v.getValue().toNative()
         ));
       var keysToInsert = Sets.difference(keys, existingKeys);
       var keysToUpdate = Sets.difference(existingKeys, keysToInsert);
@@ -205,7 +196,7 @@ public class QLDBStore implements TransactionLog {
         ),
         keysToInsert
           .stream()
-          .map(k -> valueMap.get(k))
+          .map(valueMap::get)
           .collect(Collectors.toList())
       );
 
@@ -220,11 +211,11 @@ public class QLDBStore implements TransactionLog {
 
   @Override
   public void sendEvent(String topic, String data) throws StoreWriteException {
-    throw new UnsupportedOperationException();
+
   }
 
   @Override
   public void sendEvent(List<Map.Entry<String, String>> listOfPairs) throws StoreWriteException {
-    throw new UnsupportedOperationException();
+
   }
 }

@@ -1,7 +1,7 @@
 package com.blockchaintp.daml.stores.qldb;
 
-public class QLDBStoreBuilderException extends RuntimeException {
-  public QLDBStoreBuilderException(String cause) {
+public class QldbStoreBuilderException extends RuntimeException {
+  public QldbStoreBuilderException(String cause) {
     super(cause);
   }
 }
