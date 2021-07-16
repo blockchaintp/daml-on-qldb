@@ -20,24 +20,24 @@ import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
 import com.google.protobuf.ByteString;
 
 /**
- * Checks QLDB contains the hash before reading value from s3
+ * Checks QLDB contains the hash before reading value from s3.
  */
 public class VerifiedReader implements StoreReader<ByteString, ByteString> {
 
-  private final TransactionLog<IonValue, IonStruct> qldb;
+  private final TransactionLog<IonValue, IonStruct> txLog;
   private final Store<String, byte[]> blobStore;
   private final IonSystem ion;
 
-  public VerifiedReader(final TransactionLog<IonValue, IonStruct> txlog, final Store<String, byte[]> blobStore,
+  public VerifiedReader(final TransactionLog<IonValue, IonStruct> txlog, final Store<String, byte[]> blobs,
       final IonSystem sys) {
-    this.qldb = txlog;
-    this.blobStore = blobStore;
+    this.txLog = txlog;
+    this.blobStore = blobs;
     this.ion = sys;
   }
 
   @Override
   public final Optional<Value<ByteString>> get(final Key<ByteString> key) throws StoreReadException {
-    var qldbRef = qldb.get(new Key<>(ion.singleValue(key.toNative().toStringUtf8())));
+    var qldbRef = txLog.get(new Key<>(ion.singleValue(key.toNative().toStringUtf8())));
 
     if (qldbRef.isPresent()) {
       var hashField = (IonBlob) qldbRef.get().toNative().get("hash");
