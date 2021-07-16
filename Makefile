@@ -15,7 +15,9 @@ build: $(MARKERS)/build_mvn $(MARKERS)/build_ledgertest
 
 package: $(MARKERS)/package_mvn $(MARKERS)/package_docker
 
-test: $(MARKERS)/test_mvn $(MARKERS)/test_daml
+# TODO: Integration tests are not yet ready
+# test: $(MARKERS)/test_mvn $(MARKERS)/test_daml
+test: $(MARKERS)/test_mvn
 
 analyze: analyze_sonar_mvn
 
