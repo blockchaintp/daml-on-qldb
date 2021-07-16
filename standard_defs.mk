@@ -193,16 +193,17 @@ analyze_go: $(MARKERS)/build_toolchain_docker
 analyze_sonar_mvn: $(MARKERS)/build_toolchain_docker
 	[ -z "$(SONAR_AUTH_TOKEN)" ] || \
 	  if [ -z "$(CHANGE_BRANCH)" ]; then \
-	    $(DOCKER_MVN) package sonar:sonar \
+	    $(DOCKER_MVN) verify sonar:sonar \
 	        -Dsonar.organization=$(ORGANIZATION) \
 	        -Dsonar.projectKey=$(ORGANIZATION)_$(REPO) \
 	        -Dsonar.projectName="$(ORGANIZATION)/$(REPO)" \
 	        -Dsonar.branch.name=$(BRANCH_NAME) \
 	        -Dsonar.projectVersion=$(VERSION) \
 	        -Dsonar.host.url=$(SONAR_HOST_URL) \
+	        -Dsonar.junit.reportPaths=**/target/surefire-reports \
 	        -Dsonar.login=$(SONAR_AUTH_TOKEN) ; \
 	  else \
-	    $(DOCKER_MVN) package sonar:sonar \
+	    $(DOCKER_MVN) verify sonar:sonar \
 	        -Dsonar.organization=$(ORGANIZATION) \
 	        -Dsonar.projectKey=$(ORGANIZATION)_$(REPO) \
 	        -Dsonar.projectName="$(ORGANIZATION)/$(REPO)" \
@@ -211,6 +212,7 @@ analyze_sonar_mvn: $(MARKERS)/build_toolchain_docker
 	        -Dsonar.pullrequest.base=$(CHANGE_TARGET) \
 	        -Dsonar.projectVersion=$(VERSION) \
 	        -Dsonar.host.url=$(SONAR_HOST_URL) \
+	        -Dsonar.junit.reportPaths=**/target/surefire-reports \
 	        -Dsonar.login=$(SONAR_AUTH_TOKEN) ; \
 	  fi
 
@@ -341,7 +343,7 @@ $(MARKERS)/build_mvn: $(MARKERS)/build_toolchain_docker
 	touch $@
 
 $(MARKERS)/package_mvn: $(MARKERS)/build_toolchain_docker
-	$(DOCKER_MVN) package verify
+	$(DOCKER_MVN) package
 	touch $@
 
 clean_mvn: $(MARKERS)/build_toolchain_docker
