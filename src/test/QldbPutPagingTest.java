@@ -1,27 +1,35 @@
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 import com.blockchaintp.daml.serviceinterface.Key;
 import com.blockchaintp.daml.serviceinterface.Store;
+import com.blockchaintp.daml.serviceinterface.TransactionLog;
 import com.blockchaintp.daml.serviceinterface.Value;
 import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
 import com.blockchaintp.daml.serviceinterface.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.qldb.QldbRetryStrategy;
 import com.blockchaintp.daml.stores.reslience.Retrying;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
 import software.amazon.awssdk.services.qldbsession.model.CapacityExceededException;
 import software.amazon.awssdk.services.s3.model.S3Exception;
-
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 
 public class QldbPutPagingTest {
   /**
    * A Stub store that only accepts put batches of 5 or fewer items
    */
-  class CapacityLimitedStore implements Store<String, String> {
+  class CapacityLimitedStore implements TransactionLog<String, String> {
     private final Store<String, String> inner;
 
     CapacityLimitedStore() {

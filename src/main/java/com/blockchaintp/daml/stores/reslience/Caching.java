@@ -92,13 +92,4 @@ public class Caching<K, V> implements Store<K, V> {
     }
   }
 
-  @Override
-  public void sendEvent(String topic, String data) throws StoreWriteException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void sendEvent(List<Map.Entry<String, String>> listOfPairs) throws StoreWriteException {
-    throw new UnsupportedOperationException();
-  }
 }

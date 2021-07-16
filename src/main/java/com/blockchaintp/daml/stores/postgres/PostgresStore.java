@@ -10,34 +10,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * A PostgresStore is a store backed by a postgres interface.
+ */
 public class PostgresStore implements Store<String, byte[]> {
   @Override
-  public Optional<Value<byte[]>> get(Key<String> key) throws StoreReadException {
+  public final Optional<Value<byte[]>> get(final Key<String> key) throws StoreReadException {
     return Optional.empty();
   }
 
   @Override
-  public Map<Key<String>, Value<byte[]>> get(List<Key<String>> listOfKeys) {
+  public final Map<Key<String>, Value<byte[]>> get(final List<Key<String>> listOfKeys) {
     return null;
   }
 
   @Override
-  public void put(Key<String> key, Value<byte[]> value) throws StoreWriteException {
+  public final void put(final Key<String> key, final Value<byte[]> value) throws StoreWriteException {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public void put(List<Map.Entry<Key<String>, Value<byte[]>>> listOfPairs) throws StoreWriteException {
+  public final void put(final List<Map.Entry<Key<String>, Value<byte[]>>> listOfPairs) throws StoreWriteException {
     throw new UnsupportedOperationException();
   }
 
-  @Override
-  public void sendEvent(String topic, String data) throws StoreWriteException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void sendEvent(List<Map.Entry<String, String>> listOfPairs) throws StoreWriteException {
-    throw new UnsupportedOperationException();
-  }
 }

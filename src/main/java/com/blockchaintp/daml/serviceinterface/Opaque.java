@@ -1,13 +1,12 @@
 package com.blockchaintp.daml.serviceinterface;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 /**
  * An Opaque is a wrapper around a value for passing around.
  * @param <T> the type to wrap
  */
-public abstract class Opaque<T> implements Serializable {
+public abstract class Opaque<T> {
 
   private final T value;
 

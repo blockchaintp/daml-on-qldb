@@ -37,13 +37,4 @@ public class StubStore<K, V> implements Store<K, V> {
     listOfPairs.forEach(kv -> stored.put(kv.getKey(), kv.getValue()));
   }
 
-  @Override
-  public void sendEvent(String topic, String data) throws StoreWriteException {
-
-  }
-
-  @Override
-  public void sendEvent(List<Map.Entry<String, String>> listOfPairs) throws StoreWriteException {
-
-  }
 }
