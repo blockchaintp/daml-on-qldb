@@ -15,7 +15,7 @@ public class StoreWriteException extends StoreException {
   }
 
   /**
-   * A write exception with an originating cause
+   * A write exception with an originating cause.
    * @param cause the cause
    */
   public StoreWriteException(final Throwable cause) {

@@ -1,72 +1,70 @@
 package com.blockchaintp.daml.stores.qldb;
 
-import com.blockchaintp.daml.stores.RequiresAWSResources;
-import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
-import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
-import software.amazon.awssdk.services.qldb.QldbClient;
-import software.amazon.awssdk.services.qldb.model.*;
-import software.amazon.qldb.QldbDriver;
-
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.StreamSupport;
 
+import com.blockchaintp.daml.stores.RequiresAWSResources;
+
+import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
+import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
+import software.amazon.awssdk.services.qldb.QldbClient;
+import software.amazon.awssdk.services.qldb.model.CreateLedgerRequest;
+import software.amazon.awssdk.services.qldb.model.DeleteLedgerRequest;
+import software.amazon.awssdk.services.qldb.model.DescribeLedgerRequest;
+import software.amazon.awssdk.services.qldb.model.LedgerState;
+import software.amazon.awssdk.services.qldb.model.PermissionsMode;
+import software.amazon.awssdk.services.qldb.model.ResourceNotFoundException;
+import software.amazon.qldb.QldbDriver;
+
 public class QldbResources implements RequiresAWSResources {
+  private static final int DEFAULT_WAIT_TIME_MS = 1000;
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QldbResources.class);
   private final QldbClient infrastructureClient;
   private final QldbDriver driver;
   private final String ledger;
   private final String table;
 
-  public QldbResources(QldbClient infrastructureClient, QldbDriver driver, String ledger, String table) {
-    this.infrastructureClient = infrastructureClient;
-    this.driver = driver;
-    this.ledger = ledger;
-    this.table = table;
+  public QldbResources(final QldbClient qldbClient, final QldbDriver qldbDriver, final String ledgerName,
+      final String tableName) {
+    this.infrastructureClient = qldbClient;
+    this.driver = qldbDriver;
+    this.ledger = ledgerName;
+    this.table = tableName;
   }
 
-  private boolean ledgerState(LedgerState state) {
+  private boolean ledgerState(final LedgerState state) {
     final AtomicReference<LedgerState> current = new AtomicReference<>(null);
     try {
-      current.set(infrastructureClient.describeLedger(
-        DescribeLedgerRequest
-          .builder()
-          .name(ledger)
-          .build()
-      ).state());
+      current.set(infrastructureClient.describeLedger(DescribeLedgerRequest.builder().name(ledger).build()).state());
 
       LOG.debug("Check ledger state, currently {}", current::get);
 
       return current.get().equals(state);
     } catch (Throwable e) {
+      // TODO this one is bad, we should not catch all exceptions
       return current.get() == null && state.equals(LedgerState.DELETED);
     }
   }
 
   private boolean tableExists() {
-    return StreamSupport.stream(driver.getTableNames().spliterator(), false)
-      .anyMatch(s -> s.equals(table));
+    return StreamSupport.stream(driver.getTableNames().spliterator(), false).anyMatch(s -> s.equals(table));
   }
 
   @Override
-  public void ensureResources() {
+  public final void ensureResources() {
     LOG.debug("Check ledger state");
     if (ledgerState(LedgerState.ACTIVE)) {
       LOG.debug("Ledger {} exists, skip create", () -> ledger);
     } else {
-      infrastructureClient
-        .createLedger(CreateLedgerRequest
-          .builder()
-          .name(ledger)
-          .permissionsMode(PermissionsMode.STANDARD)
-          .deletionProtection(false)
-          .build());
+      infrastructureClient.createLedger(CreateLedgerRequest.builder().name(ledger)
+          .permissionsMode(PermissionsMode.STANDARD).deletionProtection(false).build());
 
       while (!ledgerState(LedgerState.ACTIVE)) {
-        //noinspection CatchMayIgnoreException
         try {
-          //noinspection BusyWait
-          Thread.sleep(1000);
+          Thread.sleep(DEFAULT_WAIT_TIME_MS);
         } catch (InterruptedException e) {
+          LOG.info("Interrupted while waiting for ledger {} to become active", () -> ledger);
+          Thread.currentThread().interrupt();
         }
       }
     }
@@ -85,7 +83,7 @@ public class QldbResources implements RequiresAWSResources {
   }
 
   @Override
-  public void destroyResources() {
+  public final void destroyResources() {
     if (ledgerState(LedgerState.DELETED)) {
       LOG.debug("Ledger {} does not exist, skip delete", () -> table);
       return;
@@ -105,10 +103,10 @@ public class QldbResources implements RequiresAWSResources {
 
     while (!ledgerState(LedgerState.DELETED)) {
       try {
-        //noinspection BusyWait
-        Thread.sleep(1000);
+        Thread.sleep(DEFAULT_WAIT_TIME_MS);
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        LOG.debug("Interrupted while waiting for ledger {} to be deleted", () -> ledger);
+        Thread.currentThread().interrupt();
       }
     }
   }

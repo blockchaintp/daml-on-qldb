@@ -49,7 +49,7 @@ public class S3StoreIntegrationTest {
     resources.ensureResources();
 
     this.store = S3Store.forClient(clientBuilder)
-      .forLedger(ledgerId)
+      .forStore(ledgerId)
       .forTable(tableId)
       .build();
   }

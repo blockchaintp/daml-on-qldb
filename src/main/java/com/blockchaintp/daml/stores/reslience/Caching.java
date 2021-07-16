@@ -1,5 +1,12 @@
 package com.blockchaintp.daml.stores.reslience;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import com.blockchaintp.daml.serviceinterface.Key;
 import com.blockchaintp.daml.serviceinterface.Store;
 import com.blockchaintp.daml.serviceinterface.Value;
@@ -7,27 +14,32 @@ import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
 import com.blockchaintp.daml.serviceinterface.exception.StoreWriteException;
 import com.google.common.collect.Sets;
 
-import java.util.*;
-
 public class Caching<K, V> implements Store<K, V> {
 
-  final Store<K, V> store;
+  private final Store<K, V> store;
   private final LRUCache<K, V> innerCache;
 
-  public Caching(LRUCache<K,V> cache, Store<K, V> store) {
-    this.store = store;
+  public Caching(final LRUCache<K, V> cache, final Store<K, V> wrappedStore) {
+    this.store = wrappedStore;
     innerCache = cache;
   }
 
+  /**
+   * @return the store
+   */
+  protected Store<K, V> getStore() {
+    return store;
+  }
+
   @Override
-  public Optional<Value<V>> get(Key<K> key) throws StoreReadException {
+  public final Optional<Value<V>> get(final Key<K> key) throws StoreReadException {
     var hit = false;
     synchronized (innerCache) {
       hit = innerCache.containsKey(key);
     }
     if (hit) {
       synchronized (innerCache) {
-        return Optional.of((Value<V>) innerCache.get(key));
+        return Optional.of(innerCache.get(key));
       }
     } else {
       var val = store.get(key);
@@ -40,42 +52,34 @@ public class Caching<K, V> implements Store<K, V> {
   }
 
   @Override
-  public Map<Key<K>, Value<V>> get(List<Key<K>> listOfKeys) throws StoreReadException {
+  public final Map<Key<K>, Value<V>> get(final List<Key<K>> listOfKeys) throws StoreReadException {
     try {
       var all = new HashSet<>(listOfKeys);
       var map = new HashMap<Key<K>, Value<V>>();
-      var hits = new HashMap<Key<K>,Value<V>>();
+      var hits = new HashMap<Key<K>, Value<V>>();
 
       synchronized (innerCache) {
-          all
-            .stream()
-            .filter(innerCache::containsKey)
-            .forEach(k -> hits.put(k,innerCache.get(k)));
-      };
-
+        all.stream().filter(innerCache::containsKey).forEach(k -> hits.put(k, innerCache.get(k)));
+      }
       var misses = Sets.difference(all, hits.keySet());
-      var readThrough = store.get(
-          new ArrayList<>(misses)
-      );
+      var readThrough = store.get(new ArrayList<>(misses));
 
       synchronized (innerCache) {
         innerCache.putAll(readThrough);
       }
 
-      hits.forEach((k, v) -> map.put((Key<K>) k, (Value<V>) v));
+      hits.forEach(map::put);
       readThrough.forEach(map::put);
 
       return map;
 
-    } catch (StoreReadException e) {
-      throw e;
-    } catch (Throwable e) {
-      throw new StoreReadException(e);
+    } catch (RuntimeException e) {
+      throw new StoreReadException("Exception while reading from store", e);
     }
   }
 
   @Override
-  public void put(Key<K> key, Value<V> value) throws StoreWriteException {
+  public final void put(final Key<K> key, final Value<V> value) throws StoreWriteException {
     store.put(key, value);
 
     synchronized (innerCache) {
@@ -84,7 +88,7 @@ public class Caching<K, V> implements Store<K, V> {
   }
 
   @Override
-  public void put(List<Map.Entry<Key<K>, Value<V>>> listOfPairs) throws StoreWriteException {
+  public final void put(final List<Map.Entry<Key<K>, Value<V>>> listOfPairs) throws StoreWriteException {
     store.put(listOfPairs);
 
     synchronized (innerCache) {
