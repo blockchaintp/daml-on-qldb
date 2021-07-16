@@ -88,10 +88,11 @@ public class S3Store implements BlobStore<String, byte[]> {
   public Map<Key<String>, Value<byte[]>> get(List<Key<String>> listOfKeys) throws StoreReadException {
     var client = clientBuilder.build();
     var futures = listOfKeys.stream()
-      .collect(Collectors.toMap(
+      .collect(Collectors.<Key<String>, Key<String>, CompletableFuture<Value<byte[]>>>toMap(
         k -> new Key<>(k.toNative()),
         k -> getObject(client, k.toNative())
-          .thenApply(x -> x.map(getObjectResponseResponseBytes -> new Value<>(getObjectResponseResponseBytes.asByteArray())).orElse(null))
+          .thenApply(x -> x.map(getObjectResponseResponseBytes ->
+            new Value<>(getObjectResponseResponseBytes.asByteArray())).orElse(null))
       ));
 
     var waitOn = new ArrayList<>(futures
