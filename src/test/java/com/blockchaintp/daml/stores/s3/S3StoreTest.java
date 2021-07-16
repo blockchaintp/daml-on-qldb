@@ -1,3 +1,4 @@
+package com.blockchaintp.daml.stores.s3;
 import com.blockchaintp.daml.serviceinterface.Key;
 import com.blockchaintp.daml.serviceinterface.Value;
 import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;

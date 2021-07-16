@@ -1,14 +1,15 @@
-import com.blockchaintp.daml.serviceinterface.Key;
-import com.blockchaintp.daml.serviceinterface.Store;
-import com.blockchaintp.daml.serviceinterface.Value;
-import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
-import com.blockchaintp.daml.serviceinterface.exception.StoreWriteException;
-
+package com.blockchaintp.daml.stores;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import com.blockchaintp.daml.serviceinterface.Key;
+import com.blockchaintp.daml.serviceinterface.Store;
+import com.blockchaintp.daml.serviceinterface.Value;
+import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
+import com.blockchaintp.daml.serviceinterface.exception.StoreWriteException;
 
 public class StubStore<K, V> implements Store<K, V> {
   final Map<Key<K>, Value<V>> stored = new HashMap<>();

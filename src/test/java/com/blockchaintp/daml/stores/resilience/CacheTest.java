@@ -1,3 +1,4 @@
+package com.blockchaintp.daml.stores.resilience;
 import com.blockchaintp.daml.serviceinterface.Key;
 import com.blockchaintp.daml.serviceinterface.Value;
 import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
@@ -11,6 +12,8 @@ import org.junit.jupiter.api.Test;
 import javax.cache.Cache;
 import javax.cache.Caching;
 import javax.cache.configuration.MutableConfiguration;
+
+import com.blockchaintp.daml.stores.StubStore;
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.UUID;

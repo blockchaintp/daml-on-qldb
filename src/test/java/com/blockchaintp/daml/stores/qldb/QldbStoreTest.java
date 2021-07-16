@@ -1,3 +1,4 @@
+package com.blockchaintp.daml.stores.qldb;
 import com.amazon.ion.system.IonSystemBuilder;
 import com.blockchaintp.daml.serviceinterface.Key;
 import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;

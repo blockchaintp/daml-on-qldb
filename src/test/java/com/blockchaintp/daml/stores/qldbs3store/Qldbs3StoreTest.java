@@ -1,3 +1,10 @@
+package com.blockchaintp.daml.stores.qldbs3store;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.nio.charset.Charset;
+import java.util.Optional;
+
 import com.amazon.ion.IonStruct;
 import com.amazon.ion.IonValue;
 import com.amazon.ion.system.IonSystemBuilder;
@@ -6,19 +13,13 @@ import com.blockchaintp.daml.serviceinterface.StoreReader;
 import com.blockchaintp.daml.serviceinterface.Value;
 import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
 import com.blockchaintp.daml.serviceinterface.exception.StoreWriteException;
+import com.blockchaintp.daml.stores.StubStore;
 import com.blockchaintp.daml.stores.qldb.QldbStore;
-import com.blockchaintp.daml.stores.qldbs3store.QldbS3Store;
-import com.blockchaintp.daml.stores.qldbs3store.VerifiedReader;
 import com.blockchaintp.daml.stores.s3.S3Store;
 import com.google.protobuf.ByteString;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import java.nio.charset.Charset;
-import java.util.Optional;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @SuppressWarnings("ALL")
 public class Qldbs3StoreTest {

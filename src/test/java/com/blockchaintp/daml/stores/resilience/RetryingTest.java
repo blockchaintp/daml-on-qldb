@@ -1,3 +1,4 @@
+package com.blockchaintp.daml.stores.resilience;
 import com.blockchaintp.daml.serviceinterface.Key;
 import com.blockchaintp.daml.serviceinterface.Store;
 import com.blockchaintp.daml.serviceinterface.Value;

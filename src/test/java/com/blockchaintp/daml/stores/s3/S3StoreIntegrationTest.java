@@ -1,3 +1,4 @@
+package com.blockchaintp.daml.stores.s3;
 import com.blockchaintp.daml.serviceinterface.Key;
 import com.blockchaintp.daml.serviceinterface.Opaque;
 import com.blockchaintp.daml.serviceinterface.Store;

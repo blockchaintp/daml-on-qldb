@@ -1,7 +1,9 @@
+package com.blockchaintp.daml.stores.qldb;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
+import com.blockchaintp.daml.stores.StubStore;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
