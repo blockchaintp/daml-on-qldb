@@ -33,7 +33,7 @@ RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0xB1998361
   apt-add-repository 'deb http://repos.azulsystems.com/ubuntu stable main' && \
   apt-get update -y && \
   apt-get install -y \
-  zulu-12
+  zulu-11
 
 RUN curl -sSL https://get.daml.com/ | sh -s $DAML_SDK_VERSION && \
   mkdir -p /opt && \

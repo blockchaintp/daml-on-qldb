@@ -1,34 +1,53 @@
 package com.blockchaintp.daml.serviceinterface;
 
-import java.io.Serializable;
 import java.util.Objects;
 
-public abstract class Opaque<T> implements Serializable {
-  protected final T value;
+/**
+ * An Opaque is a wrapper around a value for passing around.
+ * @param <T> the type to wrap
+ */
+public abstract class Opaque<T> {
 
-  protected Opaque(T value) {
-    this.value = value;
+  private final T value;
+
+  protected Opaque(final T v) {
+    this.value = v;
   }
 
-  public T toNative() {
+  /**
+   * This is used by children for equivalence tests.
+   * @return the internal comparable value
+   */
+  protected final T value() {
     return this.value;
   }
 
+  /**
+   * Returns the native value that was provided in construction.
+   * @return the native value
+   */
+  public final T toNative() {
+    return this.value;
+  }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return value.toString();
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     return Objects.hash(value);
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+  public final boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
     Opaque<?> opaque = (Opaque<?>) o;
     return value.equals(opaque.value);
   }

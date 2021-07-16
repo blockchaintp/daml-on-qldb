@@ -125,16 +125,6 @@ public class Retrying<K, V> implements Store<K, V> {
     decoratePut(() -> store.put(listOfPairs));
   }
 
-  @Override
-  public void sendEvent(String topic, String data) throws StoreWriteException {
-    store.sendEvent(topic, data);
-  }
-
-  @Override
-  public void sendEvent(List<Map.Entry<String, String>> listOfPairs) throws StoreWriteException {
-    store.sendEvent(listOfPairs);
-  }
-
   public static class Config {
     public int maxRetries = 3;
   }

@@ -19,11 +19,10 @@
 pipeline {
   agent { node { label 'worker' } }
 
-  triggers { cron('H H * * *') }
-
   options {
     ansiColor('xterm')
     timestamps()
+    disableConcurrentBuilds()
     buildDiscarder(logRotator(daysToKeepStr: '31'))
   }
 
@@ -78,7 +77,8 @@ pipeline {
             '''
           }
         }
-        waitForQualityGate abortPipeline: true
+        // TODO for now don't abort the pipeline
+        waitForQualityGate abortPipeline: false
       }
     }
 
