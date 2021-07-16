@@ -1,21 +1,27 @@
 package com.blockchaintp.daml.stores.resilience;
-import com.blockchaintp.daml.serviceinterface.Key;
-import com.blockchaintp.daml.serviceinterface.Store;
-import com.blockchaintp.daml.serviceinterface.Value;
-import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
-import com.blockchaintp.daml.serviceinterface.exception.StoreWriteException;
-import com.blockchaintp.daml.stores.reslience.Retrying;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import software.amazon.awssdk.services.s3.model.S3Exception;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
-import static org.mockito.Mockito.*;
+import com.blockchaintp.daml.serviceinterface.Key;
+import com.blockchaintp.daml.serviceinterface.Store;
+import com.blockchaintp.daml.serviceinterface.Value;
+import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
+import com.blockchaintp.daml.serviceinterface.exception.StoreWriteException;
+import com.blockchaintp.daml.stores.reslience.Retrying;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import software.amazon.awssdk.services.s3.model.S3Exception;
+
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class RetryingTest {
   @Test
   public void get_retries_configured_number_of_store_read_exceptions() throws StoreReadException {
