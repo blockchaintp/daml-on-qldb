@@ -1,58 +1,58 @@
 package com.blockchaintp.daml.stores.qldbs3store;
 
-import com.amazon.ion.IonBlob;
-import com.amazon.ion.IonSystem;
-import com.blockchaintp.daml.serviceinterface.Key;
-import com.blockchaintp.daml.serviceinterface.StoreReader;
-import com.blockchaintp.daml.serviceinterface.Value;
-import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
-import com.blockchaintp.daml.stores.qldb.QldbStore;
-import com.blockchaintp.daml.stores.s3.S3Store;
-import com.google.protobuf.ByteString;
-
-import javax.xml.bind.DatatypeConverter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import javax.xml.bind.DatatypeConverter;
+
+import com.amazon.ion.IonBlob;
+import com.amazon.ion.IonStruct;
+import com.amazon.ion.IonSystem;
+import com.amazon.ion.IonValue;
+import com.blockchaintp.daml.serviceinterface.Key;
+import com.blockchaintp.daml.serviceinterface.Store;
+import com.blockchaintp.daml.serviceinterface.StoreReader;
+import com.blockchaintp.daml.serviceinterface.TransactionLog;
+import com.blockchaintp.daml.serviceinterface.Value;
+import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
+import com.google.protobuf.ByteString;
 
 /**
  * Checks QLDB contains the hash before reading value from s3
  */
 public class VerifiedReader implements StoreReader<ByteString, ByteString> {
 
-  private final QldbStore qldb;
-  private final S3Store s3;
+  private final TransactionLog<IonValue, IonStruct> qldb;
+  private final Store<String, byte[]> blobStore;
   private final IonSystem ion;
 
-  public VerifiedReader(QldbStore qldb, S3Store s3, IonSystem ion) {
-    this.qldb = qldb;
-    this.s3 = s3;
-    this.ion = ion;
+  public VerifiedReader(final TransactionLog<IonValue, IonStruct> txlog, final Store<String, byte[]> blobStore,
+      final IonSystem sys) {
+    this.qldb = txlog;
+    this.blobStore = blobStore;
+    this.ion = sys;
   }
 
   @Override
-  public Optional<Value<ByteString>> get(Key<ByteString> key) throws StoreReadException {
-    var qldbRef = qldb.get(
-      new Key<>(ion.singleValue(key.toNative().toStringUtf8()))
-    );
+  public final Optional<Value<ByteString>> get(final Key<ByteString> key) throws StoreReadException {
+    var qldbRef = qldb.get(new Key<>(ion.singleValue(key.toNative().toStringUtf8())));
 
     if (qldbRef.isPresent()) {
-      var hashField = (IonBlob) qldbRef.get()
-        .toNative()
-        .get("hash");
+      var hashField = (IonBlob) qldbRef.get().toNative().get("hash");
 
-      Optional<Value<byte[]>> s3Val = s3.get(new Key<>(DatatypeConverter.printHexBinary(hashField.getBytes())));
+      Optional<Value<byte[]>> s3Val = blobStore.get(new Key<>(DatatypeConverter.printHexBinary(hashField.getBytes())));
 
-      return s3Val.map(x -> new Value<>(
-        ByteString.copyFrom(x.toNative())));
+      return s3Val.map(x -> new Value<>(ByteString.copyFrom(x.toNative())));
     } else {
       return Optional.empty();
     }
   }
 
   @Override
-  public Map<Key<ByteString>, Value<ByteString>> get(List<Key<ByteString>> listOfKeys) throws StoreReadException {
+  public final Map<Key<ByteString>, Value<ByteString>> get(final List<Key<ByteString>> listOfKeys)
+      throws StoreReadException {
     var map = new HashMap<Key<ByteString>, Value<ByteString>>();
     for (var k : listOfKeys) {
       var item = this.get(k);
