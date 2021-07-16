@@ -1,6 +1,6 @@
 package com.blockchaintp.daml.stores.postgres;
 
-import com.blockchaintp.daml.serviceinterface.BlobStore;
+import com.blockchaintp.daml.serviceinterface.Store;
 import com.blockchaintp.daml.serviceinterface.Key;
 import com.blockchaintp.daml.serviceinterface.Value;
 import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class PostgresStore implements BlobStore<String, byte[]> {
+public class PostgresStore implements Store<String, byte[]> {
   @Override
   public Optional<Value<byte[]>> get(Key<String> key) throws StoreReadException {
     return Optional.empty();

@@ -1,6 +1,6 @@
 package com.blockchaintp.daml.stores.s3;
 
-import com.blockchaintp.daml.serviceinterface.BlobStore;
+import com.blockchaintp.daml.serviceinterface.Store;
 import com.blockchaintp.daml.serviceinterface.Key;
 import com.blockchaintp.daml.serviceinterface.Value;
 import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
@@ -24,7 +24,7 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
-public class S3Store implements BlobStore<String, byte[]> {
+public class S3Store implements Store<String, byte[]> {
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(S3Store.class);
   private final String bucketName;
   private final S3AsyncClientBuilder clientBuilder;

@@ -1,12 +1,25 @@
 package com.blockchaintp.daml.serviceinterface.exception;
 
+/**
+ * Represents a read failure of some sort to the store.
+ */
 public class StoreReadException extends StoreException {
-  public StoreReadException(String error, Throwable cause) {
+
+  /**
+   * Read exception with cause and error message.
+   * @param error the error message
+   * @param cause the originating exception
+   */
+  public StoreReadException(final String error, final Throwable cause) {
     super(error, cause);
   }
 
-  public StoreReadException(Throwable e) {
-    super(e);
+  /**
+   * A read exception with an originating cause.
+   * @param cause the cause
+   */
+  public StoreReadException(final Throwable cause) {
+    super(cause);
   }
 
 }
