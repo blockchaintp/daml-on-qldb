@@ -21,6 +21,11 @@ import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.daml.stores.service.Value;
 import com.google.protobuf.ByteString;
 
+/**
+ * A Store that keeps its values in a blob store which is keyed by the hash of
+ * the value. That original key is stored along with that hash in the
+ * TransactionLog.
+ */
 public class SplitStore implements TransactionLog<ByteString, ByteString> {
 
   private final boolean writeS3Index;
@@ -30,6 +35,15 @@ public class SplitStore implements TransactionLog<ByteString, ByteString> {
   private final IonSystem ion;
   private final UnaryOperator<byte[]> hashFn;
 
+  /**
+   * Constructs a new SplitStore.
+   * @param s3Index whether to allow fetching from the blob store if the value has been verified
+   * @param indexReader a reader for the index, verified or not
+   * @param txLog the TransactionLog to use
+   * @param blobStore the blob store to use
+   * @param sys the IonSystem to use
+   * @param hashingFn the hash function to use
+   */
   public SplitStore(final boolean s3Index, final StoreReader<ByteString, ByteString> indexReader,
       final TransactionLog<IonValue, IonStruct> txLog, final Store<String, byte[]> blobStore, final IonSystem sys,
       final UnaryOperator<byte[]> hashingFn) {

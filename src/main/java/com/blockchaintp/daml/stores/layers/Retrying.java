@@ -17,6 +17,11 @@ import io.vavr.CheckedRunnable;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 
+/**
+ * A {@link Store} layer which retries the read operation if an exception occurs.
+ * @param <K> Key type
+ * @param <V> Value type
+ */
 public class Retrying<K, V> implements Store<K, V> {
 
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(Retrying.class);
@@ -25,14 +30,19 @@ public class Retrying<K, V> implements Store<K, V> {
   private final Retry getRetry;
   private final Retry putRetry;
 
+  /**
+   * Construct the {@link Retrying} layer around the provided {@link Store}.
+   * @param config the configuration for the retry
+   * @param wrappedStore the {@link Store} to wrap
+   */
   public Retrying(final Config config, final Store<K, V> wrappedStore) {
     this.store = wrappedStore;
 
     this.getRetry = Retry.of(String.format("%s#get", store.getClass().getCanonicalName()), RetryConfig.custom()
-        .maxAttempts(config.maxRetries).retryOnException(StoreReadException.class::isInstance).build());
+        .maxAttempts(config.getMaxRetries()).retryOnException(StoreReadException.class::isInstance).build());
 
     this.putRetry = Retry.of(String.format("%s#put", store.getClass().getCanonicalName()), RetryConfig.custom()
-        .maxAttempts(config.maxRetries).retryOnException(StoreWriteException.class::isInstance).build());
+        .maxAttempts(config.getMaxRetries()).retryOnException(StoreWriteException.class::isInstance).build());
 
     getRetry.getEventPublisher().onRetry(r -> LOG.info("Retrying {} attempt {} due to {}", r::getName,
         r::getNumberOfRetryAttempts, r::getLastThrowable, () -> r.getLastThrowable().getMessage()));
@@ -101,11 +111,26 @@ public class Retrying<K, V> implements Store<K, V> {
     decoratePut(() -> store.put(listOfPairs));
   }
 
+  /**
+   * Configuration for a{@link Retrying} layer.
+   */
   public static class Config {
     private static final int DEFAULT_MAX_RETRIES = 3;
     /**
      * The maximum number of retries.
      */
-    public int maxRetries = DEFAULT_MAX_RETRIES;
+    private int maxRetries = DEFAULT_MAX_RETRIES;
+    /**
+     * @return the maxRetries
+     */
+    public int getMaxRetries() {
+      return maxRetries;
+    }
+    /**
+     * @param retries the maxRetries to set
+     */
+    public void setMaxRetries(final int retries) {
+      this.maxRetries = retries;
+    }
   }
 }

@@ -15,11 +15,21 @@ import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.Value;
 import com.google.common.collect.Sets;
 
+/**
+ * Layer that caches the results of a store.
+ * @param <K> the type of key
+ * @param <V> the type of value
+ */
 public class Caching<K, V> implements Store<K, V> {
 
   private final Store<K, V> store;
   private final LRUCache<K, V> innerCache;
 
+  /**
+   * Build a cache for the given store using the given cache.
+   * @param cache the cache to use
+   * @param wrappedStore the store to cache
+   */
   public Caching(final LRUCache<K, V> cache, final Store<K, V> wrappedStore) {
     this.store = wrappedStore;
     innerCache = cache;

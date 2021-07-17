@@ -28,6 +28,12 @@ public class VerifiedReader implements StoreReader<ByteString, ByteString> {
   private final Store<String, byte[]> blobStore;
   private final IonSystem ion;
 
+  /**
+   * Construct a VerifiedReader around the provided stores.
+   * @param txlog the transaction log which masters the K->Hash map.
+   * @param blobs the blob store which masters the Hash->Value map.
+   * @param sys the IonSystem to use for ION serialization.
+   */
   public VerifiedReader(final TransactionLog<IonValue, IonStruct> txlog, final Store<String, byte[]> blobs,
       final IonSystem sys) {
     this.txLog = txlog;

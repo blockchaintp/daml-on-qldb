@@ -34,11 +34,16 @@ public class QldbRetryStrategy<K, V> extends Retrying<K, V> implements Transacti
   private final Retry putRetry;
   private int qldbMaxDocuments = DEFAULT_MAX_DOCUMENTS;
 
+  /**
+   * Constructor.
+   * @param config the retry config
+   * @param store the store, specifically meant to be used with a QLDBStore, but not required to do so
+   */
   public QldbRetryStrategy(final Config config, final Store<K, V> store) {
     super(config, store);
 
     this.putRetry = Retry.of(String.format("%s#put-qldb-batch", store.getClass().getCanonicalName()),
-        RetryConfig.custom().maxAttempts(config.maxRetries)
+        RetryConfig.custom().maxAttempts(config.getMaxRetries())
             .retryOnException(QldbRetryStrategy::specificallyHandleCapacityExceptions).build());
 
     putRetry.getEventPublisher().onRetry(r -> LOG.info("Retrying {} attempt {} due to {}", r::getName,

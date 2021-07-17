@@ -21,6 +21,10 @@ public class UnVerifiedReader implements StoreReader<ByteString, ByteString> {
 
   private final Store<String, byte[]> blobStore;
 
+  /**
+   * Construct an unverified reader around the provided store.
+   * @param blobs
+   */
   public UnVerifiedReader(final Store<String, byte[]> blobs) {
     this.blobStore = blobs;
   }

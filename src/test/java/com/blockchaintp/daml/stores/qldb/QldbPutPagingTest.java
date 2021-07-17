@@ -4,7 +4,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -81,7 +80,7 @@ class QldbPutPagingTest {
   void qldb_retry_subdivdes_pages_until_committed() throws StoreWriteException, StoreReadException {
     var toCommit = new ArrayList<Map.Entry<Key<String>, Value<String>>>();
     for (int i = 0; i < ITERATIONS; i++) {
-      toCommit.add(new AbstractMap.SimpleEntry<>(Key.of(String.format("%d", i)), Value.of(String.format("%d", i))));
+      toCommit.add(Map.entry(Key.of(String.format("%d", i)), Value.of(String.format("%d", i))));
     }
     var store = new CapacityLimitedStore();
 

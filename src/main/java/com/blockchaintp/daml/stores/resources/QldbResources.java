@@ -14,6 +14,9 @@ import software.amazon.awssdk.services.qldb.model.PermissionsMode;
 import software.amazon.awssdk.services.qldb.model.ResourceNotFoundException;
 import software.amazon.qldb.QldbDriver;
 
+/**
+ * Deals with QLDB resources.
+ */
 public class QldbResources implements RequiresAWSResources {
   private static final int DEFAULT_WAIT_TIME_MS = 1000;
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QldbResources.class);
@@ -22,6 +25,13 @@ public class QldbResources implements RequiresAWSResources {
   private final String ledger;
   private final String table;
 
+  /**
+   * Constructor.
+   * @param qldbClient the qldb client
+   * @param qldbDriver the qldb driver
+   * @param ledgerName the ledger name
+   * @param tableName the table name
+   */
   public QldbResources(final QldbClient qldbClient, final QldbDriver qldbDriver, final String ledgerName,
       final String tableName) {
     this.infrastructureClient = qldbClient;

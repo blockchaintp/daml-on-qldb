@@ -13,6 +13,9 @@ import com.blockchaintp.daml.stores.service.StoreReader;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.google.protobuf.ByteString;
 
+/**
+ * A builder of a {@link SplitStore}.
+ */
 public class SplitStoreBuilder {
   private IonSystem ion;
   private TransactionLog<IonValue, IonStruct> txLog;
@@ -21,6 +24,12 @@ public class SplitStoreBuilder {
   private UnaryOperator<byte[]> hashFn;
   private boolean writeS3Index = false;
 
+  /**
+   * Create a SplitStoreBuilder.
+   * @param sys the IonSystem
+   * @param transactionLog the transaction log to use
+   * @param blobStore the blob store to use
+   */
   public SplitStoreBuilder(final IonSystem sys, final TransactionLog<IonValue, IonStruct> transactionLog,
       final Store<String, byte[]> blobStore) {
     this.ion = sys;
@@ -40,6 +49,11 @@ public class SplitStoreBuilder {
     this.reader = new VerifiedReader(transactionLog, blobStore, sys);
   }
 
+  /**
+   * Whether or not to allow verified reads.
+   * @param verified {@code true} to allow verified reads
+   * @return the builder
+   */
   public final SplitStoreBuilder verified(final boolean verified) {
     if (verified) {
       this.reader = new VerifiedReader(txLog, s3Store, ion);
@@ -50,18 +64,32 @@ public class SplitStoreBuilder {
     return this;
   }
 
+  /**
+   * Whether to write the S3 index.
+   * @param s3Index {@code true} to write the S3 index
+   * @return the builder
+   */
   public final SplitStoreBuilder withS3Index(final boolean s3Index) {
     this.writeS3Index = s3Index;
 
     return this;
   }
 
+  /**
+   * Use the given hash function to hash the contents of a blob.
+   * @param hasherFn the hash function
+   * @return the builder
+   */
   public final SplitStoreBuilder withHasher(final UnaryOperator<byte[]> hasherFn) {
     this.hashFn = hasherFn;
 
     return this;
   }
 
+  /**
+   * Build the split store.
+   * @return the split store
+   */
   public final SplitStore build() {
     return new SplitStore(writeS3Index, reader, txLog, s3Store, ion, hashFn);
   }

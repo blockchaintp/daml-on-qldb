@@ -24,6 +24,9 @@ import software.amazon.qldb.QldbDriver;
 import software.amazon.qldb.Result;
 import software.amazon.qldb.exceptions.QldbDriverException;
 
+/**
+ * A K/V store using Amazon QLDB as a backend.
+ */
 public class QldbStore implements TransactionLog<IonValue, IonStruct> {
 
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QldbStore.class);
@@ -31,16 +34,27 @@ public class QldbStore implements TransactionLog<IonValue, IonStruct> {
   private final QldbDriver driver;
   private final String table;
 
+  /**
+   * Constructor for QldbStore.
+   * @param qldbDriver the driver to use
+   * @param tableName the table name to use
+   */
   public QldbStore(final QldbDriver qldbDriver, final String tableName) {
     this.driver = qldbDriver;
     this.table = tableName;
   }
 
+  /**
+   * Return a builder for the specified driver.
+   * @param driver the driver to use
+   * @return the builder
+   */
   public static QldbStoreBuilder forDriver(final QldbDriver driver) {
     return QldbStoreBuilder.forDriver(driver);
   }
 
   @Override
+  @SuppressWarnings("java:S1905")
   public final Optional<Value<IonStruct>> get(final Key<IonValue> key) throws StoreReadException {
     LOG.info("get id={} in table={}", () -> key, () -> table);
     final var query = String.format("select o.* from %s AS o where o.id = ?", table);
@@ -62,6 +76,7 @@ public class QldbStore implements TransactionLog<IonValue, IonStruct> {
   }
 
   @Override
+  @SuppressWarnings("java:S1905")
   public final Map<Key<IonValue>, Value<IonStruct>> get(final List<Key<IonValue>> listOfKeys)
       throws StoreReadException {
     LOG.info("get ids=({}) in table={}", () -> listOfKeys, () -> table);

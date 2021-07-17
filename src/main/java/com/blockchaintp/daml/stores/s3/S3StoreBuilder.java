@@ -78,7 +78,7 @@ public class S3StoreBuilder {
    */
   public final S3StoreBuilder retrying(final int maxRetries) {
     this.retryingConfig = new Retrying.Config();
-    this.retryingConfig.maxRetries = maxRetries;
+    this.retryingConfig.setMaxRetries(maxRetries);
 
     return this;
   }
