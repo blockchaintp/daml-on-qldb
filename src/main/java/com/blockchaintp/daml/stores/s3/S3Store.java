@@ -10,11 +10,11 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
-import com.blockchaintp.daml.serviceinterface.Key;
-import com.blockchaintp.daml.serviceinterface.Store;
-import com.blockchaintp.daml.serviceinterface.Value;
-import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
-import com.blockchaintp.daml.serviceinterface.exception.StoreWriteException;
+import com.blockchaintp.daml.stores.exception.StoreReadException;
+import com.blockchaintp.daml.stores.exception.StoreWriteException;
+import com.blockchaintp.daml.stores.service.Key;
+import com.blockchaintp.daml.stores.service.Store;
+import com.blockchaintp.daml.stores.service.Value;
 
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;

@@ -12,14 +12,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.blockchaintp.daml.serviceinterface.Key;
-import com.blockchaintp.daml.serviceinterface.Store;
-import com.blockchaintp.daml.serviceinterface.TransactionLog;
-import com.blockchaintp.daml.serviceinterface.Value;
-import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
-import com.blockchaintp.daml.serviceinterface.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.StubStore;
-import com.blockchaintp.daml.stores.reslience.Retrying;
+import com.blockchaintp.daml.stores.exception.StoreReadException;
+import com.blockchaintp.daml.stores.exception.StoreWriteException;
+import com.blockchaintp.daml.stores.layers.Retrying;
+import com.blockchaintp.daml.stores.service.Key;
+import com.blockchaintp.daml.stores.service.Store;
+import com.blockchaintp.daml.stores.service.TransactionLog;
+import com.blockchaintp.daml.stores.service.Value;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

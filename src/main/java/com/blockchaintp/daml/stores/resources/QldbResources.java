@@ -1,9 +1,7 @@
-package com.blockchaintp.daml.stores.qldb;
+package com.blockchaintp.daml.stores.resources;
 
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.StreamSupport;
-
-import com.blockchaintp.daml.stores.RequiresAWSResources;
 
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;

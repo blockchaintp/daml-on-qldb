@@ -9,12 +9,12 @@ import java.util.stream.StreamSupport;
 
 import com.amazon.ion.IonStruct;
 import com.amazon.ion.IonValue;
-import com.blockchaintp.daml.serviceinterface.Key;
-import com.blockchaintp.daml.serviceinterface.Opaque;
-import com.blockchaintp.daml.serviceinterface.TransactionLog;
-import com.blockchaintp.daml.serviceinterface.Value;
-import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
-import com.blockchaintp.daml.serviceinterface.exception.StoreWriteException;
+import com.blockchaintp.daml.stores.exception.StoreReadException;
+import com.blockchaintp.daml.stores.exception.StoreWriteException;
+import com.blockchaintp.daml.stores.service.Key;
+import com.blockchaintp.daml.stores.service.Opaque;
+import com.blockchaintp.daml.stores.service.TransactionLog;
+import com.blockchaintp.daml.stores.service.Value;
 import com.google.common.collect.Sets;
 
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;

@@ -1,10 +1,11 @@
-package com.blockchaintp.daml.model;
+package com.blockchaintp.daml.stores;
 
-import com.blockchaintp.daml.exception.NoSHA512SupportException;
-
-import javax.xml.bind.DatatypeConverter;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+
+import javax.xml.bind.DatatypeConverter;
+
+import com.blockchaintp.daml.stores.exception.NoSHA512SupportException;
 
 /**
  * Useful utilities.

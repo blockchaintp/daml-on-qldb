@@ -4,8 +4,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.amazon.ion.system.IonSystemBuilder;
-import com.blockchaintp.daml.serviceinterface.Key;
-import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
+import com.blockchaintp.daml.stores.exception.StoreReadException;
+import com.blockchaintp.daml.stores.service.Key;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

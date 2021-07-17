@@ -3,12 +3,12 @@ package com.blockchaintp.daml.stores.resilience;
 import java.util.AbstractMap;
 import java.util.Arrays;
 
-import com.blockchaintp.daml.serviceinterface.Key;
-import com.blockchaintp.daml.serviceinterface.Value;
-import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
-import com.blockchaintp.daml.serviceinterface.exception.StoreWriteException;
+import com.blockchaintp.daml.stores.LRUCache;
 import com.blockchaintp.daml.stores.StubStore;
-import com.blockchaintp.daml.stores.reslience.LRUCache;
+import com.blockchaintp.daml.stores.exception.StoreReadException;
+import com.blockchaintp.daml.stores.exception.StoreWriteException;
+import com.blockchaintp.daml.stores.service.Key;
+import com.blockchaintp.daml.stores.service.Value;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,7 +28,7 @@ class CacheTest {
   void scalar_get_reads_through() throws StoreWriteException, StoreReadException {
 
     var stubStore = new StubStore<String, String>();
-    var cachedStore = new com.blockchaintp.daml.stores.reslience.Caching<>(cache, stubStore);
+    var cachedStore = new com.blockchaintp.daml.stores.layers.Caching<>(cache, stubStore);
 
     cache.put(new Key<>("cache"), new Value<>("cache"));
     Assertions.assertEquals(new Value<>("cache"), cache.get(new Key<>("cache")));
@@ -47,7 +47,7 @@ class CacheTest {
   @Test
   void scalar_put_adds_to_cache() throws StoreWriteException, StoreReadException {
     var stubStore = new StubStore<String, String>();
-    var cachedStore = new com.blockchaintp.daml.stores.reslience.Caching<>(cache, stubStore);
+    var cachedStore = new com.blockchaintp.daml.stores.layers.Caching<>(cache, stubStore);
 
     cachedStore.put(new Key<>("writethrough"), new Value<>("writethrough"));
 
@@ -59,7 +59,7 @@ class CacheTest {
   @Test
   void batch_get_only_reads_through_missed_items() throws StoreReadException, StoreWriteException {
     var stubStore = new StubStore<String, String>();
-    var cachedStore = new com.blockchaintp.daml.stores.reslience.Caching<>(cache, stubStore);
+    var cachedStore = new com.blockchaintp.daml.stores.layers.Caching<>(cache, stubStore);
 
     cache.put(new Key<>("primed"), new Value<>("primed"));
     stubStore.put(new Key<>("readthrough"), new Value<>("readthrough"));
@@ -71,7 +71,7 @@ class CacheTest {
   @Test
   void batch_put_adds_to_cache() throws StoreWriteException, StoreReadException {
     var stubStore = new StubStore<String, String>();
-    var cachedStore = new com.blockchaintp.daml.stores.reslience.Caching<>(cache, stubStore);
+    var cachedStore = new com.blockchaintp.daml.stores.layers.Caching<>(cache, stubStore);
 
     cachedStore
         .put(Arrays.asList(new AbstractMap.SimpleEntry<>(new Key<>("writethrough1"), new Value<>("writethrough1")),

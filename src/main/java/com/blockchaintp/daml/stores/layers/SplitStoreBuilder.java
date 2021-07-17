@@ -1,4 +1,4 @@
-package com.blockchaintp.daml.stores;
+package com.blockchaintp.daml.stores.layers;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -7,10 +7,10 @@ import java.util.function.UnaryOperator;
 import com.amazon.ion.IonStruct;
 import com.amazon.ion.IonSystem;
 import com.amazon.ion.IonValue;
-import com.blockchaintp.daml.exception.NoSHA512SupportException;
-import com.blockchaintp.daml.serviceinterface.Store;
-import com.blockchaintp.daml.serviceinterface.StoreReader;
-import com.blockchaintp.daml.serviceinterface.TransactionLog;
+import com.blockchaintp.daml.stores.exception.NoSHA512SupportException;
+import com.blockchaintp.daml.stores.service.Store;
+import com.blockchaintp.daml.stores.service.StoreReader;
+import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.google.protobuf.ByteString;
 
 public class SplitStoreBuilder {

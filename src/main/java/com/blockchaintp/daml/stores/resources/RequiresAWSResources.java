@@ -1,4 +1,4 @@
-package com.blockchaintp.daml.stores;
+package com.blockchaintp.daml.stores.resources;
 
 /**
  * This component can create and destroy the AWS resources it requires for

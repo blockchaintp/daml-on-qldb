@@ -1,4 +1,4 @@
-package com.blockchaintp.daml.exception;
+package com.blockchaintp.daml.stores.exception;
 
 import java.security.NoSuchAlgorithmException;
 

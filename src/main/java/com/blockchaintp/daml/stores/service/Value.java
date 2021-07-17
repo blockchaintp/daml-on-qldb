@@ -1,4 +1,4 @@
-package com.blockchaintp.daml.serviceinterface;
+package com.blockchaintp.daml.stores.service;
 
 import java.util.function.Function;
 

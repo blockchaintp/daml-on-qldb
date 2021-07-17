@@ -1,4 +1,4 @@
-package com.blockchaintp.daml.serviceinterface.exception;
+package com.blockchaintp.daml.stores.exception;
 
 import java.io.IOException;
 

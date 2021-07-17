@@ -1,4 +1,4 @@
-package com.blockchaintp.daml.stores.reslience;
+package com.blockchaintp.daml.stores.layers;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -7,11 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import com.blockchaintp.daml.serviceinterface.Key;
-import com.blockchaintp.daml.serviceinterface.Store;
-import com.blockchaintp.daml.serviceinterface.Value;
-import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
-import com.blockchaintp.daml.serviceinterface.exception.StoreWriteException;
+import com.blockchaintp.daml.stores.LRUCache;
+import com.blockchaintp.daml.stores.exception.StoreReadException;
+import com.blockchaintp.daml.stores.exception.StoreWriteException;
+import com.blockchaintp.daml.stores.service.Key;
+import com.blockchaintp.daml.stores.service.Store;
+import com.blockchaintp.daml.stores.service.Value;
 import com.google.common.collect.Sets;
 
 public class Caching<K, V> implements Store<K, V> {

@@ -2,8 +2,8 @@ package com.blockchaintp.daml.stores.s3;
 
 import java.util.function.UnaryOperator;
 
-import com.blockchaintp.daml.serviceinterface.Store;
-import com.blockchaintp.daml.stores.reslience.Retrying;
+import com.blockchaintp.daml.stores.layers.Retrying;
+import com.blockchaintp.daml.stores.service.Store;
 
 import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;

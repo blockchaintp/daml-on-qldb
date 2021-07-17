@@ -1,10 +1,10 @@
-package com.blockchaintp.daml.serviceinterface;
+package com.blockchaintp.daml.stores.service;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
+import com.blockchaintp.daml.stores.exception.StoreReadException;
 
 /**
  * A read interface for a K/V store.

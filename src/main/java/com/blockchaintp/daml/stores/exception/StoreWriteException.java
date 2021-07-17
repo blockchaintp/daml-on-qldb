@@ -1,4 +1,4 @@
-package com.blockchaintp.daml.serviceinterface.exception;
+package com.blockchaintp.daml.stores.exception;
 
 /**
  * Represents a write failure of some sort to the store.

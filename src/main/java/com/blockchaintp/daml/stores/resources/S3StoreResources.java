@@ -1,8 +1,6 @@
-package com.blockchaintp.daml.stores.s3;
+package com.blockchaintp.daml.stores.resources;
 
 import java.util.concurrent.CompletableFuture;
-
-import com.blockchaintp.daml.stores.RequiresAWSResources;
 
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;

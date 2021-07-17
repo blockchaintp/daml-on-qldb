@@ -1,10 +1,10 @@
-package com.blockchaintp.daml.stores.reslience;
+package com.blockchaintp.daml.stores;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import com.blockchaintp.daml.serviceinterface.Key;
-import com.blockchaintp.daml.serviceinterface.Value;
+import com.blockchaintp.daml.stores.service.Key;
+import com.blockchaintp.daml.stores.service.Value;
 
 public class LRUCache<K, V> extends LinkedHashMap<Key<K>, Value<V>> {
   private static final float DEFAULT_LOAD_FACTOR = 0.75f;

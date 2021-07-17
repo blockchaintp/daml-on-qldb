@@ -1,4 +1,4 @@
-package com.blockchaintp.daml.stores;
+package com.blockchaintp.daml.stores.layers;
 
 import java.util.HashMap;
 import java.util.List;
@@ -11,12 +11,12 @@ import com.amazon.ion.IonBlob;
 import com.amazon.ion.IonStruct;
 import com.amazon.ion.IonSystem;
 import com.amazon.ion.IonValue;
-import com.blockchaintp.daml.serviceinterface.Key;
-import com.blockchaintp.daml.serviceinterface.Store;
-import com.blockchaintp.daml.serviceinterface.StoreReader;
-import com.blockchaintp.daml.serviceinterface.TransactionLog;
-import com.blockchaintp.daml.serviceinterface.Value;
-import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
+import com.blockchaintp.daml.stores.exception.StoreReadException;
+import com.blockchaintp.daml.stores.service.Key;
+import com.blockchaintp.daml.stores.service.Store;
+import com.blockchaintp.daml.stores.service.StoreReader;
+import com.blockchaintp.daml.stores.service.TransactionLog;
+import com.blockchaintp.daml.stores.service.Value;
 import com.google.protobuf.ByteString;
 
 /**
