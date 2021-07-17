@@ -22,9 +22,9 @@ import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
-public class RetryingTest {
+class RetryingTest {
   @Test
-  public void get_retries_configured_number_of_store_read_exceptions() throws StoreReadException {
+  void get_retries_configured_number_of_store_read_exceptions() throws StoreReadException {
     var store = mock(Store.class);
     var retrying = new Retrying(
       new Retrying.Config(),
@@ -57,7 +57,7 @@ public class RetryingTest {
   }
 
   @Test
-  public void get_eventually_fails_with_a_store_read_exception() throws StoreReadException {
+  void get_eventually_fails_with_a_store_read_exception() throws StoreReadException {
     var store = mock(Store.class);
     var retrying = new Retrying(
       new Retrying.Config(),
@@ -104,7 +104,7 @@ public class RetryingTest {
   }
 
   @Test
-  public void put_retries_configured_number_of_store_write_exceptions() throws StoreWriteException {
+  void put_retries_configured_number_of_store_write_exceptions() throws StoreWriteException {
     var store = mock(Store.class);
     var retrying = new Retrying(
       new Retrying.Config(),
@@ -135,7 +135,7 @@ public class RetryingTest {
 
 
   @Test
-  public void put_eventually_fails_with_a_store_write_exceptions() throws StoreWriteException {
+  void put_eventually_fails_with_a_store_write_exceptions() throws StoreWriteException {
     var store = mock(Store.class);
     var retrying = new Retrying(
       new Retrying.Config(),

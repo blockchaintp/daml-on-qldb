@@ -27,7 +27,7 @@ import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 
-public class S3StoreIntegrationTest {
+class S3StoreIntegrationTest {
 
   private static final int NETTY_MAX_CONCURRENCY = 100;
   private static final int ID_LENGTH = 10;

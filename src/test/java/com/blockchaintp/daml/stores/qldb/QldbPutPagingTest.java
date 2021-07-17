@@ -28,7 +28,7 @@ import software.amazon.awssdk.services.qldbsession.model.CapacityExceededExcepti
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class QldbPutPagingTest {
+class QldbPutPagingTest {
   /**
    * A Stub store that only accepts put batches of 5 or fewer items.
    */
@@ -95,7 +95,7 @@ public class QldbPutPagingTest {
   }
 
   @Test
-  public void put_retries_configured_number_of_store_write_exceptions() throws StoreWriteException {
+  void put_retries_configured_number_of_store_write_exceptions() throws StoreWriteException {
     var store = mock(Store.class);
     var retrying = new QldbRetryStrategy(new Retrying.Config(), store);
 
@@ -107,7 +107,7 @@ public class QldbPutPagingTest {
   }
 
   @Test
-  public void put_eventually_fails_with_a_store_write_exceptions() throws StoreWriteException {
+  void put_eventually_fails_with_a_store_write_exceptions() throws StoreWriteException {
     var store = mock(Store.class);
     var retrying = new Retrying(new Retrying.Config(), store);
 

@@ -25,7 +25,7 @@ class CacheTest {
   }
 
   @Test
-  public void scalar_get_reads_through() throws StoreWriteException, StoreReadException {
+  void scalar_get_reads_through() throws StoreWriteException, StoreReadException {
 
     var stubStore = new StubStore<String, String>();
     var cachedStore = new com.blockchaintp.daml.stores.reslience.Caching<>(cache, stubStore);
@@ -45,7 +45,7 @@ class CacheTest {
   }
 
   @Test
-  public void scalar_put_adds_to_cache() throws StoreWriteException, StoreReadException {
+  void scalar_put_adds_to_cache() throws StoreWriteException, StoreReadException {
     var stubStore = new StubStore<String, String>();
     var cachedStore = new com.blockchaintp.daml.stores.reslience.Caching<>(cache, stubStore);
 
@@ -57,7 +57,7 @@ class CacheTest {
   }
 
   @Test
-  public void batch_get_only_reads_through_missed_items() throws StoreReadException, StoreWriteException {
+  void batch_get_only_reads_through_missed_items() throws StoreReadException, StoreWriteException {
     var stubStore = new StubStore<String, String>();
     var cachedStore = new com.blockchaintp.daml.stores.reslience.Caching<>(cache, stubStore);
 
@@ -69,7 +69,7 @@ class CacheTest {
   }
 
   @Test
-  public void batch_put_adds_to_cache() throws StoreWriteException, StoreReadException {
+  void batch_put_adds_to_cache() throws StoreWriteException, StoreReadException {
     var stubStore = new StubStore<String, String>();
     var cachedStore = new com.blockchaintp.daml.stores.reslience.Caching<>(cache, stubStore);
 

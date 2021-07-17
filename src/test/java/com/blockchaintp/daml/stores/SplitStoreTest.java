@@ -22,9 +22,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("unchecked")
-public class SplitStoreTest {
+class SplitStoreTest {
   @Test
-  void unindexed_put_enters_hash_into_txlog_after_storing_in_blobstore() throws StoreWriteException, StoreReadException {
+  void unindexed_put_enters_hash_into_txlog_after_storing_in_blobstore()
+      throws StoreWriteException, StoreReadException {
     var ion = IonSystemBuilder.standard().build();
     var txLog = new StubStore<IonValue, IonStruct>();
     var blobStore = new StubStore<String, byte[]>();
@@ -76,7 +77,8 @@ public class SplitStoreTest {
     // blobStore Index should contain blob hash
     Assertions.assertArrayEquals(new byte[] { 'o', 'k' }, blobStore.get(new Key<>("index/DamlKey")).get().toNative());
 
-    /// TODO: Fun verifying maps with mockito - I can write an blobStore stub in 12 lines..
+    /// TODO: Fun verifying maps with mockito - I can write an blobStore stub in 12
+    /// lines..
   }
 
   @Test

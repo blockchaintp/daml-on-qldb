@@ -28,7 +28,7 @@ import software.amazon.awssdk.services.qldb.QldbClient;
 import software.amazon.awssdk.services.qldbsession.QldbSessionClient;
 import software.amazon.qldb.QldbDriver;
 
-public class QldbStoreIntegrationTest {
+class QldbStoreIntegrationTest {
   private static final int ITERATIONS = 40;
   private QldbStore store;
   private IonSystem ionSystem;
