@@ -201,6 +201,7 @@ analyze_sonar_mvn: $(MARKERS)/build_toolchain_docker
 	        -Dsonar.projectVersion=$(VERSION) \
 	        -Dsonar.host.url=$(SONAR_HOST_URL) \
 	        -Dsonar.junit.reportPaths=target/surefire-reports,**/target/surefire-reports \
+	        -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml,**/target/site/jacoco/jacoco.xml \
 	        -Dsonar.login=$(SONAR_AUTH_TOKEN) ; \
 	  else \
 	    $(DOCKER_MVN) verify sonar:sonar \
@@ -213,6 +214,7 @@ analyze_sonar_mvn: $(MARKERS)/build_toolchain_docker
 	        -Dsonar.projectVersion=$(VERSION) \
 	        -Dsonar.host.url=$(SONAR_HOST_URL) \
 	        -Dsonar.junit.reportPaths=target/surefire-reports,**/target/surefire-reports \
+	        -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml,**/target/site/jacoco/jacoco.xml \
 	        -Dsonar.login=$(SONAR_AUTH_TOKEN) ; \
 	  fi
 

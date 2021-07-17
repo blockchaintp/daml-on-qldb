@@ -396,7 +396,6 @@
             </execution>
           </executions>
           <configuration>
-            <scalaVersion>2.12.10</scalaVersion>
             <source>${java.source.version}</source>
             <target>${java.target.version}</target>
           </configuration>
@@ -407,8 +406,11 @@
           <version>3.1.1</version>
           <executions>
             <execution>
+              <?m2e execute onConfiguration,onIncremental?>
+              <phase>compile</phase>
               <goals>
                 <goal>jxr</goal>
+                <goal>test-jxr</goal>
               </goals>
             </execution>
           </executions>
@@ -426,7 +428,9 @@
           </dependencies>
           <executions>
             <execution>
+              <?m2e execute onConfiguration,onIncremental?>
               <id>validate</id>
+              <phase>compile</phase>
               <goals>
                 <goal>check</goal>
               </goals>
@@ -457,6 +461,7 @@
             <execution>
               <goals>
                 <goal>compile</goal>
+                <goal>testCompile</goal>
               </goals>
             </execution>
           </executions>
@@ -480,11 +485,19 @@
           <version>3.3.0</version>
           <configuration>
             <javadocExecutable>${java.home}/bin/javadoc</javadocExecutable>
+            <doclet>nl.talsmasoftware.umldoclet.UMLDoclet</doclet>
+            <docletArtifact>
+                <groupId>nl.talsmasoftware</groupId>
+                <artifactId>umldoclet</artifactId>
+                <version>2.0.12</version>
+            </docletArtifact>
+            <additionalOptions>
+              <additionalOption>-createPumlFiles</additionalOption>
+            </additionalOptions>
           </configuration>
           <executions>
             <execution>
               <id>attach-javadocs</id>
-              <phase>package</phase>
               <goals>
                 <goal>jar</goal>
               </goals>
@@ -533,13 +546,45 @@
             </execution>
           </executions>
         </plugin>
+
+        <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <version>0.8.7</version>
+            <executions>
+                <execution>
+                    <goals>
+                        <goal>prepare-agent</goal>
+                    </goals>
+                </execution>
+                <execution>
+                    <id>report</id>
+                    <phase>verify</phase>
+                    <goals>
+                        <goal>report</goal>
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
       </plugins>
     </pluginManagement>
 
     <plugins>
       <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>net.alchim31.maven</groupId>
+        <artifactId>scala-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jxr-plugin</artifactId>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -572,4 +617,5 @@
       </plugin>
     </plugins>
   </build>
+
 </project>
