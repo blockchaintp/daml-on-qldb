@@ -1,17 +1,19 @@
 package com.blockchaintp.daml.stores;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.blockchaintp.daml.serviceinterface.Key;
-import com.blockchaintp.daml.serviceinterface.Store;
+import com.blockchaintp.daml.serviceinterface.TransactionLog;
 import com.blockchaintp.daml.serviceinterface.Value;
 import com.blockchaintp.daml.serviceinterface.exception.StoreReadException;
 import com.blockchaintp.daml.serviceinterface.exception.StoreWriteException;
 
-public class StubStore<K, V> implements Store<K, V> {
+public class StubStore<K, V> implements TransactionLog<K, V> {
   private final Map<Key<K>, Value<V>> stored = new HashMap<>();
 
   @Override
@@ -35,4 +37,13 @@ public class StubStore<K, V> implements Store<K, V> {
     listOfPairs.forEach(kv -> stored.put(kv.getKey(), kv.getValue()));
   }
 
+  @Override
+  public void sendEvent(List<Entry<String, String>> listOfTopicDataPairs) throws StoreWriteException {
+    // TODO Auto-generated method stub
+  }
+
+  @Override
+  public void sendEvent(String topic, String data) throws StoreWriteException {
+    // TODO Auto-generated method stub
+  }
 }

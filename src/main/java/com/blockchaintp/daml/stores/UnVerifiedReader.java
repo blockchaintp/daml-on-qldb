@@ -1,4 +1,4 @@
-package com.blockchaintp.daml.stores.qldbs3store;
+package com.blockchaintp.daml.stores;
 
 import java.util.HashMap;
 import java.util.List;
