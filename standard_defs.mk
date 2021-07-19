@@ -200,7 +200,7 @@ analyze_sonar_mvn: $(MARKERS)/build_toolchain_docker
 	        -Dsonar.branch.name=$(BRANCH_NAME) \
 	        -Dsonar.projectVersion=$(VERSION) \
 	        -Dsonar.host.url=$(SONAR_HOST_URL) \
-	        -Dsonar.junit.reportPaths=**/target/surefire-reports \
+	        -Dsonar.junit.reportPaths=target/surefire-reports,**/target/surefire-reports \
 	        -Dsonar.login=$(SONAR_AUTH_TOKEN) ; \
 	  else \
 	    $(DOCKER_MVN) verify sonar:sonar \
@@ -212,7 +212,7 @@ analyze_sonar_mvn: $(MARKERS)/build_toolchain_docker
 	        -Dsonar.pullrequest.base=$(CHANGE_TARGET) \
 	        -Dsonar.projectVersion=$(VERSION) \
 	        -Dsonar.host.url=$(SONAR_HOST_URL) \
-	        -Dsonar.junit.reportPaths=**/target/surefire-reports \
+	        -Dsonar.junit.reportPaths=target/surefire-reports,**/target/surefire-reports \
 	        -Dsonar.login=$(SONAR_AUTH_TOKEN) ; \
 	  fi
 
@@ -230,7 +230,7 @@ analyze_sonar_generic:
 	        -Dsonar.projectVersion=$(VERSION) \
 	        -Dsonar.host.url=$(SONAR_HOST_URL) \
 	        -Dsonar.login=$(SONAR_AUTH_TOKEN) \
-	        -Dsonar.junit.reportPaths=**/target/surefire-reports; \
+	        -Dsonar.junit.reportPaths=target/surefire-reports,**/target/surefire-reports; \
 	  else \
 	    $(DOCKER_RUN_USER) \
 	      -v $$(pwd):/usr/src \
@@ -244,7 +244,7 @@ analyze_sonar_generic:
 	        -Dsonar.projectVersion=$(VERSION) \
 	        -Dsonar.host.url=$(SONAR_HOST_URL) \
 	        -Dsonar.login=$(SONAR_AUTH_TOKEN) \
-	        -Dsonar.junit.reportPaths=**/target/surefire-reports; \
+	        -Dsonar.junit.reportPaths=target/surefire-reports,**/target/surefire-reports; \
 	  fi
 
 .PHONY: analyze_sonar_js

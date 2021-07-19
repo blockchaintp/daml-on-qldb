@@ -1,57 +1,95 @@
 package com.blockchaintp.daml.stores.s3;
 
-import com.blockchaintp.daml.serviceinterface.Store;
-import com.blockchaintp.daml.stores.reslience.Retrying;
+import java.util.function.UnaryOperator;
+
+import com.blockchaintp.daml.stores.layers.Retrying;
+import com.blockchaintp.daml.stores.service.Store;
+
 import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
-import java.util.function.UnaryOperator;
-
+/**
+ * A fluent style Builder of S3Store objects.
+ */
 public class S3StoreBuilder {
 
   private final S3AsyncClientBuilder client;
-  private String ledgerName;
+  private String storeName;
   private UnaryOperator<PutObjectRequest.Builder> putModifications = x -> x;
   private UnaryOperator<GetObjectRequest.Builder> getModifications = x -> x;
   private String tableName;
   private Retrying.Config retryingConfig;
 
-  public S3StoreBuilder(S3AsyncClientBuilder client) {
-    this.client = client;
+  /**
+   * Construct the builder with the provided s3Client.
+   * @param s3Client the S3 client
+   */
+  public S3StoreBuilder(final S3AsyncClientBuilder s3Client) {
+    this.client = s3Client;
   }
 
-  public S3StoreBuilder forLedger(String ledgerName) {
-    this.ledgerName = ledgerName;
+  /**
+   * Use the provided name as the store name.
+   * @param name the name of the store
+   * @return the builder
+   */
+  public final S3StoreBuilder forStore(final String name) {
+    this.storeName = name;
     return this;
   }
 
-  public S3StoreBuilder forTable(String tableName) {
-    this.tableName = tableName;
+  /**
+   * Use the provided name as the table name or sub-grouping of the store.
+   * @param name the name of the table
+   * @return the builder
+   */
+  public final S3StoreBuilder forTable(final String name) {
+    this.tableName = name;
     return this;
   }
 
-  public S3StoreBuilder onPut(UnaryOperator<PutObjectRequest.Builder> putModifications) {
-    this.putModifications = putModifications;
+  /**
+   * Use the specified S3 guarantees on put.
+   * @param mods a function which modifies the request properties10
+   * @return the builder
+   */
+  public final S3StoreBuilder onPut(final UnaryOperator<PutObjectRequest.Builder> mods) {
+    this.putModifications = mods;
 
     return this;
   }
 
-  public S3StoreBuilder onGet(UnaryOperator<GetObjectRequest.Builder> getModifications) {
-    this.getModifications = getModifications;
+  /**
+   * Use the specified S3 guarantees on get.
+   * @param mods a function which modifies the request properties10
+   * @return the builder
+   */
+  public final S3StoreBuilder onGet(final UnaryOperator<GetObjectRequest.Builder> mods) {
+    this.getModifications = mods;
 
     return this;
   }
 
-  public S3StoreBuilder retrying(int maxRetries) {
+  /**
+   * Specify the number of retries to use for the stores built.
+   * @param maxRetries the maximum number of retries.
+   * @return the builder
+   */
+  public final S3StoreBuilder retrying(final int maxRetries) {
     this.retryingConfig = new Retrying.Config();
-    this.retryingConfig.maxRetries = maxRetries;
+    this.retryingConfig.setMaxRetries(maxRetries);
 
     return this;
   }
 
-  public Store<String, byte[]> build() throws S3StoreBuilderException {
-    if (this.ledgerName == null) {
+  /**
+   * Build the store and return it.
+   * @return the S3Store
+   * @throws S3StoreBuilderException an error in construction
+   */
+  public final Store<String, byte[]> build() throws S3StoreBuilderException {
+    if (this.storeName == null) {
       throw new S3StoreBuilderException("Ledger name must be specified");
     }
 
@@ -60,7 +98,7 @@ public class S3StoreBuilder {
     }
 
     var store = new S3Store(
-      this.ledgerName,
+      this.storeName,
       this.tableName,
       this.client,
       this.getModifications,
