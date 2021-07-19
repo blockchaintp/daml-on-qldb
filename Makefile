@@ -19,7 +19,7 @@ package: $(MARKERS)/package_mvn $(MARKERS)/package_docker
 # test: $(MARKERS)/test_mvn $(MARKERS)/test_daml
 test: $(MARKERS)/test_mvn
 
-analyze: analyze_sonar_mvn
+analyze: analyze_fossa analyze_sonar_mvn
 
 publish: $(MARKERS)/publish_mvn
 
