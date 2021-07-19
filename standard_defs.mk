@@ -103,6 +103,7 @@ DIVE_ANALYZE = $(TOOL) -v $(DOCKER_SOCK):/var/run/docker.sock \
 	--user toolchain:$(shell getent group docker|awk -F: '{print $$3}') \
 	$(TOOLCHAIN_IMAGE) dive --ci
 
+CLEAN_DIRS = build markers target
 ##
 # BEGIN Standardized directives
 ##
@@ -123,7 +124,7 @@ clean: clean_dirs
 # Clean everything and the docker image, leaving the repo pristine
 .PHONY: distclean
 distclean: clean
-	rm -rf $(MARKERS)
+	rm -rf $(CLEAN_DIRS)
 
 # All compilation tasks
 .PHONY: build
@@ -328,8 +329,7 @@ fix_permissions:
 # This will reset the build status possible causing steps to rerun
 .PHONY: clean_markers
 clean_markers:
-	rm -rf $(MARKERS)
-	rm -rf build
+	rm -rf $(CLEAN_DIRS)
 
 $(MARKERS)/build_go: $(MARKERS)/build_toolchain_docker
 	$(TOOLCHAIN) bash -c "if [ -r scripts/build ]; then scripts/build; else go build ./...; fi"
@@ -377,8 +377,7 @@ $(MARKERS):
 
 .PHONY: clean_dirs_standard
 clean_dirs_standard:
-	rm -rf build
-	rm -rf $(MARKERS)
+	rm -rf $(CLEAN_DIRS)
 
 .PHONY: clean_dirs
 clean_dirs: clean_dirs_standard
