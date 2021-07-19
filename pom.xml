@@ -496,9 +496,8 @@
           </dependencies>
           <executions>
             <execution>
-              <?m2e execute onConfiguration,onIncremental?>
               <id>validate</id>
-              <phase>compile</phase>
+              <phase>verify</phase>
               <goals>
                 <goal>check</goal>
               </goals>
@@ -523,13 +522,14 @@
           <configuration>
             <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}
             </protocArtifact>
-            <protoSourceRoot>${proto.directory}</protoSourceRoot>
+            <useArgumentFile>true</useArgumentFile>
+            <checkStaleness>true</checkStaleness>
           </configuration>
           <executions>
             <execution>
               <goals>
                 <goal>compile</goal>
-                <goal>testCompile</goal>
+                <goal>test-compile</goal>
               </goals>
             </execution>
           </executions>
@@ -638,6 +638,10 @@
     </pluginManagement>
 
     <plugins>
+      <plugin>
+        <groupId>org.xolstice.maven.plugins</groupId>
+        <artifactId>protobuf-maven-plugin</artifactId>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
