@@ -1,18 +1,13 @@
 package com.blockchaintp.daml.stores.resources;
 
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.StreamSupport;
-
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import software.amazon.awssdk.services.qldb.QldbClient;
-import software.amazon.awssdk.services.qldb.model.CreateLedgerRequest;
-import software.amazon.awssdk.services.qldb.model.DeleteLedgerRequest;
-import software.amazon.awssdk.services.qldb.model.DescribeLedgerRequest;
-import software.amazon.awssdk.services.qldb.model.LedgerState;
-import software.amazon.awssdk.services.qldb.model.PermissionsMode;
-import software.amazon.awssdk.services.qldb.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.qldb.model.*;
 import software.amazon.qldb.QldbDriver;
+
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.StreamSupport;
 
 /**
  * Deals with QLDB resources.
@@ -27,13 +22,14 @@ public class QldbResources implements RequiresAWSResources {
 
   /**
    * Constructor.
+   *
    * @param qldbClient the qldb client
    * @param qldbDriver the qldb driver
    * @param ledgerName the ledger name
-   * @param tableName the table name
+   * @param tableName  the table name
    */
   public QldbResources(final QldbClient qldbClient, final QldbDriver qldbDriver, final String ledgerName,
-      final String tableName) {
+                       final String tableName) {
     this.infrastructureClient = qldbClient;
     this.driver = qldbDriver;
     this.ledger = ledgerName;
@@ -65,7 +61,7 @@ public class QldbResources implements RequiresAWSResources {
       LOG.debug("Ledger {} exists, skip create", () -> ledger);
     } else {
       infrastructureClient.createLedger(CreateLedgerRequest.builder().name(ledger)
-          .permissionsMode(PermissionsMode.STANDARD).deletionProtection(false).build());
+        .permissionsMode(PermissionsMode.STANDARD).deletionProtection(false).build());
 
       while (!ledgerState(LedgerState.ACTIVE)) {
         try {

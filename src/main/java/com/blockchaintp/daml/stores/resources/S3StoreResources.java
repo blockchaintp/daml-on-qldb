@@ -1,7 +1,5 @@
 package com.blockchaintp.daml.stores.resources;
 
-import java.util.concurrent.CompletableFuture;
-
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
@@ -9,6 +7,8 @@ import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Handles the creation and destruction of S3 resources.
@@ -21,6 +21,7 @@ public class S3StoreResources implements RequiresAWSResources {
 
   /**
    * Creates an S3StoreResources with the specified client.
+   *
    * @param awsClient the AWS S3 client
    * @param storeName the name of the S3Store
    * @param tableName the table name within the store.
@@ -33,7 +34,7 @@ public class S3StoreResources implements RequiresAWSResources {
   private boolean bucketExists() {
     LOG.debug("Check bucket {} exists", () -> bucketName);
     var ourBucket = client.listBuckets()
-        .thenApply(r -> r.buckets().stream().filter(b -> b.name().equals(bucketName)).findAny()).join();
+      .thenApply(r -> r.buckets().stream().filter(b -> b.name().equals(bucketName)).findAny()).join();
 
     return ourBucket.isPresent();
   }
@@ -72,8 +73,8 @@ public class S3StoreResources implements RequiresAWSResources {
     var keys = client.listObjectsV2(ListObjectsV2Request.builder().bucket(bucketName).build()).join();
 
     CompletableFuture.allOf(keys.contents().stream()
-        .map(k -> client.deleteObject(DeleteObjectRequest.builder().bucket(bucketName).key(k.key()).build()))
-        .toArray(CompletableFuture[]::new)).join();
+      .map(k -> client.deleteObject(DeleteObjectRequest.builder().bucket(bucketName).key(k.key()).build()))
+      .toArray(CompletableFuture[]::new)).join();
 
     client.deleteBucket(DeleteBucketRequest.builder().bucket(bucketName).build()).join();
   }

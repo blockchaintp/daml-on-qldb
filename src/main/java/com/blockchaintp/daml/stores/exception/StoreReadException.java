@@ -7,6 +7,7 @@ public class StoreReadException extends StoreException {
 
   /**
    * Read exception with cause and error message.
+   *
    * @param error the error message
    * @param cause the originating exception
    */
@@ -16,6 +17,7 @@ public class StoreReadException extends StoreException {
 
   /**
    * A read exception with an originating cause.
+   *
    * @param cause the cause
    */
   public StoreReadException(final Throwable cause) {

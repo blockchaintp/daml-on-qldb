@@ -1,13 +1,14 @@
 package com.blockchaintp.daml.stores;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Value;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 /**
  * A simple LRU cache.
+ *
  * @param <K> the key type
  * @param <V> the value type
  */
@@ -19,6 +20,7 @@ public class LRUCache<K, V> extends LinkedHashMap<Key<K>, Value<V>> {
 
   /**
    * Construct the cache with the specified max size.
+   *
    * @param maxSize the maximum size of the cache
    */
   public LRUCache(final int maxSize) {

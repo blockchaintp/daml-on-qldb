@@ -16,6 +16,7 @@ public final class QldbStoreBuilder {
 
   /**
    * Use the given QLDB driver.
+   *
    * @param driver the driver
    * @return the builder
    */
@@ -25,6 +26,7 @@ public final class QldbStoreBuilder {
 
   /**
    * Use the given table name.
+   *
    * @param tableName the table name
    * @return the builder
    */
@@ -35,6 +37,7 @@ public final class QldbStoreBuilder {
 
   /**
    * Construct a QLDBStore instance.
+   *
    * @return the instance
    */
   public QldbStore build() {

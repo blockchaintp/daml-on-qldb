@@ -9,6 +9,7 @@ public class StoreException extends IOException {
 
   /**
    * An exception with cause and error message.
+   *
    * @param error the error message
    * @param cause the originating exception
    */
@@ -18,6 +19,7 @@ public class StoreException extends IOException {
 
   /**
    * An exception with an originating cause.
+   *
    * @param cause the cause
    */
   public StoreException(final Throwable cause) {

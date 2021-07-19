@@ -1,15 +1,10 @@
 package com.blockchaintp.daml.stores.layers;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.Value;
-
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.vavr.CheckedFunction0;
@@ -17,8 +12,13 @@ import io.vavr.CheckedRunnable;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 /**
  * A {@link Store} layer which retries the read operation if an exception occurs.
+ *
  * @param <K> Key type
  * @param <V> Value type
  */
@@ -32,29 +32,30 @@ public class Retrying<K, V> implements Store<K, V> {
 
   /**
    * Construct the {@link Retrying} layer around the provided {@link Store}.
-   * @param config the configuration for the retry
+   *
+   * @param config       the configuration for the retry
    * @param wrappedStore the {@link Store} to wrap
    */
   public Retrying(final Config config, final Store<K, V> wrappedStore) {
     this.store = wrappedStore;
 
     this.getRetry = Retry.of(String.format("%s#get", store.getClass().getCanonicalName()), RetryConfig.custom()
-        .maxAttempts(config.getMaxRetries()).retryOnException(StoreReadException.class::isInstance).build());
+      .maxAttempts(config.getMaxRetries()).retryOnException(StoreReadException.class::isInstance).build());
 
     this.putRetry = Retry.of(String.format("%s#put", store.getClass().getCanonicalName()), RetryConfig.custom()
-        .maxAttempts(config.getMaxRetries()).retryOnException(StoreWriteException.class::isInstance).build());
+      .maxAttempts(config.getMaxRetries()).retryOnException(StoreWriteException.class::isInstance).build());
 
     getRetry.getEventPublisher().onRetry(r -> LOG.info("Retrying {} attempt {} due to {}", r::getName,
-        r::getNumberOfRetryAttempts, r::getLastThrowable, () -> r.getLastThrowable().getMessage()));
+      r::getNumberOfRetryAttempts, r::getLastThrowable, () -> r.getLastThrowable().getMessage()));
 
     getRetry.getEventPublisher().onError(r -> LOG.error("Retrying {} aborted after {} attempts due to {}", r::getName,
-        r::getNumberOfRetryAttempts, r::getLastThrowable, () -> r.getLastThrowable().getMessage()));
+      r::getNumberOfRetryAttempts, r::getLastThrowable, () -> r.getLastThrowable().getMessage()));
 
     putRetry.getEventPublisher().onRetry(r -> LOG.info("Retrying {} attempt {} due to {}", r::getName,
-        r::getNumberOfRetryAttempts, () -> r.getLastThrowable().getMessage()));
+      r::getNumberOfRetryAttempts, () -> r.getLastThrowable().getMessage()));
 
     putRetry.getEventPublisher().onError(r -> LOG.error("Retrying {} aborted after {} attempts due to {}", r::getName,
-        r::getNumberOfRetryAttempts, () -> r.getLastThrowable().getMessage()));
+      r::getNumberOfRetryAttempts, () -> r.getLastThrowable().getMessage()));
   }
 
   /**
@@ -120,12 +121,14 @@ public class Retrying<K, V> implements Store<K, V> {
      * The maximum number of retries.
      */
     private int maxRetries = DEFAULT_MAX_RETRIES;
+
     /**
      * @return the maxRetries
      */
     public int getMaxRetries() {
       return maxRetries;
     }
+
     /**
      * @param retries the maxRetries to set
      */

@@ -1,13 +1,12 @@
 package com.blockchaintp.daml.stores.s3;
 
-import java.util.function.UnaryOperator;
-
 import com.blockchaintp.daml.stores.layers.Retrying;
 import com.blockchaintp.daml.stores.service.Store;
-
 import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+
+import java.util.function.UnaryOperator;
 
 /**
  * A fluent style Builder of S3Store objects.
@@ -23,6 +22,7 @@ public class S3StoreBuilder {
 
   /**
    * Construct the builder with the provided s3Client.
+   *
    * @param s3Client the S3 client
    */
   public S3StoreBuilder(final S3AsyncClientBuilder s3Client) {
@@ -31,6 +31,7 @@ public class S3StoreBuilder {
 
   /**
    * Use the provided name as the store name.
+   *
    * @param name the name of the store
    * @return the builder
    */
@@ -41,6 +42,7 @@ public class S3StoreBuilder {
 
   /**
    * Use the provided name as the table name or sub-grouping of the store.
+   *
    * @param name the name of the table
    * @return the builder
    */
@@ -51,6 +53,7 @@ public class S3StoreBuilder {
 
   /**
    * Use the specified S3 guarantees on put.
+   *
    * @param mods a function which modifies the request properties10
    * @return the builder
    */
@@ -62,6 +65,7 @@ public class S3StoreBuilder {
 
   /**
    * Use the specified S3 guarantees on get.
+   *
    * @param mods a function which modifies the request properties10
    * @return the builder
    */
@@ -73,6 +77,7 @@ public class S3StoreBuilder {
 
   /**
    * Specify the number of retries to use for the stores built.
+   *
    * @param maxRetries the maximum number of retries.
    * @return the builder
    */
@@ -85,6 +90,7 @@ public class S3StoreBuilder {
 
   /**
    * Build the store and return it.
+   *
    * @return the S3Store
    * @throws S3StoreBuilderException an error in construction
    */

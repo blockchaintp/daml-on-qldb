@@ -1,14 +1,14 @@
 package com.blockchaintp.daml.stores.postgres;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.Value;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * A PostgresStore is a store backed by a postgres interface.

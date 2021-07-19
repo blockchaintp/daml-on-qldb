@@ -14,7 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  -->
-<!DOCTYPE module PUBLIC "-//Checkstyle//DTD Check Configuration 1.3//EN" "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<!DOCTYPE module PUBLIC "-//Checkstyle//DTD Check Configuration 1.3//EN"
+  "https://checkstyle.org/dtds/configuration_1_3.dtd">
 
 <!--
     This configuration file was written by the eclipse-cs plugin configuration editor
@@ -24,13 +25,13 @@
     Description: none
 -->
 <module name="Checker">
-  <property name="severity" value="error" />
-  <property name="fileExtensions" value="java, properties, xml" />
+  <property name="severity" value="error"/>
+  <property name="fileExtensions" value="java, properties, xml"/>
   <module name="LineLength">
-    <property name="max" value="120" />
+    <property name="max" value="120"/>
   </module>
-  <module name="NewlineAtEndOfFile" />
-  <module name="OrderedProperties" />
+  <module name="NewlineAtEndOfFile"/>
+  <module name="OrderedProperties"/>
 
   <module name="TreeWalker">
     <!-- Javadoc checks -->
@@ -40,29 +41,29 @@
       <property name="scope" value="public"/>
     </module>
     <module name="JavadocMethod">
-      <property name="accessModifiers" value="public,protected,package" />
+      <property name="accessModifiers" value="public,protected,package"/>
     </module>
-    <module name="JavadocStyle" />
-    <module name="JavadocType" />
+    <module name="JavadocStyle"/>
+    <module name="JavadocType"/>
     <module name="JavadocVariable">
-      <property name="scope" value="public" />
+      <property name="scope" value="public"/>
     </module>
-    <module name="ConstantName" />
-    <module name="LocalFinalVariableName" />
-    <module name="LocalVariableName" />
-    <module name="MemberName" />
-    <module name="MethodName" />
-    <module name="PackageName" />
-    <module name="ParameterName" />
-    <module name="StaticVariableName" />
-    <module name="TypeName" />
+    <module name="ConstantName"/>
+    <module name="LocalFinalVariableName"/>
+    <module name="LocalVariableName"/>
+    <module name="MemberName"/>
+    <module name="MethodName"/>
+    <module name="PackageName"/>
+    <module name="ParameterName"/>
+    <module name="StaticVariableName"/>
+    <module name="TypeName"/>
     <!-- Annotation checks -->
-    <module name="AnnotationLocation" />
-    <module name="MissingDeprecated" />
-    <module name="MissingOverride" />
+    <module name="AnnotationLocation"/>
+    <module name="MissingDeprecated"/>
+    <module name="MissingOverride"/>
     <!-- Import checks -->
-    <module name="AvoidStarImport" />
-    <module name="IllegalImport" />
+    <module name="AvoidStarImport"/>
+    <module name="IllegalImport"/>
     <module name="ImportOrder">
       <property name="groups" value="/^java\./,javax,com,org"/>
       <property name="ordered" value="true"/>
@@ -70,60 +71,60 @@
       <property name="option" value="above"/>
       <property name="sortStaticImportsAlphabetically" value="true"/>
     </module>
-    <module name="RedundantImport" />
+    <module name="RedundantImport"/>
     <module name="UnusedImports">
-      <property name="processJavadoc" value="false" />
+      <property name="processJavadoc" value="false"/>
     </module>
-    <module name="MethodLength" />
-    <module name="ParameterNumber" />
-    <module name="EmptyForIteratorPad" />
-    <module name="GenericWhitespace" />
-    <module name="MethodParamPad" />
-    <module name="NoWhitespaceAfter" />
-    <module name="NoWhitespaceBefore" />
-    <module name="OperatorWrap" />
-    <module name="ParenPad" />
-    <module name="TypecastParenPad" />
-    <module name="WhitespaceAfter" />
-    <module name="WhitespaceAround" />
-    <module name="ModifierOrder" />
-    <module name="RedundantModifier" />
-    <module name="AvoidInlineConditionals" />
-    <module name="EmptyStatement" />
-    <module name="EqualsHashCode" />
-    <module name="HiddenField" />
-    <module name="IllegalInstantiation" />
-    <module name="InnerAssignment" />
-    <module name="MagicNumber" />
-    <module name="MissingSwitchDefault" />
-    <module name="SimplifyBooleanExpression" />
-    <module name="SimplifyBooleanReturn" />
-    <module name="DesignForExtension" />
-    <module name="FinalClass" />
-    <module name="HideUtilityClassConstructor" />
-    <module name="InterfaceIsType" />
-    <module name="VisibilityModifier" />
+    <module name="MethodLength"/>
+    <module name="ParameterNumber"/>
+    <module name="EmptyForIteratorPad"/>
+    <module name="GenericWhitespace"/>
+    <module name="MethodParamPad"/>
+    <module name="NoWhitespaceAfter"/>
+    <module name="NoWhitespaceBefore"/>
+    <module name="OperatorWrap"/>
+    <module name="ParenPad"/>
+    <module name="TypecastParenPad"/>
+    <module name="WhitespaceAfter"/>
+    <module name="WhitespaceAround"/>
+    <module name="ModifierOrder"/>
+    <module name="RedundantModifier"/>
+    <module name="AvoidInlineConditionals"/>
+    <module name="EmptyStatement"/>
+    <module name="EqualsHashCode"/>
+    <module name="HiddenField"/>
+    <module name="IllegalInstantiation"/>
+    <module name="InnerAssignment"/>
+    <module name="MagicNumber"/>
+    <module name="MissingSwitchDefault"/>
+    <module name="SimplifyBooleanExpression"/>
+    <module name="SimplifyBooleanReturn"/>
+    <module name="DesignForExtension"/>
+    <module name="FinalClass"/>
+    <module name="HideUtilityClassConstructor"/>
+    <module name="InterfaceIsType"/>
+    <module name="VisibilityModifier"/>
     <!-- Basic checks -->
-    <module name="ArrayTypeStyle" />
-    <module name="FinalParameters" />
+    <module name="ArrayTypeStyle"/>
+    <module name="FinalParameters"/>
     <module name="OuterTypeFilename"/>
     <module name="TrailingComment"/>
-    <module name="TodoComment" />
-    <module name="UpperEll" />
+    <module name="TodoComment"/>
+    <module name="UpperEll"/>
     <!-- Block checks -->
-    <module name="AvoidNestedBlocks" />
-    <module name="EmptyBlock" />
-    <module name="EmptyCatchBlock" />
-    <module name="LeftCurly" />
-    <module name="NeedBraces" />
-    <module name="RightCurly" />
+    <module name="AvoidNestedBlocks"/>
+    <module name="EmptyBlock"/>
+    <module name="EmptyCatchBlock"/>
+    <module name="LeftCurly"/>
+    <module name="NeedBraces"/>
+    <module name="RightCurly"/>
   </module>
-  <module name="JavadocPackage" />
-  <module name="Translation" />
-  <module name="FileLength" />
-  <module name="FileTabCharacter" />
+  <module name="JavadocPackage"/>
+  <module name="Translation"/>
+  <module name="FileLength"/>
+  <module name="FileTabCharacter"/>
   <module name="RegexpSingleline">
-    <property name="format" value="\s+$" />
-    <property name="message" value="Line has trailing spaces." />
+    <property name="format" value="\s+$"/>
+    <property name="message" value="Line has trailing spaces."/>
   </module>
 </module>

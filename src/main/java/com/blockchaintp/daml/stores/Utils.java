@@ -1,11 +1,11 @@
 package com.blockchaintp.daml.stores;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import com.blockchaintp.daml.stores.exception.NoSHA512SupportException;
 
 import javax.xml.bind.DatatypeConverter;
-
 import com.blockchaintp.exception.NoSHA512SupportException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * Useful utilities.
@@ -17,6 +17,7 @@ public final class Utils {
 
   /**
    * Return a hex string representation of a SHA-512 hash for the provided byte array data.
+   *
    * @param data array of byte data
    * @return the hash
    */

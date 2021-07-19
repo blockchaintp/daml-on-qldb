@@ -9,6 +9,7 @@ public class NoSHA512SupportException extends RuntimeException {
 
   /**
    * Exception with cause.
+   *
    * @param cause
    */
   public NoSHA512SupportException(final NoSuchAlgorithmException cause) {

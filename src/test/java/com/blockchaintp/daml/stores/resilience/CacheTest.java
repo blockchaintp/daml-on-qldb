@@ -1,18 +1,17 @@
 package com.blockchaintp.daml.stores.resilience;
 
-import java.util.AbstractMap;
-import java.util.Arrays;
-
 import com.blockchaintp.daml.stores.LRUCache;
 import com.blockchaintp.daml.stores.StubStore;
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Value;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.AbstractMap;
+import java.util.Arrays;
 
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 class CacheTest {
@@ -65,7 +64,7 @@ class CacheTest {
     stubStore.put(new Key<>("readthrough"), new Value<>("readthrough"));
 
     Assertions.assertIterableEquals(Arrays.asList(new Value<>("primed"), new Value<>("readthrough")),
-        cachedStore.get(Arrays.asList(new Key<>("primed"), new Key<>("readthrough"))).values());
+      cachedStore.get(Arrays.asList(new Key<>("primed"), new Key<>("readthrough"))).values());
   }
 
   @Test
@@ -74,8 +73,8 @@ class CacheTest {
     var cachedStore = new com.blockchaintp.daml.stores.layers.Caching<>(cache, stubStore);
 
     cachedStore
-        .put(Arrays.asList(new AbstractMap.SimpleEntry<>(new Key<>("writethrough1"), new Value<>("writethrough1")),
-            new AbstractMap.SimpleEntry<>(new Key<>("writethrough2"), new Value<>("writethrough2"))));
+      .put(Arrays.asList(new AbstractMap.SimpleEntry<>(new Key<>("writethrough1"), new Value<>("writethrough1")),
+        new AbstractMap.SimpleEntry<>(new Key<>("writethrough2"), new Value<>("writethrough2"))));
 
     Assertions.assertEquals("writethrough1", stubStore.get(new Key<>("writethrough1")).get().toNative());
 

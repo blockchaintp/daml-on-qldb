@@ -1,16 +1,5 @@
 package com.blockchaintp.daml.stores.qldb;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 import com.blockchaintp.daml.stores.StubStore;
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
@@ -19,15 +8,69 @@ import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.daml.stores.service.Value;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
 import software.amazon.awssdk.services.qldbsession.model.CapacityExceededException;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
-@SuppressWarnings({ "unchecked", "rawtypes" })
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+
+@SuppressWarnings({"unchecked", "rawtypes"})
 class QldbPutPagingTest {
+  private static final int ITERATIONS = 80;
+
+  @Test
+  void qldb_retry_subdivdes_pages_until_committed() throws StoreWriteException, StoreReadException {
+    var toCommit = new ArrayList<Map.Entry<Key<String>, Value<String>>>();
+    for (int i = 0; i < ITERATIONS; i++) {
+      toCommit.add(Map.entry(Key.of(String.format("%d", i)), Value.of(String.format("%d", i))));
+    }
+    var store = new CapacityLimitedStore();
+
+    var qldbSubdividing = new QldbRetryStrategy(new Retrying.Config(), store);
+
+    qldbSubdividing.put(toCommit);
+
+    Assertions.assertEquals(ITERATIONS,
+      store.get(toCommit.stream().map(kv -> kv.getKey()).collect(Collectors.toList())).values().size());
+
+  }
+
+  @Test
+  void put_retries_configured_number_of_store_write_exceptions() throws StoreWriteException {
+    var store = mock(Store.class);
+    var retrying = new QldbRetryStrategy(new Retrying.Config(), store);
+
+    doThrow(new StoreWriteException(S3Exception.builder().build()))
+      .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(store).put(any(List.class));
+
+    /// List put
+    Assertions.assertDoesNotThrow(() -> retrying.put(Arrays.asList()));
+  }
+
+  @Test
+  void put_eventually_fails_with_a_store_write_exceptions() throws StoreWriteException {
+    var store = mock(Store.class);
+    var retrying = new Retrying(new Retrying.Config(), store);
+
+    doThrow(new StoreWriteException(S3Exception.builder().build()))
+      .doThrow(new StoreWriteException(S3Exception.builder().build()))
+      .doThrow(new StoreWriteException(S3Exception.builder().build()))
+      .doThrow(new StoreWriteException(S3Exception.builder().build()))
+      .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(store).put(any(List.class));
+
+    /// List put
+    var putMultipleEx = Assertions.assertThrows(StoreWriteException.class, () -> retrying.put(Arrays.asList()));
+
+    Assertions.assertInstanceOf(S3Exception.class, putMultipleEx.getCause());
+
+  }
+
   /**
    * A Stub store that only accepts put batches of 5 or fewer items.
    */
@@ -72,54 +115,5 @@ class QldbPutPagingTest {
     public void sendEvent(final List<Map.Entry<String, String>> listOfPairs) throws StoreWriteException {
       throw new UnsupportedOperationException();
     }
-  }
-
-  private static final int ITERATIONS = 80;
-
-  @Test
-  void qldb_retry_subdivdes_pages_until_committed() throws StoreWriteException, StoreReadException {
-    var toCommit = new ArrayList<Map.Entry<Key<String>, Value<String>>>();
-    for (int i = 0; i < ITERATIONS; i++) {
-      toCommit.add(Map.entry(Key.of(String.format("%d", i)), Value.of(String.format("%d", i))));
-    }
-    var store = new CapacityLimitedStore();
-
-    var qldbSubdividing = new QldbRetryStrategy(new Retrying.Config(), store);
-
-    qldbSubdividing.put(toCommit);
-
-    Assertions.assertEquals(ITERATIONS,
-        store.get(toCommit.stream().map(kv -> kv.getKey()).collect(Collectors.toList())).values().size());
-
-  }
-
-  @Test
-  void put_retries_configured_number_of_store_write_exceptions() throws StoreWriteException {
-    var store = mock(Store.class);
-    var retrying = new QldbRetryStrategy(new Retrying.Config(), store);
-
-    doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(store).put(any(List.class));
-
-    /// List put
-    Assertions.assertDoesNotThrow(() -> retrying.put(Arrays.asList()));
-  }
-
-  @Test
-  void put_eventually_fails_with_a_store_write_exceptions() throws StoreWriteException {
-    var store = mock(Store.class);
-    var retrying = new Retrying(new Retrying.Config(), store);
-
-    doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(store).put(any(List.class));
-
-    /// List put
-    var putMultipleEx = Assertions.assertThrows(StoreWriteException.class, () -> retrying.put(Arrays.asList()));
-
-    Assertions.assertInstanceOf(S3Exception.class, putMultipleEx.getCause());
-
   }
 }

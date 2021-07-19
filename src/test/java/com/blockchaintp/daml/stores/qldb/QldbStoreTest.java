@@ -1,19 +1,20 @@
 package com.blockchaintp.daml.stores.qldb;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-import com.amazon.ion.system.IonSystemBuilder;
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.service.Key;
-
+import com.google.protobuf.ByteString;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
 import software.amazon.qldb.Executor;
 import software.amazon.qldb.QldbDriver;
 import software.amazon.qldb.exceptions.Errors;
 import software.amazon.qldb.exceptions.QldbDriverException;
+
+import java.nio.charset.Charset;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @SuppressWarnings("unchecked")
 class QldbStoreTest {
@@ -26,9 +27,7 @@ class QldbStoreTest {
 
     var closedStore = new QldbStore(closedDriver, "");
 
-    final var ion = IonSystemBuilder.standard().build();
-
     Assertions.assertThrows(StoreReadException.class,
-      () -> closedStore.get(new Key<>(ion.singleValue("identity"))));
+      () -> closedStore.get(Key.of(ByteString.copyFrom("identity", Charset.defaultCharset()))));
   }
 }

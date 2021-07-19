@@ -4,6 +4,7 @@ import java.util.Objects;
 
 /**
  * An Opaque is a wrapper around a value for passing around.
+ *
  * @param <T> the type to wrap
  */
 public abstract class Opaque<T> {
@@ -16,6 +17,7 @@ public abstract class Opaque<T> {
 
   /**
    * This is used by children for equivalence tests.
+   *
    * @return the internal comparable value
    */
   protected final T value() {
@@ -24,6 +26,7 @@ public abstract class Opaque<T> {
 
   /**
    * Returns the native value that was provided in construction.
+   *
    * @return the native value
    */
   public final T toNative() {

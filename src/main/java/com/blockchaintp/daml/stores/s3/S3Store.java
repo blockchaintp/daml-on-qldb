@@ -1,5 +1,19 @@
 package com.blockchaintp.daml.stores.s3;
 
+import com.blockchaintp.daml.stores.exception.StoreReadException;
+import com.blockchaintp.daml.stores.exception.StoreWriteException;
+import com.blockchaintp.daml.stores.service.Key;
+import com.blockchaintp.daml.stores.service.Store;
+import com.blockchaintp.daml.stores.service.Value;
+import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
+import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
+import software.amazon.awssdk.core.ResponseBytes;
+import software.amazon.awssdk.core.async.AsyncRequestBody;
+import software.amazon.awssdk.core.async.AsyncResponseTransformer;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
+import software.amazon.awssdk.services.s3.model.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -9,25 +23,6 @@ import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-
-import com.blockchaintp.daml.stores.exception.StoreReadException;
-import com.blockchaintp.daml.stores.exception.StoreWriteException;
-import com.blockchaintp.daml.stores.service.Key;
-import com.blockchaintp.daml.stores.service.Store;
-import com.blockchaintp.daml.stores.service.Value;
-
-import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
-import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
-import software.amazon.awssdk.core.ResponseBytes;
-import software.amazon.awssdk.core.async.AsyncRequestBody;
-import software.amazon.awssdk.core.async.AsyncResponseTransformer;
-import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
-import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 
 /**
  * A Store implemented with S3 as the backing store.
@@ -41,6 +36,7 @@ public class S3Store implements Store<String, byte[]> {
 
   /**
    * Create an S3Store.
+   *
    * @param storeName name of this store, to prevent clashes
    * @param tableName name of the logical table within this store
    * @param client    the S3 client to use.
@@ -48,8 +44,8 @@ public class S3Store implements Store<String, byte[]> {
    * @param putmods   modifications to S3 storage guarantees
    */
   public S3Store(final String storeName, final String tableName, final S3AsyncClientBuilder client,
-      final UnaryOperator<GetObjectRequest.Builder> getmods,
-      final UnaryOperator<PutObjectRequest.Builder> putmods) {
+                 final UnaryOperator<GetObjectRequest.Builder> getmods,
+                 final UnaryOperator<PutObjectRequest.Builder> putmods) {
 
     this.bucketName = "vs-" + storeName + "-table-" + tableName;
     this.clientBuilder = client;
@@ -59,6 +55,7 @@ public class S3Store implements Store<String, byte[]> {
 
   /**
    * Return a builder for the provided client.
+   *
    * @param client the client
    * @return a builder based on client
    */
@@ -67,9 +64,9 @@ public class S3Store implements Store<String, byte[]> {
   }
 
   private CompletableFuture<Optional<ResponseBytes<GetObjectResponse>>> getObject(final S3AsyncClient client,
-      final String key) {
+                                                                                  final String key) {
     var get = client.getObject(getModifications.apply(GetObjectRequest.builder()).bucket(bucketName).key(key).build(),
-        AsyncResponseTransformer.toBytes());
+      AsyncResponseTransformer.toBytes());
     return get.exceptionally(e -> {
       if (e.getCause() instanceof NoSuchKeyException) {
         return null;
@@ -102,11 +99,11 @@ public class S3Store implements Store<String, byte[]> {
   public final Map<Key<String>, Value<byte[]>> get(final List<Key<String>> listOfKeys) throws StoreReadException {
     var client = clientBuilder.build();
     var futures = listOfKeys.stream()
-        .collect(
-            Collectors.<Key<String>, Key<String>, CompletableFuture<Value<byte[]>>>toMap(k -> new Key<>(k.toNative()),
-                k -> getObject(client, k.toNative()).thenApply(x -> x
-                    .map(getObjectResponseResponseBytes -> new Value<>(getObjectResponseResponseBytes.asByteArray()))
-                    .orElse(null))));
+      .collect(
+        Collectors.<Key<String>, Key<String>, CompletableFuture<Value<byte[]>>>toMap(k -> new Key<>(k.toNative()),
+          k -> getObject(client, k.toNative()).thenApply(x -> x
+            .map(getObjectResponseResponseBytes -> new Value<>(getObjectResponseResponseBytes.asByteArray()))
+            .orElse(null))));
 
     var waitOn = new ArrayList<>(futures.values()).toArray(CompletableFuture[]::new);
 
@@ -114,14 +111,14 @@ public class S3Store implements Store<String, byte[]> {
       CompletableFuture.allOf(waitOn).join();
 
       return futures.entrySet().stream().filter(v -> v.getValue().join() != null)
-          .collect(Collectors.toMap(Map.Entry::getKey, v -> v.getValue().join()));
+        .collect(Collectors.toMap(Map.Entry::getKey, v -> v.getValue().join()));
     });
   }
 
   protected final CompletableFuture<PutObjectResponse> putObject(final S3AsyncClient client, final String key,
-      final byte[] blob) {
+                                                                 final byte[] blob) {
     return client.putObject(putModifications.apply(PutObjectRequest.builder()).bucket(bucketName).key(key).build(),
-        AsyncRequestBody.fromBytes(blob));
+      AsyncRequestBody.fromBytes(blob));
   }
 
   final void guardWrite(final Runnable op) throws StoreWriteException {
@@ -141,7 +138,7 @@ public class S3Store implements Store<String, byte[]> {
   public final void put(final List<Map.Entry<Key<String>, Value<byte[]>>> listOfPairs) throws StoreWriteException {
     var client = clientBuilder.build();
     var futures = listOfPairs.stream().collect(
-        Collectors.toMap(Map.Entry::getKey, kv -> putObject(client, kv.getKey().toNative(), kv.getValue().toNative())));
+      Collectors.toMap(Map.Entry::getKey, kv -> putObject(client, kv.getKey().toNative(), kv.getValue().toNative())));
 
     guardWrite(() -> {
       var waitOn = new ArrayList<>(futures.values()).toArray(CompletableFuture[]::new);

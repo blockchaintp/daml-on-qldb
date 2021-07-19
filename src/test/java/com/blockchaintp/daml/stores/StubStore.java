@@ -1,17 +1,17 @@
 package com.blockchaintp.daml.stores;
 
+import com.blockchaintp.daml.stores.exception.StoreReadException;
+import com.blockchaintp.daml.stores.exception.StoreWriteException;
+import com.blockchaintp.daml.stores.service.Key;
+import com.blockchaintp.daml.stores.service.TransactionLog;
+import com.blockchaintp.daml.stores.service.Value;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import com.blockchaintp.daml.stores.exception.StoreReadException;
-import com.blockchaintp.daml.stores.exception.StoreWriteException;
-import com.blockchaintp.daml.stores.service.Key;
-import com.blockchaintp.daml.stores.service.TransactionLog;
-import com.blockchaintp.daml.stores.service.Value;
 
 public class StubStore<K, V> implements TransactionLog<K, V> {
   private final Map<Key<K>, Value<V>> stored = new HashMap<>();
@@ -24,7 +24,7 @@ public class StubStore<K, V> implements TransactionLog<K, V> {
   @Override
   public final Map<Key<K>, Value<V>> get(final List<Key<K>> listOfKeys) throws StoreReadException {
     return listOfKeys.stream().filter(stored::containsKey)
-        .collect(Collectors.toMap(k -> k, stored::get, (a, b) -> b, HashMap::new));
+      .collect(Collectors.toMap(k -> k, stored::get, (a, b) -> b, HashMap::new));
   }
 
   @Override

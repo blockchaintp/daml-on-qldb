@@ -1,12 +1,5 @@
 package com.blockchaintp.daml.stores.layers;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
 import com.blockchaintp.daml.stores.LRUCache;
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
@@ -15,8 +8,11 @@ import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.Value;
 import com.google.common.collect.Sets;
 
+import java.util.*;
+
 /**
  * Layer that caches the results of a store.
+ *
  * @param <K> the type of key
  * @param <V> the type of value
  */
@@ -27,7 +23,8 @@ public class Caching<K, V> implements Store<K, V> {
 
   /**
    * Build a cache for the given store using the given cache.
-   * @param cache the cache to use
+   *
+   * @param cache        the cache to use
    * @param wrappedStore the store to cache
    */
   public Caching(final LRUCache<K, V> cache, final Store<K, V> wrappedStore) {
