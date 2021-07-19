@@ -7,10 +7,10 @@ import java.util.function.UnaryOperator;
 import com.amazon.ion.IonStruct;
 import com.amazon.ion.IonSystem;
 import com.amazon.ion.IonValue;
-import com.blockchaintp.daml.stores.exception.NoSHA512SupportException;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.StoreReader;
 import com.blockchaintp.daml.stores.service.TransactionLog;
+import com.blockchaintp.exception.NoSHA512SupportException;
 import com.google.protobuf.ByteString;
 
 /**

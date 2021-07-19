@@ -5,6 +5,8 @@ export AWS_REGION ?= us-east-1
 export AWS_ACCESS_KEY_ID ?=
 export AWS_SECRET_ACCESS_KEY ?=
 
+CLEAN_DIRS := $(CLEAN_DIRS) test-dars
+
 export LEDGER_NAME = $(ISOLATION_ID)
 
 clean: clean_mvn clean_dirs_daml clean_containers clean_aws
