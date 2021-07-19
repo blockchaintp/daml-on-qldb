@@ -59,7 +59,7 @@ public class SplitStore implements TransactionLog<ByteString, ByteString> {
 
     qldb.put(
       key,
-      Value.of(ByteString.copyFrom(bytes))
+      Value.of(ByteString.copyFrom(hash))
     );
   }
 

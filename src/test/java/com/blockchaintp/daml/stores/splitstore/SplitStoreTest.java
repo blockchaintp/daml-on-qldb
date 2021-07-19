@@ -1,4 +1,4 @@
-package java.com.blockchaintp.daml.stores.splitstore;
+package com.blockchaintp.daml.stores.splitstore;
 
 import com.amazon.ion.IonStruct;
 import com.amazon.ion.IonValue;
@@ -32,13 +32,9 @@ class SplitStoreTest {
     splitStore.put(new Key<>(ByteString.copyFrom("DamlKey", Charset.defaultCharset())),
       new Value<>(ByteString.copyFrom("CONTENT", Charset.defaultCharset())));
 
-    var ionS = ion.newEmptyStruct();
 
-    ionS.add("id", ion.singleValue("DamlKey"));
-    ionS.add("hash", ion.newBlob(new byte[]{'o', 'k'}));
-
-    // txlog should contain struct
-    Assertions.assertEquals(ionS, txLog.get(
+    // txlog should contain hash
+    Assertions.assertEquals(ByteString.copyFrom("ok",Charset.defaultCharset()), txLog.get(
       Key.of(ByteString.copyFrom("DamlKey",Charset.defaultCharset()))).get().toNative());
 
     // blobstore Should contain blob
@@ -62,9 +58,10 @@ class SplitStoreTest {
 
 
 
-    // txlog should contain struct
-    Assertions.assertArrayEquals(new byte[] {'o','k'},
-      txLog.get(Key.of(ByteString.copyFrom("DamlKey", Charset.defaultCharset()))).get().toNative().toByteArray());
+    // txlog should contain hash
+    Assertions.assertEquals(
+      ByteString.copyFrom("ok", Charset.defaultCharset()),
+      txLog.get(Key.of(ByteString.copyFrom("DamlKey", Charset.defaultCharset()))).get().toNative());
 
     // blobStore Should contain blob
     Assertions.assertArrayEquals(ByteString.copyFrom("CONTENT", Charset.defaultCharset()).toByteArray(),
@@ -77,17 +74,16 @@ class SplitStoreTest {
   @Test
   void verified_reader_reads_hash_from_txlog_then_looks_up_as_key_in_blobstore() throws StoreReadException {
 
-    var ion = IonSystemBuilder.standard().build();
     var txStore = mock(TransactionLog.class);
     var blobStore = mock(Store.class);
-    var verified = new VerifiedReader(txStore, blobStore, ion);
+    var verified = new VerifiedReader(txStore, blobStore );
 
-    var txStoreResult = ion.newEmptyStruct();
-    txStoreResult.add("id", ion.singleValue("DamlKey"));
-    txStoreResult.add("hash", ion.newBlob(new byte[]{'o', 'k'}));
+    var txStoreResult = ByteString.copyFrom("ok",Charset.defaultCharset());
 
-    when(txStore.get(new Key<>(ion.singleValue("DamlKey")))).thenReturn(Optional.of(new Value<>(txStoreResult)));
-    when(blobStore.get(new Key<>("6F6B"))).thenReturn(Optional.of(new Value<>(new byte[]{'x'})));
+    when(txStore.get(Key.of(ByteString.copyFrom("DamlKey",Charset.defaultCharset()))))
+      .thenReturn(Optional.of(new Value<>(txStoreResult)));
+    when(blobStore.get(new Key<>("6F6B")))
+      .thenReturn(Optional.of(new Value<>(new byte[]{'x'})));
 
     Optional<Value<ByteString>> blobStoreVal = verified
       .get(new Key<>(ByteString.copyFrom("DamlKey", Charset.defaultCharset())));

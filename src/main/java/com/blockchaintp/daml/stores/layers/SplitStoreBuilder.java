@@ -17,7 +17,6 @@ import java.util.function.UnaryOperator;
  * A builder of a {@link SplitStore}.
  */
 public class SplitStoreBuilder {
-  private IonSystem ion;
   private TransactionLog<ByteString, ByteString> txLog;
   private Store<String, byte[]> blobs;
   private StoreReader<ByteString, ByteString> reader;
@@ -27,13 +26,11 @@ public class SplitStoreBuilder {
   /**
    * Create a SplitStoreBuilder.
    *
-   * @param sys            the IonSystem
    * @param transactionLog the transaction log to use
    * @param blobStore      the blob store to use
    */
-  public SplitStoreBuilder(final IonSystem sys, final TransactionLog<ByteString, ByteString> transactionLog,
+  public SplitStoreBuilder(final TransactionLog<ByteString, ByteString> transactionLog,
                            final Store<String, byte[]> blobStore) {
-    this.ion = sys;
     this.txLog = transactionLog;
     this.blobs = blobStore;
     this.hashFn = bytes -> {
@@ -47,7 +44,7 @@ public class SplitStoreBuilder {
         throw new NoSHA512SupportException(nsae);
       }
     };
-    this.reader = new VerifiedReader(transactionLog, blobStore, sys);
+    this.reader = new VerifiedReader(transactionLog, blobStore);
   }
 
   /**
@@ -58,7 +55,7 @@ public class SplitStoreBuilder {
    */
   public final SplitStoreBuilder verified(final boolean verified) {
     if (verified) {
-      this.reader = new VerifiedReader(txLog, blobs, ion);
+      this.reader = new VerifiedReader(txLog, blobs);
     } else {
       this.reader = new UnVerifiedReader(blobs);
     }
