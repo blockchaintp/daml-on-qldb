@@ -81,7 +81,7 @@ TOOL_VOLS = -v toolchain-home-$(ISOLATION_ID):/home/toolchain \
 	-v $(PWD):/project
 
 TOOL_ENVIRONMENT = -e GITHUB_TOKEN -e MAVEN_HOME=/home/toolchain/.m2 \
-	-e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY
+	-e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e FOSSA_API_KEY
 
 TOOL = $(DOCKER_RUN_USER) $(TOOL_ENVIRONMENT) $(TOOL_VOLS) \
 	-w $${WORKDIR:-/project}
@@ -173,14 +173,14 @@ project_%:
 .PHONY: analyze_fossa
 analyze_fossa:
 	if [ -z "$(CHANGE_BRANCH)" ]; then \
-	  $(TOOL_DEFAULT) -e FOSSA_API_KEY blockchaintp/fossa:latest fossa analyze --verbose \
+	  $(TOOLCHAIN) fossa analyze --verbose \
 	    --no-ansi -b ${BRANCH_NAME}; \
-	  $(TOOL_DEFAULT) -e FOSSA_API_KEY blockchaintp/fossa:latest fossa test --verbose \
+	  $(TOOLCHAIN) fossa test --verbose \
 	    --no-ansi -b ${BRANCH_NAME}; \
 	else \
-	  $(TOOL_DEFAULT) -e FOSSA_API_KEY blockchaintp/fossa:latest fossa analyze --verbose \
+	  $(TOOLCHAIN) fossa analyze --verbose \
 	    --no-ansi -b ${CHANGE_BRANCH}; \
-	  $(TOOL_DEFAULT) -e FOSSA_API_KEY blockchaintp/fossa:latest fossa test --verbose \
+	  $(TOOLCHAIN) fossa test --verbose \
 	    --no-ansi -b ${CHANGE_BRANCH}; \
 	fi
 
@@ -201,6 +201,7 @@ analyze_sonar_mvn: $(MARKERS)/build_toolchain_docker
 	        -Dsonar.projectVersion=$(VERSION) \
 	        -Dsonar.host.url=$(SONAR_HOST_URL) \
 	        -Dsonar.junit.reportPaths=target/surefire-reports,**/target/surefire-reports \
+	        -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml,**/target/site/jacoco/jacoco.xml \
 	        -Dsonar.login=$(SONAR_AUTH_TOKEN) ; \
 	  else \
 	    $(DOCKER_MVN) verify sonar:sonar \
@@ -213,6 +214,7 @@ analyze_sonar_mvn: $(MARKERS)/build_toolchain_docker
 	        -Dsonar.projectVersion=$(VERSION) \
 	        -Dsonar.host.url=$(SONAR_HOST_URL) \
 	        -Dsonar.junit.reportPaths=target/surefire-reports,**/target/surefire-reports \
+	        -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml,**/target/site/jacoco/jacoco.xml \
 	        -Dsonar.login=$(SONAR_AUTH_TOKEN) ; \
 	  fi
 

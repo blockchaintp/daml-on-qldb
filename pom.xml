@@ -73,71 +73,54 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <protobuf.version>3.17.3</protobuf.version>
-    <daml.sdk.version>100.13.55</daml.sdk.version>
-    <scala.lang.version>2.12</scala.lang.version>
+    <daml.sdk.version>1.13.1</daml.sdk.version>
+    <scala.lang.version>2.13</scala.lang.version>
   </properties>
   <dependencyManagement>
     <dependencies>
-      <!-- DAML Dependencies -->
+
+      <!-- Protocol buffer dependencies -->
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>${protobuf.version}</version>
+      </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java-util</artifactId>
         <version>${protobuf.version}</version>
       </dependency>
+
+      <!-- DAML Dependencies -->
       <dependency>
-        <groupId>com.daml.ledger</groupId>
+        <groupId>com.daml</groupId>
         <artifactId>participant-state_${scala.lang.version}</artifactId>
         <version>${daml.sdk.version}</version>
-        <exclusions>
-          <exclusion>
-            <artifactId>netty</artifactId>
-            <groupId>io.netty</groupId>
-          </exclusion>
-        </exclusions>
       </dependency>
       <dependency>
-        <groupId>com.digitalasset.ledger</groupId>
-        <artifactId>ledger-api-auth_${scala.lang.version}</artifactId>
-        <version>${daml.sdk.version}</version>
-        <exclusions>
-          <exclusion>
-            <artifactId>netty</artifactId>
-            <groupId>io.netty</groupId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>com.digitalasset.platform</groupId>
-        <artifactId>sandbox_${scala.lang.version}</artifactId>
-        <version>${daml.sdk.version}</version>
-        <exclusions>
-          <exclusion>
-            <artifactId>netty</artifactId>
-            <groupId>io.netty</groupId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>com.daml.ledger</groupId>
+        <groupId>com.daml</groupId>
         <artifactId>participant-state-kvutils_${scala.lang.version}</artifactId>
         <version>${daml.sdk.version}</version>
-        <exclusions>
-          <exclusion>
-            <artifactId>netty</artifactId>
-            <groupId>io.netty</groupId>
-          </exclusion>
-        </exclusions>
       </dependency>
       <dependency>
-        <groupId>com.daml.ledger</groupId>
+        <groupId>com.daml</groupId>
+        <artifactId>participant-state-kvutils-app_${scala.lang.version}</artifactId>
+        <version>${daml.sdk.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.daml</groupId>
         <artifactId>participant-state-index_${scala.lang.version}</artifactId>
         <version>${daml.sdk.version}</version>
-        <exclusions>
-          <exclusion>
-            <artifactId>netty</artifactId>
-            <groupId>io.netty</groupId>
-          </exclusion>
-        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>com.daml</groupId>
+        <artifactId>ledger-api-auth_${scala.lang.version}</artifactId>
+        <version>${daml.sdk.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.daml</groupId>
+        <artifactId>sandbox_${scala.lang.version}</artifactId>
+        <version>${daml.sdk.version}</version>
       </dependency>
 
       <!-- Netty -->
@@ -163,15 +146,39 @@
         <artifactId>slf4j-api</artifactId>
         <version>2.0.0-alpha2</version>
       </dependency>
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-jdk14</artifactId>
-        <version>2.0.0-alpha2</version>
-      </dependency>
+      <!-- Include the SLF4j bindings only in test and Main packages not libraries -->
       <dependency>
         <groupId>kr.pe.kwonnam.slf4j-lambda</groupId>
         <artifactId>slf4j-lambda-core</artifactId>
         <version>0.1</version>
+      </dependency>
+      <dependency>
+        <!-- Needed implicitly for log4j2 YAML configuration -->
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-core</artifactId>
+        <version>2.13.0-rc1</version>
+      </dependency>
+      <dependency>
+        <!-- Needed implicitly for log4j2 YAML configuration -->
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>2.13.0-rc1</version>
+      </dependency>
+      <dependency>
+        <!-- Needed implicitly for log4j2 YAML configuration -->
+        <groupId>com.fasterxml.jackson.dataformat</groupId>
+        <artifactId>jackson-dataformat-yaml</artifactId>
+        <version>2.13.0-rc1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-slf4j18-impl</artifactId>
+        <version>2.14.1</version>
+      </dependency>
+      <dependency>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-layout-template-json</artifactId>
+          <version>2.14.1</version>
       </dependency>
 
       <!-- Resilience -->
@@ -239,6 +246,7 @@
         <version>2.13.0-rc1</version>
       </dependency>
 
+
       <!-- Test deps -->
       <dependency>
         <groupId>org.junit.jupiter</groupId>
@@ -268,19 +276,46 @@
     </dependencies>
   </dependencyManagement>
   <dependencies>
+
     <!-- Logging -->
+    <!-- SLF4J Bindings should only be included in "main" projects and test scope -->
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-jdk14</artifactId>
-    </dependency>
-    <dependency>
       <groupId>kr.pe.kwonnam.slf4j-lambda</groupId>
       <artifactId>slf4j-lambda-core</artifactId>
     </dependency>
+    <dependency>
+      <!-- Needed implicitly for log4j2 YAML configuration -->
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- Needed implicitly for log4j2 YAML configuration -->
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- Needed implicitly for log4j2 YAML configuration -->
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j18-impl</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-layout-template-json</artifactId>
+        <scope>test</scope>
+    </dependency>
+
 
     <!-- AWS -->
     <dependency>
@@ -321,26 +356,31 @@
     </dependency>
 
     <!-- DAML Dependencies -->
-    <dependency>
-      <groupId>com.daml.ledger</groupId>
-      <artifactId>participant-state_${scala.lang.version}</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.digitalasset.ledger</groupId>
-      <artifactId>ledger-api-auth_${scala.lang.version}</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.digitalasset.platform</groupId>
-      <artifactId>sandbox_${scala.lang.version}</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.daml.ledger</groupId>
-      <artifactId>participant-state-kvutils_${scala.lang.version}</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.daml.ledger</groupId>
-      <artifactId>participant-state-index_${scala.lang.version}</artifactId>
-    </dependency>
+      <dependency>
+        <groupId>com.daml</groupId>
+        <artifactId>participant-state_${scala.lang.version}</artifactId>
+      </dependency>
+      <dependency>
+        <groupId>com.daml</groupId>
+        <artifactId>participant-state-kvutils_${scala.lang.version}</artifactId>
+      </dependency>
+      <dependency>
+        <groupId>com.daml</groupId>
+        <artifactId>participant-state-kvutils-app_${scala.lang.version}</artifactId>
+      </dependency>
+      <dependency>
+        <groupId>com.daml</groupId>
+        <artifactId>participant-state-index_${scala.lang.version}</artifactId>
+      </dependency>
+      <dependency>
+        <groupId>com.daml</groupId>
+        <artifactId>ledger-api-auth_${scala.lang.version}</artifactId>
+      </dependency>
+      <dependency>
+        <groupId>com.daml</groupId>
+        <artifactId>sandbox_${scala.lang.version}</artifactId>
+      </dependency>
+
 
     <!-- Test deps -->
     <dependency>
@@ -384,11 +424,28 @@
       <extension>
         <groupId>kr.motd.maven</groupId>
         <artifactId>os-maven-plugin</artifactId>
-        <version>1.6.2</version>
+        <version>1.7.0</version>
       </extension>
     </extensions>
+    <resources>
+        <resource>
+            <directory>src/main/resources</directory>
+            <filtering>true</filtering>
+        </resource>
+    </resources>
+    <testResources>
+        <testResource>
+            <directory>src/test/resources</directory>
+            <filtering>true</filtering>
+        </testResource>
+    </testResources>
     <pluginManagement>
       <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>3.2.0</version>
+        </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.0.0-M5</version>
@@ -407,7 +464,6 @@
             </execution>
           </executions>
           <configuration>
-            <scalaVersion>2.12.10</scalaVersion>
             <source>${java.source.version}</source>
             <target>${java.target.version}</target>
           </configuration>
@@ -418,8 +474,11 @@
           <version>3.1.1</version>
           <executions>
             <execution>
+              <?m2e execute onConfiguration,onIncremental?>
+              <phase>compile</phase>
               <goals>
                 <goal>jxr</goal>
+                <goal>test-jxr</goal>
               </goals>
             </execution>
           </executions>
@@ -437,7 +496,9 @@
           </dependencies>
           <executions>
             <execution>
+              <?m2e execute onConfiguration,onIncremental?>
               <id>validate</id>
+              <phase>compile</phase>
               <goals>
                 <goal>check</goal>
               </goals>
@@ -468,6 +529,7 @@
             <execution>
               <goals>
                 <goal>compile</goal>
+                <goal>testCompile</goal>
               </goals>
             </execution>
           </executions>
@@ -491,11 +553,19 @@
           <version>3.3.0</version>
           <configuration>
             <javadocExecutable>${java.home}/bin/javadoc</javadocExecutable>
+            <doclet>nl.talsmasoftware.umldoclet.UMLDoclet</doclet>
+            <docletArtifact>
+                <groupId>nl.talsmasoftware</groupId>
+                <artifactId>umldoclet</artifactId>
+                <version>2.0.12</version>
+            </docletArtifact>
+            <additionalOptions>
+              <additionalOption>-createPumlFiles</additionalOption>
+            </additionalOptions>
           </configuration>
           <executions>
             <execution>
               <id>attach-javadocs</id>
-              <phase>package</phase>
               <goals>
                 <goal>jar</goal>
               </goals>
@@ -544,13 +614,49 @@
             </execution>
           </executions>
         </plugin>
+
+        <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <version>0.8.7</version>
+            <executions>
+                <execution>
+                    <goals>
+                        <goal>prepare-agent</goal>
+                    </goals>
+                </execution>
+                <execution>
+                    <id>report</id>
+                    <phase>verify</phase>
+                    <goals>
+                        <goal>report</goal>
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
       </plugins>
     </pluginManagement>
 
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+      </plugin>
+      <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>net.alchim31.maven</groupId>
+        <artifactId>scala-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jxr-plugin</artifactId>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -583,4 +689,5 @@
       </plugin>
     </plugins>
   </build>
+
 </project>

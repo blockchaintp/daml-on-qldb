@@ -70,11 +70,13 @@ pipeline {
 
     stage("Analyze") {
       steps {
-        withSonarQubeEnv('sonarcloud') {
-          configFileProvider([configFile(fileId: 'global-maven-settings', variable: 'MAVEN_SETTINGS')]) {
-            sh '''
-              make analyze
-            '''
+        withCredentials([string(credentialsId: 'fossa.full.token', variable: 'FOSSA_API_KEY')]) {
+          withSonarQubeEnv('sonarcloud') {
+            configFileProvider([configFile(fileId: 'global-maven-settings', variable: 'MAVEN_SETTINGS')]) {
+              sh '''
+                make analyze
+              '''
+            }
           }
         }
         // TODO for now don't abort the pipeline
