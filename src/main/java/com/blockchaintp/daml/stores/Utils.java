@@ -5,7 +5,7 @@ import java.security.NoSuchAlgorithmException;
 
 import javax.xml.bind.DatatypeConverter;
 
-import com.blockchaintp.daml.stores.exception.NoSHA512SupportException;
+import com.blockchaintp.exception.NoSHA512SupportException;
 
 /**
  * Useful utilities.
