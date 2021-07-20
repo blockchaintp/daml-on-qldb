@@ -1,3 +1,16 @@
+/*
+ * Copyright 2021 Blockchain Technology Partners
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.blockchaintp.daml.stores.qldb;
 
 import java.util.ArrayList;
@@ -19,25 +32,28 @@ import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import software.amazon.awssdk.services.qldbsession.model.CapacityExceededException;
 
 /**
- * QLDB has some interesting quota behavior that demands specific retry.
- * strategies
+ * QLDB has some interesting quota behavior that demands specific retry. strategies
  *
- * @param <K> type of Key
- * @param <V> type of Value
- * @see <a href=
- *      "https://docs.aws.amazon.com/qldb/latest/developerguide/driver-errors.html">QLDB
+ * @param <K>
+ *          type of Key
+ * @param <V>
+ *          type of Value
+ * @see <a href= "https://docs.aws.amazon.com/qldb/latest/developerguide/driver-errors.html">QLDB
  *      Driver errors</a>
  */
 public class QldbRetryStrategy<K, V> extends Retrying<K, V> implements TransactionLog<K, V> {
   private static final int DEFAULT_MAX_DOCUMENTS = 40;
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QldbRetryStrategy.class);
   private final Retry putRetry;
-  private int qldbMaxDocuments = DEFAULT_MAX_DOCUMENTS;
+  private final int qldbMaxDocuments = DEFAULT_MAX_DOCUMENTS;
 
   /**
    * Constructor.
-   * @param config the retry config
-   * @param store the store, specifically meant to be used with a QLDBStore, but not required to do so
+   *
+   * @param config
+   *          the retry config
+   * @param store
+   *          the store, specifically meant to be used with a QLDBStore, but not required to do so
    */
   public QldbRetryStrategy(final Config config, final Store<K, V> store) {
     super(config, store);
@@ -101,10 +117,10 @@ public class QldbRetryStrategy<K, V> extends Retrying<K, V> implements Transacti
   }
 
   /**
-   * QLDB has unpredictable transactional quotas, depending on delta binary size
-   * that we cannot determine up front Split any batch into batches of 40 items
-   * (the Qldb max), if these fail with CapacityExceededException then subdivide
-   * further. Other exceptional conditions can be retried in standard ways
+   * QLDB has unpredictable transactional quotas, depending on delta binary size that we cannot
+   * determine up front Split any batch into batches of 40 items (the Qldb max), if these fail with
+   * CapacityExceededException then subdivide further. Other exceptional conditions can be retried in
+   * standard ways
    */
   @Override
   public void put(final List<Map.Entry<Key<K>, Value<V>>> listOfPairs) throws StoreWriteException {

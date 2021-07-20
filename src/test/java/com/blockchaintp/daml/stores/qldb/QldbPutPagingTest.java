@@ -1,15 +1,17 @@
+/*
+ * Copyright 2021 Blockchain Technology Partners
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.blockchaintp.daml.stores.qldb;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 import com.blockchaintp.daml.stores.StubStore;
 import com.blockchaintp.daml.stores.exception.StoreReadException;
@@ -19,61 +21,24 @@ import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.daml.stores.service.Value;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
 import software.amazon.awssdk.services.qldbsession.model.CapacityExceededException;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+
 @SuppressWarnings({ "unchecked", "rawtypes" })
 class QldbPutPagingTest {
-  /**
-   * A Stub store that only accepts put batches of 5 or fewer items.
-   */
-  class CapacityLimitedStore implements TransactionLog<String, String> {
-    private static final int MAX_CAPACITY = 5;
-    private final Store<String, String> inner;
-
-    CapacityLimitedStore() {
-      inner = new StubStore<String, String>();
-    }
-
-    @Override
-    public Optional<Value<String>> get(final Key<String> key) throws StoreReadException {
-      return inner.get(key);
-    }
-
-    @Override
-    public Map<Key<String>, Value<String>> get(final List<Key<String>> listOfKeys) throws StoreReadException {
-      return inner.get(listOfKeys);
-    }
-
-    @Override
-    public void put(final Key<String> key, final Value<String> value) throws StoreWriteException {
-      inner.put(key, value);
-    }
-
-    @Override
-    public void put(final List<Map.Entry<Key<String>, Value<String>>> listOfPairs) throws StoreWriteException {
-      if (listOfPairs.size() > MAX_CAPACITY) {
-        throw new StoreWriteException(CapacityExceededException.builder().build());
-      }
-
-      inner.put(listOfPairs);
-    }
-
-    @Override
-    public void sendEvent(final String topic, final String data) throws StoreWriteException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void sendEvent(final List<Map.Entry<String, String>> listOfPairs) throws StoreWriteException {
-      throw new UnsupportedOperationException();
-    }
-  }
-
   private static final int ITERATIONS = 80;
 
   @Test
@@ -121,5 +86,51 @@ class QldbPutPagingTest {
 
     Assertions.assertInstanceOf(S3Exception.class, putMultipleEx.getCause());
 
+  }
+
+  /**
+   * A Stub store that only accepts put batches of 5 or fewer items.
+   */
+  class CapacityLimitedStore implements TransactionLog<String, String> {
+    private static final int MAX_CAPACITY = 5;
+    private final Store<String, String> inner;
+
+    CapacityLimitedStore() {
+      inner = new StubStore<String, String>();
+    }
+
+    @Override
+    public Optional<Value<String>> get(final Key<String> key) throws StoreReadException {
+      return inner.get(key);
+    }
+
+    @Override
+    public Map<Key<String>, Value<String>> get(final List<Key<String>> listOfKeys) throws StoreReadException {
+      return inner.get(listOfKeys);
+    }
+
+    @Override
+    public void put(final Key<String> key, final Value<String> value) throws StoreWriteException {
+      inner.put(key, value);
+    }
+
+    @Override
+    public void put(final List<Map.Entry<Key<String>, Value<String>>> listOfPairs) throws StoreWriteException {
+      if (listOfPairs.size() > MAX_CAPACITY) {
+        throw new StoreWriteException(CapacityExceededException.builder().build());
+      }
+
+      inner.put(listOfPairs);
+    }
+
+    @Override
+    public void sendEvent(final String topic, final String data) throws StoreWriteException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void sendEvent(final List<Map.Entry<String, String>> listOfPairs) throws StoreWriteException {
+      throw new UnsupportedOperationException();
+    }
   }
 }
