@@ -13,7 +13,6 @@
  */
 package com.blockchaintp.daml.stores.layers;
 
-import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -89,9 +88,8 @@ public final class SplitStore implements TransactionLog<ByteString, ByteString> 
 
   private void writeIndexedBlob(final Key<ByteString> key, final byte[] bytes, final byte[] hash, final String hexKey)
       throws StoreWriteException {
-    blobs.put(
-        Arrays.asList(new AbstractMap.SimpleEntry<>(Key.of(hexKey), Value.of(bytes)), new AbstractMap.SimpleEntry<>(
-            Key.of(String.format("index/%s", key.toNative().toStringUtf8())), Value.of(hash))));
+    blobs.put(Arrays.asList(Map.entry(Key.of(hexKey), Value.of(bytes)),
+        Map.entry(Key.of(String.format("index/%s", key.toNative().toStringUtf8())), Value.of(hash))));
   }
 
   @Override

@@ -23,7 +23,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -86,7 +85,7 @@ class CacheTest {
     var stubStore = new StubStore<String, String>();
     var cachedStore = new com.blockchaintp.daml.stores.layers.Caching<>(cache, stubStore);
 
-    cachedStore.put(Arrays.asList(new AbstractMap.SimpleEntry<>(Key.of("writethrough1"), Value.of("writethrough1")),
+    cachedStore.put(Arrays.asList(Map.entry(Key.of("writethrough1"), Value.of("writethrough1")),
         Map.entry(Key.of("writethrough2"), Value.of("writethrough2"))));
 
     Assertions.assertEquals("writethrough1", stubStore.get(Key.of("writethrough1")).get().toNative());

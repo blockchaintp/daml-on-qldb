@@ -29,8 +29,8 @@ import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
-import java.util.AbstractMap;
 import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -77,7 +77,7 @@ class S3StoreTest {
     var store = new S3Store("", "", builder, x -> x, x -> x);
 
     var ex = Assertions.assertThrows(StoreWriteException.class,
-        () -> store.put(Collections.singletonList(new AbstractMap.SimpleEntry<>(Key.of(""), Value.of(new byte[] {})))));
+        () -> store.put(Collections.singletonList(Map.entry(Key.of(""), Value.of(new byte[] {})))));
 
     Assertions.assertInstanceOf(ApiCallTimeoutException.class, ex.getCause());
   }
