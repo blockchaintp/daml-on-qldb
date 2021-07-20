@@ -24,8 +24,8 @@ import com.amazon.ion.IonValue;
 public final class QldbStoreException extends IOException {
   /**
    * An exception with a message.
-   * 
    * @param message
+   *          Pertinent message text.
    */
   public QldbStoreException(final String message) {
     super(message);
@@ -33,7 +33,6 @@ public final class QldbStoreException extends IOException {
 
   /**
    * We have retrieved a qldb record with an unexpected schema.
-   * 
    * @param value
    * @return The constructed exception
    */
