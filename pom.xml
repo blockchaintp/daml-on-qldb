@@ -441,6 +441,69 @@
     </testResources>
     <pluginManagement>
       <plugins>
+
+        <plugin>
+          <groupId>com.diffplug.spotless</groupId>
+          <artifactId>spotless-maven-plugin</artifactId>
+          <version>2.12.1</version>
+          <configuration>
+            <encoding>UTF-8</encoding>
+            <formats>
+              <!-- you can define as many formats as you want, each is independent -->
+              <format>
+                <!-- define the files to apply to -->
+                <includes>
+                  <include>*.md</include>
+                  <include>.gitignore</include>
+                </includes>
+                <!-- define the steps to apply to those files -->
+                <toggleOffOn />
+                <trimTrailingWhitespace/>
+                <endWithNewline/>
+                <indent>
+                  <tabs>false</tabs>
+                  <spaces>true</spaces>
+                  <spacesPerTab>2</spacesPerTab>
+                </indent>
+              </format>
+            </formats>
+            <!-- language-specific formats -->
+            <java>
+              <eclipse>
+                <file>${basedir}/.eclipse-formatter.xml</file>
+              </eclipse>
+              <licenseHeader>
+                <file>${basedir}/.copyright-header-cstyle.txt</file>
+                <delimiter>package </delimiter>
+              </licenseHeader>
+              <toggleOffOn />
+            </java>
+            <ratchetFrom>origin/btp-releases/1-13</ratchetFrom>
+            <scala>
+              <includes>
+                <include>src/main/scala/**/*.scala</include>
+                <include>src/test/scala/**/*.scala</include>
+              </includes>
+              <scalafmt>
+                <file>${basedir}/.scalafmt.conf</file>
+              </scalafmt>
+              <licenseHeader>
+                <file>${basedir}/copyright-header-cstyle.txt</file>
+                <delimiter>package </delimiter>
+              </licenseHeader>
+            </scala>
+          </configuration>
+          <executions>
+            <execution>
+              <?m2e execute onConfiguration,onIncremental?>
+              <goals>
+                <goal>check</goal>
+              </goals>
+              <phase>compile</phase>
+            </execution>
+          </executions>
+        </plugin>
+
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-resources-plugin</artifactId>
@@ -638,6 +701,10 @@
     </pluginManagement>
 
     <plugins>
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+      </plugin>
       <plugin>
         <groupId>org.xolstice.maven.plugins</groupId>
         <artifactId>protobuf-maven-plugin</artifactId>
