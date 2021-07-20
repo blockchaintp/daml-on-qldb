@@ -13,6 +13,13 @@
  */
 package com.blockchaintp.daml.stores.layers;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import javax.xml.bind.DatatypeConverter;
+
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
@@ -20,12 +27,6 @@ import com.blockchaintp.daml.stores.service.StoreReader;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.daml.stores.service.Value;
 import com.google.protobuf.ByteString;
-
-import javax.xml.bind.DatatypeConverter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 /**
  * Checks QLDB contains the hash before reading value from s3.
@@ -49,21 +50,22 @@ public class VerifiedReader implements StoreReader<ByteString, ByteString> {
   }
 
   @Override
-  public Optional<Value<ByteString>> get(Key<ByteString> key) throws StoreReadException {
+  public final Optional<Value<ByteString>> get(final Key<ByteString> key) throws StoreReadException {
     var txRef = txLog.get(key);
 
     if (txRef.isPresent()) {
       Optional<Value<byte[]>> s3Val = blobStore
-          .get(new Key<>(DatatypeConverter.printHexBinary(txRef.get().toNative().toByteArray())));
+          .get(Key.of(DatatypeConverter.printHexBinary(txRef.get().toNative().toByteArray())));
 
-      return s3Val.map(x -> new Value<>(ByteString.copyFrom(x.toNative())));
+      return s3Val.map(x -> Value.of(ByteString.copyFrom(x.toNative())));
     } else {
       return Optional.empty();
     }
   }
 
   @Override
-  public Map<Key<ByteString>, Value<ByteString>> get(List<Key<ByteString>> listOfKeys) throws StoreReadException {
+  public final Map<Key<ByteString>, Value<ByteString>> get(final List<Key<ByteString>> listOfKeys)
+      throws StoreReadException {
     var map = new HashMap<Key<ByteString>, Value<ByteString>>();
     for (var k : listOfKeys) {
       var item = this.get(k);

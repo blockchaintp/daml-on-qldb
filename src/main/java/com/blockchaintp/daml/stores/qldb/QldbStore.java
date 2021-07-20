@@ -13,6 +13,12 @@
  */
 package com.blockchaintp.daml.stores.qldb;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
 import com.amazon.ion.IonBlob;
 import com.amazon.ion.IonStruct;
 import com.amazon.ion.IonSystem;
@@ -25,6 +31,7 @@ import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.daml.stores.service.Value;
 import com.google.common.collect.Sets;
 import com.google.protobuf.ByteString;
+
 import io.vavr.API;
 import io.vavr.Tuple;
 import io.vavr.collection.Stream;
@@ -35,17 +42,10 @@ import software.amazon.qldb.QldbDriver;
 import software.amazon.qldb.Result;
 import software.amazon.qldb.exceptions.QldbDriverException;
 
-import javax.xml.bind.DatatypeConverter;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
 /**
  * A K/V store using Amazon QLDB as a backend.
  */
-public class QldbStore implements TransactionLog<ByteString, ByteString> {
+public final class QldbStore implements TransactionLog<ByteString, ByteString> {
 
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QldbStore.class);
   private static final String ID_FIELD = "i";
@@ -82,7 +82,7 @@ public class QldbStore implements TransactionLog<ByteString, ByteString> {
 
   @Override
   @SuppressWarnings("java:S1905")
-  public Optional<Value<ByteString>> get(Key<ByteString> key) throws StoreReadException {
+  public Optional<Value<ByteString>> get(final Key<ByteString> key) throws StoreReadException {
     LOG.info("get id={} in table={}", () -> key.toNative().toStringUtf8(), () -> table);
 
     try {
@@ -101,7 +101,7 @@ public class QldbStore implements TransactionLog<ByteString, ByteString> {
     }
   }
 
-  private IonBlob getIdFromRecord(IonValue struct) throws StoreReadException {
+  private IonBlob getIdFromRecord(final IonValue struct) throws StoreReadException {
     if (!(struct instanceof IonStruct)) {
       throw new StoreReadException(QldbStoreException.invalidSchema(struct));
     }
@@ -113,7 +113,7 @@ public class QldbStore implements TransactionLog<ByteString, ByteString> {
     return (IonBlob) hash;
   }
 
-  private IonBlob getHashFromRecord(IonValue struct) throws StoreReadException {
+  private IonBlob getHashFromRecord(final IonValue struct) throws StoreReadException {
     if (!(struct instanceof IonStruct)) {
       throw new StoreReadException(QldbStoreException.invalidSchema(struct));
     }
@@ -127,7 +127,7 @@ public class QldbStore implements TransactionLog<ByteString, ByteString> {
 
   @Override
   @SuppressWarnings("java:S1905")
-  public Map<Key<ByteString>, Value<ByteString>> get(List<Key<ByteString>> listOfKeys) throws StoreReadException {
+  public Map<Key<ByteString>, Value<ByteString>> get(final List<Key<ByteString>> listOfKeys) throws StoreReadException {
     LOG.info("get ids=({}) in table={}", () -> listOfKeys.stream().map(k -> k.toNative().toStringUtf8()), () -> table);
 
     final var query = String.format("select o.* from %s as o where o.%s in ( %s )", table, ID_FIELD,
@@ -146,15 +146,15 @@ public class QldbStore implements TransactionLog<ByteString, ByteString> {
     }
   }
 
-  IonValue makeStorableKey(Key<ByteString> key) {
+  private IonValue makeStorableKey(final Key<ByteString> key) {
     return ion.newBlob(key.toNative().toByteArray());
   }
 
-  IonValue makeStorableValue(Value<ByteString> value) {
+  private IonValue makeStorableValue(final Value<ByteString> value) {
     return ion.newBlob(value.toNative().toByteArray());
   }
 
-  IonStruct makeRecord(Key<ByteString> key, Value<ByteString> value) {
+  private IonStruct makeRecord(final Key<ByteString> key, final Value<ByteString> value) {
     var struct = ion.newEmptyStruct();
     struct.add(ID_FIELD, makeStorableKey(key));
     struct.add(HASH_FIELD, makeStorableValue(value));
@@ -167,7 +167,7 @@ public class QldbStore implements TransactionLog<ByteString, ByteString> {
    * depending if the item exists.
    */
   @Override
-  public void put(Key<ByteString> key, Value<ByteString> value) throws StoreWriteException {
+  public void put(final Key<ByteString> key, final Value<ByteString> value) throws StoreWriteException {
 
     LOG.info("upsert id={} in table={}", () -> key.toNative().toStringUtf8(), () -> table);
 
@@ -198,7 +198,7 @@ public class QldbStore implements TransactionLog<ByteString, ByteString> {
    *          A key / value list of ByteStrings and ByteStrings
    */
   @Override
-  public void put(List<Map.Entry<Key<ByteString>, Value<ByteString>>> listOfPairs) throws StoreWriteException {
+  public void put(final List<Map.Entry<Key<ByteString>, Value<ByteString>>> listOfPairs) throws StoreWriteException {
     LOG.debug("upsert ids={} in table={}",
         () -> listOfPairs.stream().map(Map.Entry::getKey).collect(Collectors.toList()), () -> table);
 
@@ -236,12 +236,12 @@ public class QldbStore implements TransactionLog<ByteString, ByteString> {
   }
 
   @Override
-  public final void sendEvent(final String topic, final String data) throws StoreWriteException {
+  public void sendEvent(final String topic, final String data) throws StoreWriteException {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public final void sendEvent(final List<Map.Entry<String, String>> listOfPairs) throws StoreWriteException {
+  public void sendEvent(final List<Map.Entry<String, String>> listOfPairs) throws StoreWriteException {
     throw new UnsupportedOperationException();
   }
 }

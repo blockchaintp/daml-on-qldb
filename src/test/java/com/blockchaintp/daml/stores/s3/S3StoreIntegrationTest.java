@@ -71,30 +71,30 @@ class S3StoreIntegrationTest {
 
   @Test
   void get_non_existent_items_returns_none() throws StoreReadException {
-    Assertions.assertEquals(Optional.empty(), store.get(new Key<>("nothere")));
+    Assertions.assertEquals(Optional.empty(), store.get(Key.of("nothere")));
 
     var keys = new ArrayList<Key<String>>();
-    keys.add(new Key<>("nothere"));
+    keys.add(Key.of("nothere"));
     Assertions.assertEquals(Map.of(), store.get(keys));
   }
 
   @Test
   void single_item_put_and_get_are_symmetric() throws StoreWriteException, StoreReadException {
-    final var k = new Key<>("id");
-    final var v = new Value<>(new byte[] { 1, 2, 3 });
+    final var k = Key.of("id");
+    final var v = Value.of(new byte[] { 1, 2, 3 });
 
     // Insert
     store.put(k, v);
 
     var getValue = store.get(k).get();
-    Assertions.assertArrayEquals((byte[]) getValue.toNative(), (byte[]) v.toNative());
+    Assertions.assertArrayEquals(getValue.toNative(), v.toNative());
 
-    final var v2 = new Value<>(new byte[] { 3, 2, 1 });
+    final var v2 = Value.of(new byte[] { 3, 2, 1 });
 
     // Update
     store.put(k, v2);
     Optional<Value<byte[]>> justPut = store.get(k);
-    Assertions.assertArrayEquals((byte[]) v2.toNative(), justPut.get().toNative());
+    Assertions.assertArrayEquals(v2.toNative(), justPut.get().toNative());
   }
 
   @Test
@@ -102,8 +102,8 @@ class S3StoreIntegrationTest {
     var map = new HashMap<Key<String>, Value<byte[]>>();
 
     for (int i = 0; i != ITERATIONS; i++) {
-      final var k = new Key<>(String.format("id%d", i));
-      final var v = new Value<>(new byte[] { 1, 2, 3 });
+      final var k = Key.of(String.format("id%d", i));
+      final var v = Value.of(new byte[] { 1, 2, 3 });
 
       map.put(k, v);
     }

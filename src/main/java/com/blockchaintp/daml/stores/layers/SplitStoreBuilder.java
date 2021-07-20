@@ -13,22 +13,22 @@
  */
 package com.blockchaintp.daml.stores.layers;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.function.UnaryOperator;
+
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.StoreReader;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.exception.NoSHA512SupportException;
 import com.google.protobuf.ByteString;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.function.UnaryOperator;
-
 /**
  * A builder of a {@link SplitStore}.
  */
 public class SplitStoreBuilder {
-  private TransactionLog<ByteString, ByteString> txLog;
-  private Store<String, byte[]> blobs;
+  private final TransactionLog<ByteString, ByteString> txLog;
+  private final Store<String, byte[]> blobs;
   private StoreReader<ByteString, ByteString> reader;
   private UnaryOperator<byte[]> hashFn;
   private boolean writeS3Index = false;

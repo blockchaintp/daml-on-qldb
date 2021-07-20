@@ -13,6 +13,9 @@
  */
 package com.blockchaintp.daml.stores.resources;
 
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.StreamSupport;
+
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import software.amazon.awssdk.services.qldb.QldbClient;
@@ -23,9 +26,6 @@ import software.amazon.awssdk.services.qldb.model.LedgerState;
 import software.amazon.awssdk.services.qldb.model.PermissionsMode;
 import software.amazon.awssdk.services.qldb.model.ResourceNotFoundException;
 import software.amazon.qldb.QldbDriver;
-
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.StreamSupport;
 
 /**
  * Deals with QLDB resources.

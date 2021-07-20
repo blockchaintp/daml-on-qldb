@@ -13,10 +13,10 @@
  */
 package com.blockchaintp.daml.stores.service;
 
-import com.blockchaintp.daml.stores.exception.StoreWriteException;
-
 import java.util.List;
 import java.util.Map;
+
+import com.blockchaintp.daml.stores.exception.StoreWriteException;
 
 /**
  * Represents a K/V store which we can write to.

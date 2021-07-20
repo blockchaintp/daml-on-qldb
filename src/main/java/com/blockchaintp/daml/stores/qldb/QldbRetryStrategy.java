@@ -13,22 +13,23 @@
  */
 package com.blockchaintp.daml.stores.qldb;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.layers.Retrying;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.daml.stores.service.Value;
+
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import software.amazon.awssdk.services.qldbsession.model.CapacityExceededException;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * QLDB has some interesting quota behavior that demands specific retry. strategies
@@ -44,7 +45,7 @@ public class QldbRetryStrategy<K, V> extends Retrying<K, V> implements Transacti
   private static final int DEFAULT_MAX_DOCUMENTS = 40;
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QldbRetryStrategy.class);
   private final Retry putRetry;
-  private int qldbMaxDocuments = DEFAULT_MAX_DOCUMENTS;
+  private final int qldbMaxDocuments = DEFAULT_MAX_DOCUMENTS;
 
   /**
    * Constructor.

@@ -39,18 +39,18 @@ class RetryingTest {
     var retrying = new Retrying(new Retrying.Config(), store);
 
     when(store.get(any(Key.class))).thenThrow(new StoreReadException(S3Exception.builder().build()))
-        .thenThrow(new StoreReadException(S3Exception.builder().build())).thenReturn(Optional.of(new Value<>("stuff")));
+        .thenThrow(new StoreReadException(S3Exception.builder().build())).thenReturn(Optional.of(Value.of("stuff")));
 
     var retMap = new HashMap<>();
-    retMap.put(new Key<>("stuff"), new Value<>("stuff"));
+    retMap.put(Key.of("stuff"), Value.of("stuff"));
     when(store.get(any(List.class))).thenThrow(new StoreReadException(S3Exception.builder().build()))
         .thenThrow(new StoreReadException(S3Exception.builder().build())).thenReturn(retMap);
 
     /// Scalar get
-    Assertions.assertEquals(Optional.of(new Value<>("stuff")), retrying.get(new Key<>("")));
+    Assertions.assertEquals(Optional.of(Value.of("stuff")), retrying.get(Key.of("")));
 
     /// List get
-    Assertions.assertEquals(retMap, retrying.get(Arrays.asList(new Key<>("stuff"))));
+    Assertions.assertEquals(retMap, retrying.get(Arrays.asList(Key.of("stuff"))));
   }
 
   @Test
@@ -62,7 +62,7 @@ class RetryingTest {
         .thenThrow(new StoreReadException(S3Exception.builder().build()))
         .thenThrow(new StoreReadException(S3Exception.builder().build()))
         .thenThrow(new StoreReadException(S3Exception.builder().build()))
-        .thenThrow(new StoreReadException(S3Exception.builder().build())).thenReturn(Optional.of(new Value<>("stuff")));
+        .thenThrow(new StoreReadException(S3Exception.builder().build())).thenReturn(Optional.of(Value.of("stuff")));
 
     when(store.get(any(List.class))).thenThrow(new StoreReadException(S3Exception.builder().build()))
         .thenThrow(new StoreReadException(S3Exception.builder().build()))
@@ -70,7 +70,7 @@ class RetryingTest {
         .thenThrow(new StoreReadException(S3Exception.builder().build()))
         .thenThrow(new StoreReadException(S3Exception.builder().build())).thenReturn(new HashMap<>());
 
-    var getEx = Assertions.assertThrows(StoreReadException.class, () -> retrying.get(new Key<>("")));
+    var getEx = Assertions.assertThrows(StoreReadException.class, () -> retrying.get(Key.of("")));
 
     var getMultipleEx = Assertions.assertThrows(StoreReadException.class, () -> retrying.get(Arrays.asList()));
 
@@ -93,7 +93,7 @@ class RetryingTest {
         .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(store).put(any(List.class));
 
     /// Scalar put
-    Assertions.assertDoesNotThrow(() -> retrying.put(new Key<>(""), new Value<>("")));
+    Assertions.assertDoesNotThrow(() -> retrying.put(Key.of(""), Value.of("")));
 
     /// List put
     Assertions.assertDoesNotThrow(() -> retrying.put(Arrays.asList()));
@@ -118,7 +118,7 @@ class RetryingTest {
         .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(store).put(any(List.class));
 
     /// Scalar put
-    var putEx = Assertions.assertThrows(StoreWriteException.class, () -> retrying.put(new Key<>(""), new Value<>("")));
+    var putEx = Assertions.assertThrows(StoreWriteException.class, () -> retrying.put(Key.of(""), Value.of("")));
 
     /// List put
     var putMultipleEx = Assertions.assertThrows(StoreWriteException.class, () -> retrying.put(Arrays.asList()));

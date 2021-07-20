@@ -13,10 +13,10 @@
  */
 package com.blockchaintp.daml.stores.service;
 
-import com.blockchaintp.daml.stores.exception.StoreWriteException;
-
 import java.util.List;
 import java.util.Map;
+
+import com.blockchaintp.daml.stores.exception.StoreWriteException;
 
 /**
  * A TransactionLogWriter is a StoreWriter that also supports the sending of events.

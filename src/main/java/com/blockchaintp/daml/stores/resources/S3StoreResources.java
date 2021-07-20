@@ -13,6 +13,8 @@
  */
 package com.blockchaintp.daml.stores.resources;
 
+import java.util.concurrent.CompletableFuture;
+
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
@@ -20,8 +22,6 @@ import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
-
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Handles the creation and destruction of S3 resources.

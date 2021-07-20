@@ -13,13 +13,14 @@
  */
 package com.blockchaintp.daml.stores.s3;
 
+import java.util.function.UnaryOperator;
+
 import com.blockchaintp.daml.stores.layers.Retrying;
 import com.blockchaintp.daml.stores.service.Store;
+
 import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-
-import java.util.function.UnaryOperator;
 
 /**
  * A fluent style Builder of S3Store objects.

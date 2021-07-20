@@ -13,21 +13,22 @@
  */
 package com.blockchaintp.daml.stores.layers;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.Value;
+
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.vavr.CheckedFunction0;
 import io.vavr.CheckedRunnable;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 /**
  * A {@link Store} layer which retries the read operation if an exception occurs.

@@ -57,8 +57,7 @@ class S3StoreTest {
 
     var store = new S3Store("", "", builder, x -> x, x -> x);
 
-    var ex = Assertions.assertThrows(StoreReadException.class,
-        () -> store.get(Collections.singletonList(new Key<>(""))));
+    var ex = Assertions.assertThrows(StoreReadException.class, () -> store.get(Collections.singletonList(Key.of(""))));
 
     Assertions.assertInstanceOf(ApiCallTimeoutException.class, ex.getCause());
   }
@@ -77,8 +76,8 @@ class S3StoreTest {
 
     var store = new S3Store("", "", builder, x -> x, x -> x);
 
-    var ex = Assertions.assertThrows(StoreWriteException.class, () -> store
-        .put(Collections.singletonList(new AbstractMap.SimpleEntry<>(new Key<>(""), new Value<>(new byte[] {})))));
+    var ex = Assertions.assertThrows(StoreWriteException.class,
+        () -> store.put(Collections.singletonList(new AbstractMap.SimpleEntry<>(Key.of(""), Value.of(new byte[] {})))));
 
     Assertions.assertInstanceOf(ApiCallTimeoutException.class, ex.getCause());
   }

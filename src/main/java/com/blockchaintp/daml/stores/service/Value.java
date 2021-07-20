@@ -43,7 +43,7 @@ public final class Value<T> extends Opaque<T> {
    * @return the fully baked value
    */
   public static <V> Value<V> of(final V val) {
-    return new Value<>(val);
+    return Value.of(val);
   }
 
   /**
@@ -56,6 +56,6 @@ public final class Value<T> extends Opaque<T> {
    * @return a Value of type O
    */
   public <O> Value<O> map(final Function<T, O> f) {
-    return new Value<>(f.apply(this.value()));
+    return Value.of(f.apply(this.value()));
   }
 }

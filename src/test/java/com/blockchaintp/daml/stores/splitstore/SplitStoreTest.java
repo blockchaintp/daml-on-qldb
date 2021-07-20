@@ -43,8 +43,8 @@ class SplitStoreTest {
     var blobStore = new com.blockchaintp.daml.stores.StubStore<String, byte[]>();
     var splitStore = new SplitStore(false, mock(StoreReader.class), txLog, blobStore, bytes -> new byte[] { 'o', 'k' });
 
-    splitStore.put(new Key<>(ByteString.copyFrom("DamlKey", Charset.defaultCharset())),
-        new Value<>(ByteString.copyFrom("CONTENT", Charset.defaultCharset())));
+    splitStore.put(Key.of(ByteString.copyFrom("DamlKey", Charset.defaultCharset())),
+        Value.of(ByteString.copyFrom("CONTENT", Charset.defaultCharset())));
 
     // txlog should contain hash
     Assertions.assertEquals(ByteString.copyFrom("ok", Charset.defaultCharset()),
@@ -74,10 +74,10 @@ class SplitStoreTest {
 
     // blobStore Should contain blob
     Assertions.assertArrayEquals(ByteString.copyFrom("CONTENT", Charset.defaultCharset()).toByteArray(),
-        blobStore.get(new Key<>("6F6B")).get().toNative());
+        blobStore.get(Key.of("6F6B")).get().toNative());
 
     // blobStore Index should contain blob hash
-    Assertions.assertArrayEquals(new byte[] { 'o', 'k' }, blobStore.get(new Key<>("index/DamlKey")).get().toNative());
+    Assertions.assertArrayEquals(new byte[] { 'o', 'k' }, blobStore.get(Key.of("index/DamlKey")).get().toNative());
   }
 
   @Test
@@ -90,11 +90,11 @@ class SplitStoreTest {
     var txStoreResult = ByteString.copyFrom("ok", Charset.defaultCharset());
 
     when(txStore.get(Key.of(ByteString.copyFrom("DamlKey", Charset.defaultCharset()))))
-        .thenReturn(Optional.of(new Value<>(txStoreResult)));
-    when(blobStore.get(new Key<>("6F6B"))).thenReturn(Optional.of(new Value<>(new byte[] { 'x' })));
+        .thenReturn(Optional.of(Value.of(txStoreResult)));
+    when(blobStore.get(Key.of("6F6B"))).thenReturn(Optional.of(Value.of(new byte[] { 'x' })));
 
     Optional<Value<ByteString>> blobStoreVal = verified
-        .get(new Key<>(ByteString.copyFrom("DamlKey", Charset.defaultCharset())));
+        .get(Key.of(ByteString.copyFrom("DamlKey", Charset.defaultCharset())));
 
     Assertions.assertEquals(ByteString.copyFrom(new byte[] { 'x' }), blobStoreVal.get().toNative());
   }
