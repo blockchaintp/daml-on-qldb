@@ -97,7 +97,7 @@ public final class QldbStore implements TransactionLog<ByteString, ByteString> {
       }
       return Optional.empty();
     } catch (QldbDriverException e) {
-      throw new StoreReadException("Driver error", e);
+      throw new StoreReadException(e);
     }
   }
 
@@ -142,7 +142,7 @@ public final class QldbStore implements TransactionLog<ByteString, ByteString> {
           k -> Tuple.of(Key.of(ByteString.copyFrom(API.unchecked(() -> getIdFromRecord(k)).get().getBytes())),
               Value.of(ByteString.copyFrom(API.unchecked(() -> getHashFromRecord(k)).get().getBytes()))));
     } catch (QldbDriverException e) {
-      throw new StoreReadException("Driver", e);
+      throw new StoreReadException(e);
     }
   }
 

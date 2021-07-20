@@ -13,28 +13,27 @@
  */
 package com.blockchaintp.daml.stores.qldb;
 
-import java.io.IOException;
-
 import com.amazon.ion.IonValue;
+import com.blockchaintp.daml.stores.exception.StoreException;
 
 /**
  * The detail of a QLDBStore exception, note this is not used to wrap S3 service issues, but purely
  * for our own faults.
  */
-public final class QldbStoreException extends IOException {
+public final class QldbStoreException extends StoreException {
   /**
    * An exception with a message.
-   * 
+   *
    * @param message
    *          Pertinent message text.
    */
-  public QldbStoreException(final String message) {
+  protected QldbStoreException(final String message) {
     super(message);
   }
 
   /**
    * We have retrieved a qldb record with an unexpected schema.
-   * 
+   *
    * @param value
    * @return The constructed exception
    */

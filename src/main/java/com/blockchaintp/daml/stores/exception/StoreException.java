@@ -21,24 +21,22 @@ import java.io.IOException;
 public class StoreException extends IOException {
 
   /**
-   * An exception with cause and error message.
-   *
-   * @param error
-   *          the error message
-   * @param cause
-   *          the originating exception
-   */
-  protected StoreException(final String error, final Throwable cause) {
-    super(error, cause);
-  }
-
-  /**
    * An exception with an originating cause.
    *
    * @param cause
-   *          the cause
+   *          The cause.
    */
   public StoreException(final Throwable cause) {
     super(cause);
+  }
+
+  /**
+   * A de novo exception originating in our code.
+   *
+   * @param message
+   *          An explanation of what happened.
+   */
+  protected StoreException(final String message) {
+    super(message);
   }
 }

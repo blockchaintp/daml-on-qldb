@@ -104,7 +104,7 @@ public class Caching<K, V> implements Store<K, V> {
       return map;
 
     } catch (RuntimeException e) {
-      throw new StoreReadException("Exception while reading from store", e);
+      throw new StoreReadException(e);
     }
   }
 
