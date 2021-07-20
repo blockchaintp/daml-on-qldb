@@ -1,3 +1,16 @@
+/*
+ * Copyright 2021 Blockchain Technology Partners
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.blockchaintp.daml.stores.qldb;
 
 import com.amazon.ion.IonSystem;
@@ -6,6 +19,7 @@ import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.resources.QldbResources;
 import com.blockchaintp.daml.stores.service.Key;
+import com.blockchaintp.daml.stores.service.Opaque;
 import com.blockchaintp.daml.stores.service.Value;
 import com.google.protobuf.ByteString;
 import org.junit.jupiter.api.AfterEach;
@@ -19,7 +33,13 @@ import software.amazon.awssdk.services.qldbsession.QldbSessionClient;
 import software.amazon.qldb.QldbDriver;
 
 import java.nio.charset.Charset;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 class QldbStoreIntegrationTest {
@@ -33,16 +53,16 @@ class QldbStoreIntegrationTest {
     String ledger = UUID.randomUUID().toString().replace("-", "");
 
     final var sessionBuilder = QldbSessionClient.builder().region(Region.EU_WEST_2)
-      .credentialsProvider(DefaultCredentialsProvider.builder().build());
+        .credentialsProvider(DefaultCredentialsProvider.builder().build());
 
     this.ionSystem = IonSystemBuilder.standard().build();
 
     final var driver = QldbDriver.builder().ledger(ledger).sessionClientBuilder(sessionBuilder).ionSystem(ionSystem)
-      .build();
+        .build();
 
     this.resources = new QldbResources(
-      QldbClient.builder().credentialsProvider(DefaultCredentialsProvider.create()).region(Region.EU_WEST_2).build(),
-      driver, ledger, "qldbstoreintegrationtest");
+        QldbClient.builder().credentialsProvider(DefaultCredentialsProvider.create()).region(Region.EU_WEST_2).build(),
+        driver, ledger, "qldbstoreintegrationtest");
 
     final var storeBuilder = QldbStore.forDriver(driver).tableName("qldbstoreintegrationtest");
 
@@ -59,8 +79,8 @@ class QldbStoreIntegrationTest {
 
   @Test
   void get_non_existent_items_returns_none() throws StoreReadException {
-    Assertions.assertEquals(Optional.empty(), store.get(
-      Key.of(ByteString.copyFrom("nothere", Charset.defaultCharset()))));
+    Assertions.assertEquals(Optional.empty(),
+        store.get(Key.of(ByteString.copyFrom("nothere", Charset.defaultCharset()))));
 
     var params = new ArrayList<Key<ByteString>>();
     params.add(Key.of(ByteString.copyFrom("nothere", Charset.defaultCharset())));
@@ -71,18 +91,14 @@ class QldbStoreIntegrationTest {
   @Test
   void single_item_put_and_get_are_symmetric() throws StoreWriteException, StoreReadException {
     final var id = UUID.randomUUID();
-    final var k = Key.of(ByteString.copyFrom(String.format("'%s'", id)
-      , Charset.defaultCharset()));
-    final var v = Value.of(ByteString.copyFrom("test"
-      , Charset.defaultCharset()));
+    final var k = Key.of(ByteString.copyFrom(id.toString(), Charset.defaultCharset()));
+    final var v = Value.of(ByteString.copyFrom("test", Charset.defaultCharset()));
 
     // Insert
     store.put(k, v);
     Assertions.assertEquals("test", store.get(k).get().toNative().toStringUtf8());
 
-
-    final var v2 = Value.of(ByteString.copyFrom("test2"
-      , Charset.defaultCharset()));
+    final var v2 = Value.of(ByteString.copyFrom("test2", Charset.defaultCharset()));
 
     // Update
     store.put(k, v2);
@@ -94,15 +110,14 @@ class QldbStoreIntegrationTest {
     final var map = new HashMap<Key<ByteString>, Value<ByteString>>();
     for (int i = 0; i < ITERATIONS; i++) {
       final var id = UUID.randomUUID();
-      final var k = Key.of(ByteString.copyFrom(String.format("\"%s\"", id)
-        , Charset.defaultCharset()));
+      final var k = Key.of(ByteString.copyFrom(String.format("\"%s\"", id), Charset.defaultCharset()));
       final var v = Value.of(ByteString.copyFrom("test", Charset.defaultCharset()));
 
       map.put(k, v);
     }
 
     var sortedkeys = map.keySet().stream().sorted(Comparator.comparing(o -> o.toNative().toString()))
-      .collect(Collectors.toList());
+        .collect(Collectors.toList());
 
     // Put our initial list of values, will issue insert
     store.put(new ArrayList<>(map.entrySet()));
@@ -117,20 +132,13 @@ class QldbStoreIntegrationTest {
     compareUpserted(map, sortedkeys, rx2);
   }
 
-  final void compareUpserted(final HashMap<Key<ByteString>, Value<ByteString>> map, final List<Key<ByteString>> sortedkeys,
-                             final Map<Key<ByteString>, Value<ByteString>> rx) {
+  final void compareUpserted(final HashMap<Key<ByteString>, Value<ByteString>> map,
+      final List<Key<ByteString>> sortedkeys, final Map<Key<ByteString>, Value<ByteString>> rx) {
     Assertions.assertIterableEquals(
-      sortedkeys
-        .stream()
-        .map(map::get)
-        .map(Object::toString)
-        .collect(Collectors.toList()),
-      sortedkeys
-        .stream()
-        .map(rx::get)
-        .map(Object::toString)
-        .collect(Collectors.toList())
-    );
+        sortedkeys.stream().map(map::get).map(Opaque::toNative).map(ByteString::toStringUtf8)
+            .collect(Collectors.toList()),
+        sortedkeys.stream().map(rx::get).map(Opaque::toNative).map(ByteString::toStringUtf8)
+            .collect(Collectors.toList()));
   }
 
 }

@@ -1,3 +1,16 @@
+/*
+ * Copyright 2021 Blockchain Technology Partners
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.blockchaintp.daml.stores.layers;
 
 import com.blockchaintp.daml.stores.exception.StoreReadException;
@@ -19,8 +32,10 @@ import java.util.Optional;
 /**
  * A {@link Store} layer which retries the read operation if an exception occurs.
  *
- * @param <K> Key type
- * @param <V> Value type
+ * @param <K>
+ *          Key type
+ * @param <V>
+ *          Value type
  */
 public class Retrying<K, V> implements Store<K, V> {
 
@@ -33,29 +48,31 @@ public class Retrying<K, V> implements Store<K, V> {
   /**
    * Construct the {@link Retrying} layer around the provided {@link Store}.
    *
-   * @param config       the configuration for the retry
-   * @param wrappedStore the {@link Store} to wrap
+   * @param config
+   *          the configuration for the retry
+   * @param wrappedStore
+   *          the {@link Store} to wrap
    */
   public Retrying(final Config config, final Store<K, V> wrappedStore) {
     this.store = wrappedStore;
 
     this.getRetry = Retry.of(String.format("%s#get", store.getClass().getCanonicalName()), RetryConfig.custom()
-      .maxAttempts(config.getMaxRetries()).retryOnException(StoreReadException.class::isInstance).build());
+        .maxAttempts(config.getMaxRetries()).retryOnException(StoreReadException.class::isInstance).build());
 
     this.putRetry = Retry.of(String.format("%s#put", store.getClass().getCanonicalName()), RetryConfig.custom()
-      .maxAttempts(config.getMaxRetries()).retryOnException(StoreWriteException.class::isInstance).build());
+        .maxAttempts(config.getMaxRetries()).retryOnException(StoreWriteException.class::isInstance).build());
 
     getRetry.getEventPublisher().onRetry(r -> LOG.info("Retrying {} attempt {} due to {}", r::getName,
-      r::getNumberOfRetryAttempts, r::getLastThrowable, () -> r.getLastThrowable().getMessage()));
+        r::getNumberOfRetryAttempts, r::getLastThrowable, () -> r.getLastThrowable().getMessage()));
 
     getRetry.getEventPublisher().onError(r -> LOG.error("Retrying {} aborted after {} attempts due to {}", r::getName,
-      r::getNumberOfRetryAttempts, r::getLastThrowable, () -> r.getLastThrowable().getMessage()));
+        r::getNumberOfRetryAttempts, r::getLastThrowable, () -> r.getLastThrowable().getMessage()));
 
     putRetry.getEventPublisher().onRetry(r -> LOG.info("Retrying {} attempt {} due to {}", r::getName,
-      r::getNumberOfRetryAttempts, () -> r.getLastThrowable().getMessage()));
+        r::getNumberOfRetryAttempts, () -> r.getLastThrowable().getMessage()));
 
     putRetry.getEventPublisher().onError(r -> LOG.error("Retrying {} aborted after {} attempts due to {}", r::getName,
-      r::getNumberOfRetryAttempts, () -> r.getLastThrowable().getMessage()));
+        r::getNumberOfRetryAttempts, () -> r.getLastThrowable().getMessage()));
   }
 
   /**
@@ -130,7 +147,8 @@ public class Retrying<K, V> implements Store<K, V> {
     }
 
     /**
-     * @param retries the maxRetries to set
+     * @param retries
+     *          the maxRetries to set
      */
     public void setMaxRetries(final int retries) {
       this.maxRetries = retries;

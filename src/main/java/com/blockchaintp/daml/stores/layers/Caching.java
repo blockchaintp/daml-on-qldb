@@ -1,3 +1,16 @@
+/*
+ * Copyright 2021 Blockchain Technology Partners
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.blockchaintp.daml.stores.layers;
 
 import com.blockchaintp.daml.stores.LRUCache;
@@ -8,13 +21,20 @@ import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.Value;
 import com.google.common.collect.Sets;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Layer that caches the results of a store.
  *
- * @param <K> the type of key
- * @param <V> the type of value
+ * @param <K>
+ *          the type of key
+ * @param <V>
+ *          the type of value
  */
 public class Caching<K, V> implements Store<K, V> {
 
@@ -24,8 +44,10 @@ public class Caching<K, V> implements Store<K, V> {
   /**
    * Build a cache for the given store using the given cache.
    *
-   * @param cache        the cache to use
-   * @param wrappedStore the store to cache
+   * @param cache
+   *          the cache to use
+   * @param wrappedStore
+   *          the store to cache
    */
   public Caching(final LRUCache<K, V> cache, final Store<K, V> wrappedStore) {
     this.store = wrappedStore;

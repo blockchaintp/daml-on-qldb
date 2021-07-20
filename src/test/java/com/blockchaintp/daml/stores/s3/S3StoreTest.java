@@ -1,3 +1,16 @@
+/*
+ * Copyright 2021 Blockchain Technology Partners
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.blockchaintp.daml.stores.s3;
 
 import com.blockchaintp.daml.stores.exception.StoreReadException;
@@ -34,9 +47,9 @@ class S3StoreTest {
   void get_operations_compose_s3_errors_in_store_errors() throws StoreReadException {
     var s3 = mock(S3AsyncClient.class);
     when(s3.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
-      .thenReturn(CompletableFuture.supplyAsync(() -> {
-        throw ApiCallTimeoutException.create(CALL_TIMEOUT_MS);
-      }));
+        .thenReturn(CompletableFuture.supplyAsync(() -> {
+          throw ApiCallTimeoutException.create(CALL_TIMEOUT_MS);
+        }));
 
     var builder = mock(S3AsyncClientBuilder.class);
 
@@ -45,7 +58,7 @@ class S3StoreTest {
     var store = new S3Store("", "", builder, x -> x, x -> x);
 
     var ex = Assertions.assertThrows(StoreReadException.class,
-      () -> store.get(Collections.singletonList(new Key<>(""))));
+        () -> store.get(Collections.singletonList(new Key<>(""))));
 
     Assertions.assertInstanceOf(ApiCallTimeoutException.class, ex.getCause());
   }
@@ -54,9 +67,9 @@ class S3StoreTest {
   void pet_operations_compose_s3_errors_in_store_errors() throws StoreReadException {
     var s3 = mock(S3AsyncClient.class);
     when(s3.putObject(any(PutObjectRequest.class), any(AsyncRequestBody.class)))
-      .thenReturn(CompletableFuture.supplyAsync(() -> {
-        throw ApiCallTimeoutException.create(CALL_TIMEOUT_MS);
-      }));
+        .thenReturn(CompletableFuture.supplyAsync(() -> {
+          throw ApiCallTimeoutException.create(CALL_TIMEOUT_MS);
+        }));
 
     var builder = mock(S3AsyncClientBuilder.class);
 
@@ -65,7 +78,7 @@ class S3StoreTest {
     var store = new S3Store("", "", builder, x -> x, x -> x);
 
     var ex = Assertions.assertThrows(StoreWriteException.class, () -> store
-      .put(Collections.singletonList(new AbstractMap.SimpleEntry<>(new Key<>(""), new Value<>(new byte[]{})))));
+        .put(Collections.singletonList(new AbstractMap.SimpleEntry<>(new Key<>(""), new Value<>(new byte[] {})))));
 
     Assertions.assertInstanceOf(ApiCallTimeoutException.class, ex.getCause());
   }

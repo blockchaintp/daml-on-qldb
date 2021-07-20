@@ -1,3 +1,16 @@
+/*
+ * Copyright 2021 Blockchain Technology Partners
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.blockchaintp.daml.stores.qldb;
 
 import com.blockchaintp.daml.stores.StubStore;
@@ -13,14 +26,18 @@ import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.qldbsession.model.CapacityExceededException;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
-@SuppressWarnings({"unchecked", "rawtypes"})
+@SuppressWarnings({ "unchecked", "rawtypes" })
 class QldbPutPagingTest {
   private static final int ITERATIONS = 80;
 
@@ -37,7 +54,7 @@ class QldbPutPagingTest {
     qldbSubdividing.put(toCommit);
 
     Assertions.assertEquals(ITERATIONS,
-      store.get(toCommit.stream().map(kv -> kv.getKey()).collect(Collectors.toList())).values().size());
+        store.get(toCommit.stream().map(kv -> kv.getKey()).collect(Collectors.toList())).values().size());
 
   }
 
@@ -47,7 +64,7 @@ class QldbPutPagingTest {
     var retrying = new QldbRetryStrategy(new Retrying.Config(), store);
 
     doThrow(new StoreWriteException(S3Exception.builder().build()))
-      .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(store).put(any(List.class));
+        .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(store).put(any(List.class));
 
     /// List put
     Assertions.assertDoesNotThrow(() -> retrying.put(Arrays.asList()));
@@ -59,10 +76,10 @@ class QldbPutPagingTest {
     var retrying = new Retrying(new Retrying.Config(), store);
 
     doThrow(new StoreWriteException(S3Exception.builder().build()))
-      .doThrow(new StoreWriteException(S3Exception.builder().build()))
-      .doThrow(new StoreWriteException(S3Exception.builder().build()))
-      .doThrow(new StoreWriteException(S3Exception.builder().build()))
-      .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(store).put(any(List.class));
+        .doThrow(new StoreWriteException(S3Exception.builder().build()))
+        .doThrow(new StoreWriteException(S3Exception.builder().build()))
+        .doThrow(new StoreWriteException(S3Exception.builder().build()))
+        .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(store).put(any(List.class));
 
     /// List put
     var putMultipleEx = Assertions.assertThrows(StoreWriteException.class, () -> retrying.put(Arrays.asList()));

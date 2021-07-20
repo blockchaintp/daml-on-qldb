@@ -1,3 +1,16 @@
+/*
+ * Copyright 2021 Blockchain Technology Partners
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.blockchaintp.daml.stores.resilience;
 
 import com.blockchaintp.daml.stores.LRUCache;
@@ -64,7 +77,7 @@ class CacheTest {
     stubStore.put(new Key<>("readthrough"), new Value<>("readthrough"));
 
     Assertions.assertIterableEquals(Arrays.asList(new Value<>("primed"), new Value<>("readthrough")),
-      cachedStore.get(Arrays.asList(new Key<>("primed"), new Key<>("readthrough"))).values());
+        cachedStore.get(Arrays.asList(new Key<>("primed"), new Key<>("readthrough"))).values());
   }
 
   @Test
@@ -73,8 +86,8 @@ class CacheTest {
     var cachedStore = new com.blockchaintp.daml.stores.layers.Caching<>(cache, stubStore);
 
     cachedStore
-      .put(Arrays.asList(new AbstractMap.SimpleEntry<>(new Key<>("writethrough1"), new Value<>("writethrough1")),
-        new AbstractMap.SimpleEntry<>(new Key<>("writethrough2"), new Value<>("writethrough2"))));
+        .put(Arrays.asList(new AbstractMap.SimpleEntry<>(new Key<>("writethrough1"), new Value<>("writethrough1")),
+            new AbstractMap.SimpleEntry<>(new Key<>("writethrough2"), new Value<>("writethrough2"))));
 
     Assertions.assertEquals("writethrough1", stubStore.get(new Key<>("writethrough1")).get().toNative());
 

@@ -1,9 +1,27 @@
+/*
+ * Copyright 2021 Blockchain Technology Partners
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.blockchaintp.daml.stores.resources;
 
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import software.amazon.awssdk.services.qldb.QldbClient;
-import software.amazon.awssdk.services.qldb.model.*;
+import software.amazon.awssdk.services.qldb.model.CreateLedgerRequest;
+import software.amazon.awssdk.services.qldb.model.DeleteLedgerRequest;
+import software.amazon.awssdk.services.qldb.model.DescribeLedgerRequest;
+import software.amazon.awssdk.services.qldb.model.LedgerState;
+import software.amazon.awssdk.services.qldb.model.PermissionsMode;
+import software.amazon.awssdk.services.qldb.model.ResourceNotFoundException;
 import software.amazon.qldb.QldbDriver;
 
 import java.util.concurrent.atomic.AtomicReference;
@@ -23,13 +41,17 @@ public class QldbResources implements RequiresAWSResources {
   /**
    * Constructor.
    *
-   * @param qldbClient the qldb client
-   * @param qldbDriver the qldb driver
-   * @param ledgerName the ledger name
-   * @param tableName  the table name
+   * @param qldbClient
+   *          the qldb client
+   * @param qldbDriver
+   *          the qldb driver
+   * @param ledgerName
+   *          the ledger name
+   * @param tableName
+   *          the table name
    */
   public QldbResources(final QldbClient qldbClient, final QldbDriver qldbDriver, final String ledgerName,
-                       final String tableName) {
+      final String tableName) {
     this.infrastructureClient = qldbClient;
     this.driver = qldbDriver;
     this.ledger = ledgerName;
@@ -61,7 +83,7 @@ public class QldbResources implements RequiresAWSResources {
       LOG.debug("Ledger {} exists, skip create", () -> ledger);
     } else {
       infrastructureClient.createLedger(CreateLedgerRequest.builder().name(ledger)
-        .permissionsMode(PermissionsMode.STANDARD).deletionProtection(false).build());
+          .permissionsMode(PermissionsMode.STANDARD).deletionProtection(false).build());
 
       while (!ledgerState(LedgerState.ACTIVE)) {
         try {
@@ -95,11 +117,7 @@ public class QldbResources implements RequiresAWSResources {
     LOG.info("Delete ledger {}", () -> ledger);
 
     try {
-      infrastructureClient
-        .deleteLedger(DeleteLedgerRequest
-          .builder()
-          .name(ledger)
-          .build());
+      infrastructureClient.deleteLedger(DeleteLedgerRequest.builder().name(ledger).build());
     } catch (ResourceNotFoundException e) {
       LOG.debug("Ledger does not exist");
       return;
