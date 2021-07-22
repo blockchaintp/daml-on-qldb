@@ -29,10 +29,17 @@ package com.blockchaintp.daml.stores.service;
 public interface TransactionLogWriter<K, V, I> {
   /**
    *
-   * @param data
    * @return The transaction log id of the uncommitted transaction
    */
-  K begin(V data);
+  K begin();
+
+  /**
+   * Update the log entry for the id.
+   *
+   * @param id
+   * @param data
+   */
+  void sendEvent(K id, V data);
 
   /**
    * Commit the transaction with this identifier.
