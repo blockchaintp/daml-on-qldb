@@ -241,6 +241,12 @@
       </dependency>
 
 
+      <dependency>
+        <groupId>io.reactivex.rxjava3</groupId>
+        <artifactId>rxjava</artifactId>
+        <version>3.0.13</version>
+      </dependency>
+
       <!-- Test deps -->
       <dependency>
         <groupId>org.junit.jupiter</groupId>
@@ -303,7 +309,11 @@
         <scope>test</scope>
     </dependency>
 
-
+    <!-- Rx -->
+    <dependency>
+      <groupId>io.reactivex.rxjava3</groupId>
+      <artifactId>rxjava</artifactId>
+    </dependency>
     <!-- AWS -->
     <dependency>
       <groupId>software.amazon.awssdk</groupId>

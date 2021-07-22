@@ -24,7 +24,6 @@ import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.StoreReader;
-import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.daml.stores.service.Value;
 import com.google.protobuf.ByteString;
 
@@ -33,25 +32,25 @@ import com.google.protobuf.ByteString;
  */
 public class VerifiedReader implements StoreReader<ByteString, ByteString> {
 
-  private final TransactionLog<ByteString, ByteString> txLog;
+  private final Store<ByteString, ByteString> refStore;
   private final Store<String, byte[]> blobStore;
 
   /**
    * Construct a VerifiedReader around the provided stores.
    *
-   * @param txlog
-   *          the transaction log which masters the K->Hash map.
+   * @param refstore
+   *          the reference store which masters the K->Hash map.
    * @param blobs
    *          the blob store which masters the Hash->Value map.
    */
-  public VerifiedReader(final TransactionLog<ByteString, ByteString> txlog, final Store<String, byte[]> blobs) {
-    this.txLog = txlog;
+  public VerifiedReader(final Store<ByteString, ByteString> refstore, final Store<String, byte[]> blobs) {
+    this.refStore = refstore;
     this.blobStore = blobs;
   }
 
   @Override
   public final Optional<Value<ByteString>> get(final Key<ByteString> key) throws StoreReadException {
-    var txRef = txLog.get(key);
+    var txRef = refStore.get(key);
 
     if (txRef.isPresent()) {
       Optional<Value<byte[]>> s3Val = blobStore

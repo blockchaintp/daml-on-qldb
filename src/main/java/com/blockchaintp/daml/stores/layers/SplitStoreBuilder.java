@@ -19,7 +19,6 @@ import java.util.function.UnaryOperator;
 
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.StoreReader;
-import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.exception.NoSHA512SupportException;
 import com.google.protobuf.ByteString;
 
@@ -27,7 +26,7 @@ import com.google.protobuf.ByteString;
  * A builder of a {@link SplitStore}.
  */
 public class SplitStoreBuilder {
-  private final TransactionLog<ByteString, ByteString> txLog;
+  private final Store<ByteString, ByteString> refStore;
   private final Store<String, byte[]> blobs;
   private StoreReader<ByteString, ByteString> reader;
   private UnaryOperator<byte[]> hashFn;
@@ -36,14 +35,13 @@ public class SplitStoreBuilder {
   /**
    * Create a SplitStoreBuilder.
    *
-   * @param transactionLog
-   *          the transaction log to use
+   * @param refstore
+   *          the reference store to use
    * @param blobStore
    *          the blob store to use
    */
-  public SplitStoreBuilder(final TransactionLog<ByteString, ByteString> transactionLog,
-      final Store<String, byte[]> blobStore) {
-    this.txLog = transactionLog;
+  public SplitStoreBuilder(final Store<ByteString, ByteString> refstore, final Store<String, byte[]> blobStore) {
+    this.refStore = refstore;
     this.blobs = blobStore;
     this.hashFn = bytes -> {
       try {
@@ -56,7 +54,7 @@ public class SplitStoreBuilder {
         throw new NoSHA512SupportException(nsae);
       }
     };
-    this.reader = new VerifiedReader(transactionLog, blobStore);
+    this.reader = new VerifiedReader(refStore, blobStore);
   }
 
   /**
@@ -68,7 +66,7 @@ public class SplitStoreBuilder {
    */
   public final SplitStoreBuilder verified(final boolean verified) {
     if (verified) {
-      this.reader = new VerifiedReader(txLog, blobs);
+      this.reader = new VerifiedReader(refStore, blobs);
     } else {
       this.reader = new UnVerifiedReader(blobs);
     }
@@ -108,6 +106,6 @@ public class SplitStoreBuilder {
    * @return the split store
    */
   public final SplitStore build() {
-    return new SplitStore(writeS3Index, reader, txLog, blobs, hashFn);
+    return new SplitStore(writeS3Index, reader, refStore, blobs, hashFn);
   }
 }

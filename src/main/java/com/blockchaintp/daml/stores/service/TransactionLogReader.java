@@ -13,16 +13,25 @@
  */
 package com.blockchaintp.daml.stores.service;
 
+import java.util.Map;
+
+import org.reactivestreams.Publisher;
+
 /**
- * A TransactionLog is a logging K/V store, i.e. it also has the ability to record events.
- *
- * @param <K>
- *          the type of the keys
- * @param <V>
- *          the type of the values
  *
  * @param <I>
- *          the type of the sequence
+ *          Sequence type
+ * @param <K>
+ *          Log entry identifier type
+ * @param <V>
+ *          Log entry type
  */
-public interface TransactionLog<K, V, I> extends TransactionLogWriter<K, V, I> {
+public interface TransactionLogReader<I, K, V> {
+  /**
+   * Stream committed log entries starting at offset.
+   *
+   * @param offset
+   * @return A stream of comitted log entires.
+   */
+  Publisher<Map.Entry<K, V>> from(I offset);
 }

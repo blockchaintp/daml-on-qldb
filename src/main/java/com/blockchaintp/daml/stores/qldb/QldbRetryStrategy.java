@@ -22,7 +22,6 @@ import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.layers.Retrying;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
-import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.daml.stores.service.Value;
 
 import io.github.resilience4j.retry.Retry;
@@ -41,7 +40,7 @@ import software.amazon.awssdk.services.qldbsession.model.CapacityExceededExcepti
  * @see <a href= "https://docs.aws.amazon.com/qldb/latest/developerguide/driver-errors.html">QLDB
  *      Driver errors</a>
  */
-public class QldbRetryStrategy<K, V> extends Retrying<K, V> implements TransactionLog<K, V> {
+public class QldbRetryStrategy<K, V> extends Retrying<K, V> implements Store<K, V> {
   private static final int DEFAULT_MAX_DOCUMENTS = 40;
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QldbRetryStrategy.class);
   private final Retry putRetry;
@@ -125,15 +124,5 @@ public class QldbRetryStrategy<K, V> extends Retrying<K, V> implements Transacti
   @Override
   public void put(final List<Map.Entry<Key<K>, Value<V>>> listOfPairs) throws StoreWriteException {
     putImpl(this.qldbMaxDocuments, listOfPairs);
-  }
-
-  @Override
-  public void sendEvent(final String topic, final String data) throws StoreWriteException {
-    // TODO implement this
-  }
-
-  @Override
-  public void sendEvent(final List<Map.Entry<String, String>> listOfPairs) throws StoreWriteException {
-    // TODO implement this
   }
 }
