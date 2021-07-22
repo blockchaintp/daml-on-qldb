@@ -246,19 +246,8 @@
         <artifactId>rxjava</artifactId>
         <version>3.0.13</version>
       </dependency>
-      <dependency>
-        <groupId>org.reactivestreams</groupId>
-        <artifactId>reactive-streams</artifactId>
-        <version>1.0.3</version>
-      </dependency>
 
       <!-- Test deps -->
-      <dependency>
-        <groupId>org.reactivestreams</groupId>
-        <artifactId>reactive-streams-tck</artifactId>
-        <version>1.0.3</version>
-        <scope>test</scope>
-      </dependency>
       <dependency>
         <groupId>org.junit.jupiter</groupId>
         <artifactId>junit-jupiter-engine</artifactId>
