@@ -13,42 +13,39 @@
  */
 package com.blockchaintp.daml.stores.service;
 
-import java.util.List;
-import java.util.Map;
-
-import com.blockchaintp.daml.stores.exception.StoreWriteException;
-
 /**
  * A TransactionLogWriter is a StoreWriter that also supports the sending of events.
  *
  * @param <K>
- *          the type of the keys
+ *          the type of the transaction log id
+ *
+ * @param <V>
+ *          the type of the transaction value
  *
  * @param <I>
- *          the type of the sequence
+ *          the type of the transaction sequence
+ *
  */
-public interface TransactionLogWriter<I, K> {
-
+public interface TransactionLogWriter<K, V, I> {
   /**
-   * Send an event on the specified topic with the specified payload.
    *
-   * @param topic
-   *          the topic to publish the event
    * @param data
-   *          the data payload/
-   * @throws StoreWriteException
-   *           an error writing to the store
+   * @return The transaction log id of the uncommitted transaction
    */
-  void sendEvent(String topic, String data) throws StoreWriteException;
+  K begin(V data);
 
   /**
-   * Send an event on multiple topics with multiple payloads.
+   * Commit the transaction with this identifier.
    *
-   * @param listOfTopicDataPairs
-   *          a map where the key is the topic and the value is the data payload
-   * @throws StoreWriteException
-   *           an error writing to the store
+   * @param txId
+   * @return the position in the log of the transaction.
    */
-  void sendEvent(List<Map.Entry<String, String>> listOfTopicDataPairs) throws StoreWriteException;
+  I commit(K txId);
 
+  /**
+   * Abort the transaction with this identifier.
+   *
+   * @param txId
+   */
+  void abort(K txId);
 }

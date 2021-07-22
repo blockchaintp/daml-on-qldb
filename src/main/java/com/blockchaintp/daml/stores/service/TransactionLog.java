@@ -24,5 +24,5 @@ package com.blockchaintp.daml.stores.service;
  * @param <I>
  *          the type of the sequence
  */
-public interface TransactionLog<I, K, V> extends TransactionLogWriter<K, V> {
+public interface TransactionLog<K, V, I> extends TransactionLogWriter<K, V, I> {
 }

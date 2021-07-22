@@ -13,8 +13,25 @@
  */
 package com.blockchaintp.daml.stores.service;
 
+import java.util.Map;
+
+import org.reactivestreams.Publisher;
+
 /**
  *
+ * @param <I>
+ *          Sequence type
+ * @param <K>
+ *          Log entry identifier type
+ * @param <V>
+ *          Log entry type
  */
-public interface TransactionLogReader {
+public interface TransactionLogReader<I, K, V> {
+  /**
+   * Stream committed log entries starting at offset.
+   *
+   * @param offset
+   * @return A stream of comitted log entires.
+   */
+  Publisher<Map.Entry<K, V>> from(I offset);
 }
