@@ -26,7 +26,6 @@ import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.StoreReader;
-import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.daml.stores.service.Value;
 import com.google.protobuf.ByteString;
 
@@ -34,10 +33,10 @@ import com.google.protobuf.ByteString;
  * A Store that keeps its values in a blob store which is keyed by the hash of the value. That
  * original key is stored along with that hash in the TransactionLog.
  */
-public final class SplitStore implements TransactionLog<ByteString, ByteString> {
+public final class SplitStore implements Store<ByteString, ByteString> {
 
   private final boolean writeS3Index;
-  private final Store<ByteString, ByteString> txLog;
+  private final Store<ByteString, ByteString> refStore;
   private final Store<String, byte[]> blobs;
   private final StoreReader<ByteString, ByteString> reader;
   private final UnaryOperator<byte[]> hashFn;
@@ -49,19 +48,19 @@ public final class SplitStore implements TransactionLog<ByteString, ByteString> 
    *          whether to allow fetching from the blob store if the value has been verified
    * @param indexReader
    *          a reader for the index, verified or not
-   * @param txlog
-   *          the TransactionLog to use
+   * @param refstore
+   *          the reference store to use
    * @param blobStore
    *          the blob store to use
    * @param hashingFn
    *          the hash function to use
    */
   public SplitStore(final boolean s3Index, final StoreReader<ByteString, ByteString> indexReader,
-      final TransactionLog<ByteString, ByteString> txlog, final Store<String, byte[]> blobStore,
+      final Store<ByteString, ByteString> refstore, final Store<String, byte[]> blobStore,
       final UnaryOperator<byte[]> hashingFn) {
     this.writeS3Index = s3Index;
     this.reader = indexReader;
-    this.txLog = txlog;
+    this.refStore = refstore;
     this.blobs = blobStore;
     this.hashFn = hashingFn;
   }
@@ -79,7 +78,7 @@ public final class SplitStore implements TransactionLog<ByteString, ByteString> 
       writeBlob(bytes, hexKey);
     }
 
-    txLog.put(key, Value.of(ByteString.copyFrom(hash)));
+    refStore.put(key, Value.of(ByteString.copyFrom(hash)));
   }
 
   private void writeBlob(final byte[] bytes, final String hexKey) throws StoreWriteException {
@@ -97,16 +96,6 @@ public final class SplitStore implements TransactionLog<ByteString, ByteString> 
     for (var kv : listOfPairs) {
       this.put(kv.getKey(), kv.getValue());
     }
-  }
-
-  @Override
-  public void sendEvent(final String topic, final String data) throws StoreWriteException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void sendEvent(final List<Map.Entry<String, String>> listOfPairs) throws StoreWriteException {
-    throw new UnsupportedOperationException();
   }
 
   @Override

@@ -27,7 +27,7 @@ import com.amazon.ion.system.IonSystemBuilder;
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.Key;
-import com.blockchaintp.daml.stores.service.TransactionLog;
+import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.Value;
 import com.google.common.collect.Sets;
 import com.google.protobuf.ByteString;
@@ -45,7 +45,7 @@ import software.amazon.qldb.exceptions.QldbDriverException;
 /**
  * A K/V store using Amazon QLDB as a backend.
  */
-public final class QldbStore implements TransactionLog<ByteString, ByteString> {
+public final class QldbStore implements Store<ByteString, ByteString> {
 
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QldbStore.class);
   private static final String ID_FIELD = "i";
@@ -233,15 +233,5 @@ public final class QldbStore implements TransactionLog<ByteString, ByteString> {
       keysToUpdate.forEach(k -> txn.execute(updateQuery, makeStorableValue(valueMap.get(k)), makeStorableKey(k)));
 
     });
-  }
-
-  @Override
-  public void sendEvent(final String topic, final String data) throws StoreWriteException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void sendEvent(final List<Map.Entry<String, String>> listOfPairs) throws StoreWriteException {
-    throw new UnsupportedOperationException();
   }
 }

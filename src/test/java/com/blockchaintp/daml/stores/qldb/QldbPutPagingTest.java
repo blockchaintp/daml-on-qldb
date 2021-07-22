@@ -91,7 +91,7 @@ class QldbPutPagingTest {
   /**
    * A Stub store that only accepts put batches of 5 or fewer items.
    */
-  class CapacityLimitedStore implements TransactionLog<String, String> {
+  class CapacityLimitedStore implements Store<String, String> {
     private static final int MAX_CAPACITY = 5;
     private final Store<String, String> inner;
 
@@ -121,16 +121,6 @@ class QldbPutPagingTest {
       }
 
       inner.put(listOfPairs);
-    }
-
-    @Override
-    public void sendEvent(final String topic, final String data) throws StoreWriteException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void sendEvent(final List<Map.Entry<String, String>> listOfPairs) throws StoreWriteException {
-      throw new UnsupportedOperationException();
     }
   }
 }

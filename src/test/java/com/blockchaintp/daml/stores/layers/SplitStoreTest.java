@@ -83,13 +83,13 @@ class SplitStoreTest {
   @Test
   void verified_reader_reads_hash_from_txlog_then_looks_up_as_key_in_blobstore() throws StoreReadException {
 
-    var txStore = mock(TransactionLog.class);
+    var refStore = mock(Store.class);
     var blobStore = mock(Store.class);
-    var verified = new VerifiedReader(txStore, blobStore);
+    var verified = new VerifiedReader(refStore, blobStore);
 
     var txStoreResult = ByteString.copyFrom("ok", Charset.defaultCharset());
 
-    when(txStore.get(Key.of(ByteString.copyFrom("DamlKey", Charset.defaultCharset()))))
+    when(refStore.get(Key.of(ByteString.copyFrom("DamlKey", Charset.defaultCharset()))))
         .thenReturn(Optional.of(Value.of(txStoreResult)));
     when(blobStore.get(Key.of("6F6B"))).thenReturn(Optional.of(Value.of(new byte[] { 'x' })));
 

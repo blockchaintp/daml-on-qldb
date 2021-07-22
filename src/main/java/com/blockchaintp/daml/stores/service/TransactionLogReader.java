@@ -14,15 +14,7 @@
 package com.blockchaintp.daml.stores.service;
 
 /**
- * A TransactionLog is a logging K/V store, i.e. it also has the ability to record events.
  *
- * @param <K>
- *          the type of the keys
- * @param <V>
- *          the type of the values
- *
- * @param <I>
- *          the type of the sequence
  */
-public interface TransactionLog<I, K, V> extends TransactionLogWriter<K, V> {
+public interface TransactionLogReader {
 }

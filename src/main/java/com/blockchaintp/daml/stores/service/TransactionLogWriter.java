@@ -23,10 +23,11 @@ import com.blockchaintp.daml.stores.exception.StoreWriteException;
  *
  * @param <K>
  *          the type of the keys
- * @param <V>
- *          the type of the values
+ *
+ * @param <I>
+ *          the type of the sequence
  */
-public interface TransactionLogWriter<K, V> extends StoreWriter<K, V> {
+public interface TransactionLogWriter<I, K> {
 
   /**
    * Send an event on the specified topic with the specified payload.
