@@ -13,6 +13,8 @@
  */
 package com.blockchaintp.daml.stores.service;
 
+import com.blockchaintp.daml.stores.exception.StoreWriteException;
+
 /**
  * A TransactionLogWriter is a StoreWriter that also supports the sending of events.
  *
@@ -31,7 +33,7 @@ public interface TransactionLogWriter<K, V, I> {
    *
    * @return The transaction log id of the uncommitted transaction
    */
-  K begin();
+  K begin() throws StoreWriteException;
 
   /**
    * Update the log entry for the id.
@@ -39,7 +41,7 @@ public interface TransactionLogWriter<K, V, I> {
    * @param id
    * @param data
    */
-  void sendEvent(K id, V data);
+  void sendEvent(K id, V data) throws StoreWriteException;
 
   /**
    * Commit the transaction with this identifier.
@@ -47,12 +49,12 @@ public interface TransactionLogWriter<K, V, I> {
    * @param txId
    * @return the position in the log of the transaction.
    */
-  I commit(K txId);
+  I commit(K txId) throws StoreWriteException;
 
   /**
    * Abort the transaction with this identifier.
    *
    * @param txId
    */
-  void abort(K txId);
+  void abort(K txId) throws StoreWriteException;
 }
