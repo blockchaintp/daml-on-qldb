@@ -15,16 +15,24 @@ package com.blockchaintp.daml.stores.qldb;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
+import com.amazon.ion.IonBlob;
 import com.amazon.ion.IonInt;
 import com.amazon.ion.IonString;
 import com.amazon.ion.IonStruct;
 import com.amazon.ion.IonSystem;
+import com.amazon.ion.IonValue;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.google.protobuf.ByteString;
 
+import io.reactivex.rxjava3.core.Observable;
+import io.vavr.API;
 import io.vavr.Tuple;
 import software.amazon.awssdk.services.qldb.model.QldbException;
 import software.amazon.awssdk.services.qldbsession.model.QldbSessionException;
@@ -50,6 +58,8 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
   private final QldbDriver driver;
   private final IonSystem ion;
   private QldbTxSeq seqSource;
+  private long pollInterval;
+  private long pageSize;
 
   /**
    * Construct a new QLDB transaction log for an id, sequence and opaque blob value.
@@ -58,14 +68,19 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
    *          A common prefix for the transaction log tables names
    * @param theDriver
    * @param ionSystem
+   * @param thePollInterval
+   * @param thePageSize
    */
-  public QldbTransactionLog(final String tableName, final QldbDriver theDriver, final IonSystem ionSystem) {
+  public QldbTransactionLog(final String tableName, final QldbDriver theDriver, final IonSystem ionSystem,
+      final long thePollInterval, final long thePageSize) {
     this.driver = theDriver;
     this.ion = ionSystem;
     this.txLogTable = String.format("%s_tx_log", tableName);
     this.seqTable = String.format("%s_seq", tableName);
     this.tables = new RequiresTables(Arrays.asList(Tuple.of(txLogTable, ID_FIELD), Tuple.of(seqTable, SEQ_FIELD)),
         theDriver);
+    this.pollInterval = thePollInterval;
+    this.pageSize = thePageSize;
   }
 
   private static UUID asUuid(final byte[] bytes) {
@@ -173,4 +188,38 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
   @Override
   public void abort(final UUID txId) {
   }
+
+  private Map.Entry<UUID, ByteString> fromResult(final IonValue result) throws QldbTransactionException {
+    var s = (IonStruct) result;
+    if (s == null) {
+      throw QldbTransactionException.invalidSchema(s);
+    }
+
+    var idBytes = (IonBlob) s.get(ID_FIELD);
+    var data = (IonBlob) s.get(DATA_FIELD);
+
+    if (idBytes == null || data == null) {
+      throw QldbTransactionException.invalidSchema(s);
+    }
+
+    return Map.entry(asUuid(idBytes.getBytes()), ByteString.copyFrom(data.getBytes()));
+  }
+
+  @Override
+  public Observable<Map.Entry<UUID, ByteString>> from(final Long offset) {
+    var queryPattern = "select d.%s,d.%s from %s as d, %s as s where d_id = s.%s and s.%s in ( %s )";
+    return Observable.interval(pollInterval, TimeUnit.MILLISECONDS).map(x -> seqSource.peekRange(pageSize))
+        .flatMap(seq -> driver.execute(tx -> {
+          var r = tx.execute(String.format(queryPattern, ID_FIELD, DATA_FIELD, txLogTable, seqTable, DOCID_FIELD,
+              SEQ_FIELD, seq.stream().map(Object::toString).collect(Collectors.joining(","))));
+
+          var rx = StreamSupport.stream(r.spliterator(), false)
+              .map(record -> API.unchecked(() -> fromResult(record)).get()).collect(Collectors.toList());
+
+          seqSource.takeRange(rx.size());
+
+          return Observable.fromIterable(rx);
+        }));
+  }
+
 }
