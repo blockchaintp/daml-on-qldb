@@ -15,6 +15,7 @@ package com.blockchaintp.daml.stores.qldb;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -23,6 +24,7 @@ import java.util.stream.StreamSupport;
 
 import com.amazon.ion.IonBlob;
 import com.amazon.ion.IonInt;
+import com.amazon.ion.IonNull;
 import com.amazon.ion.IonString;
 import com.amazon.ion.IonStruct;
 import com.amazon.ion.IonSystem;
@@ -34,6 +36,9 @@ import com.google.protobuf.ByteString;
 import io.reactivex.rxjava3.core.Observable;
 import io.vavr.API;
 import io.vavr.Tuple;
+import io.vavr.Tuple2;
+import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
+import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import software.amazon.awssdk.services.qldb.model.QldbException;
 import software.amazon.awssdk.services.qldbsession.model.QldbSessionException;
 import software.amazon.qldb.ExecutorNoReturn;
@@ -47,6 +52,8 @@ import software.amazon.qldb.QldbDriver;
  * daml_tx_seq: s: Long sequence field, indexed d: docid of a daml_tx_log entry
  */
 public final class QldbTransactionLog implements TransactionLog<UUID, ByteString, Long> {
+
+  private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QldbTransactionLog.class);
   private static final String ID_FIELD = "i";
   private static final String SEQ_FIELD = "s";
   private static final String DOCID_FIELD = "d";
@@ -60,6 +67,15 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
   private QldbTxSeq seqSource;
   private long pollInterval;
   private long pageSize;
+
+  /**
+   *
+   * @param driver
+   * @return A QldbTransactionBuilder for the supplied driver.
+   */
+  public static QldbTransactionLogBuilder forDriver(final QldbDriver driver) {
+    return new QldbTransactionLogBuilder(driver);
+  }
 
   /**
    * Construct a new QLDB transaction log for an id, sequence and opaque blob value.
@@ -99,7 +115,9 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
 
   @Override
   public UUID begin() throws StoreWriteException {
+    tables.checkTables();
     var uuid = UUID.randomUUID();
+    LOG.info("Begin transaction {}", () -> uuid);
     try {
       var uuidBytes = asBytes(uuid);
 
@@ -116,6 +134,8 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
 
   @Override
   public void sendEvent(final UUID id, final ByteString data) throws StoreWriteException {
+    tables.checkTables();
+    LOG.info("Send transaction event {}", () -> id);
     try {
       var uuidBytes = asBytes(id);
 
@@ -141,25 +161,35 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
         this.seqSource = new QldbTxSeq(0L);
       } else {
         var s = (IonStruct) res.iterator().next();
-        var i = (IonInt) s.get("_1");
-        if (i == null) {
+
+        var v = s.get("_1");
+
+        if (v == null) {
           throw QldbSessionException.create("", QldbTransactionException.invalidSchema(s));
         }
 
-        this.seqSource = new QldbTxSeq(i.longValue());
+        if (v instanceof IonNull) {
+          this.seqSource = new QldbTxSeq(0L);
+        } else {
+          var i = (IonInt) s.get("_1");
+          this.seqSource = new QldbTxSeq(i.longValue());
+        }
       }
     });
   }
 
   @Override
   public Long commit(final UUID txId) throws StoreWriteException {
+    tables.checkTables();
+    LOG.info("Commit transaction {}", () -> txId);
     try {
       ensureSequence();
 
       var uuidBytes = asBytes(txId);
 
       driver.execute((ExecutorNoReturn) tx -> {
-        var query = String.format("select metadata.id from _ql_committed_%s as o where o.%s = ?", txLogTable, ID_FIELD);
+        var query = String.format("select metadata.id from _ql_committed_%s as o where o.data.%s = ?", txLogTable,
+            ID_FIELD);
         var r = tx.execute(query, ion.newBlob(uuidBytes));
 
         if (r.isEmpty()) {
@@ -167,17 +197,17 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
         }
 
         var metaData = (IonStruct) r.iterator().next();
-        var docid = (IonString) metaData.get("id");
+        var docid = metaData.get("id");
 
-        if (docid == null) {
+        if (docid == null || docid instanceof IonNull) {
           throw QldbException.create("", QldbTransactionException.invalidSchema(metaData));
         }
 
         var struct = ion.newEmptyStruct();
         struct.add(SEQ_FIELD, ion.newInt(seqSource.peekNext()));
-        struct.add(DOCID_FIELD, docid);
+        struct.add(DOCID_FIELD, ion.newString(((IonString) docid).stringValue()));
 
-        tx.execute(String.format("insert into %s value ?", txLogTable, DATA_FIELD, ID_FIELD), struct);
+        tx.execute(String.format("insert into %s value ?", seqTable), struct);
       });
     } catch (QldbException e) {
       throw new StoreWriteException(e);
@@ -187,9 +217,14 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
 
   @Override
   public void abort(final UUID txId) {
+    tables.checkTables();
+
+    driver.execute(tx -> {
+      tx.execute(String.format("delete from %s as o where o.%s = ?", txLogTable, ID_FIELD), ion.newBlob(asBytes(txId)));
+    });
   }
 
-  private Map.Entry<UUID, ByteString> fromResult(final IonValue result) throws QldbTransactionException {
+  private Tuple2<Long, Map.Entry<UUID, ByteString>> fromResult(final IonValue result) throws QldbTransactionException {
     var s = (IonStruct) result;
     if (s == null) {
       throw QldbTransactionException.invalidSchema(s);
@@ -197,26 +232,32 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
 
     var idBytes = (IonBlob) s.get(ID_FIELD);
     var data = (IonBlob) s.get(DATA_FIELD);
+    var seq = (IonInt) s.get(SEQ_FIELD);
 
     if (idBytes == null || data == null) {
       throw QldbTransactionException.invalidSchema(s);
     }
 
-    return Map.entry(asUuid(idBytes.getBytes()), ByteString.copyFrom(data.getBytes()));
+    return Tuple.of(seq.longValue(), Map.entry(asUuid(idBytes.getBytes()), ByteString.copyFrom(data.getBytes())));
   }
 
   @Override
   public Observable<Map.Entry<UUID, ByteString>> from(final Long offset) {
-    var queryPattern = "select d.%s,d.%s from %s as d, %s as s where d_id = s.%s and s.%s in ( %s )";
-    return Observable.interval(pollInterval, TimeUnit.MILLISECONDS).map(x -> seqSource.peekRange(pageSize))
+    tables.checkTables();
+    var readSeq = new QldbTxSeq(offset);
+    var queryPattern = "select s.%s,d.%s,d.%s from %s as d BY d_id, %s as s where d_id = s.%s and s.%s in ( %s )";
+    return Observable.interval(pollInterval, TimeUnit.MILLISECONDS).map(x -> readSeq.peekRange(pageSize))
         .flatMap(seq -> driver.execute(tx -> {
-          var r = tx.execute(String.format(queryPattern, ID_FIELD, DATA_FIELD, txLogTable, seqTable, DOCID_FIELD,
-              SEQ_FIELD, seq.stream().map(Object::toString).collect(Collectors.joining(","))));
+          var query = String.format(queryPattern, SEQ_FIELD, ID_FIELD, DATA_FIELD, txLogTable, seqTable, DOCID_FIELD,
+              SEQ_FIELD, seq.stream().map(Object::toString).collect(Collectors.joining(",")));
+          LOG.debug("Querying for page {}", () -> query);
+          var r = tx.execute(query);
 
           var rx = StreamSupport.stream(r.spliterator(), false)
-              .map(record -> API.unchecked(() -> fromResult(record)).get()).collect(Collectors.toList());
+              .map(record -> API.unchecked(() -> fromResult(record)).get()).sorted(Comparator.comparingLong(x -> x._1))
+              .map(x -> x._2).collect(Collectors.toList());
 
-          seqSource.takeRange(rx.size());
+          readSeq.takeRange(rx.size());
 
           return Observable.fromIterable(rx);
         }));

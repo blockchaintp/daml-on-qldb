@@ -27,7 +27,7 @@ import software.amazon.qldb.QldbDriver;
  */
 public final class RequiresTables {
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(RequiresTables.class);
-  private final boolean allCreated;
+  private boolean allCreated;
   private final List<Tuple2<String, String>> tables;
   private final QldbDriver driver;
 
@@ -69,6 +69,8 @@ public final class RequiresTables {
         tx.execute(String.format("create index on %s(%s)", t._1, t._2));
       });
     });
+
+    allCreated = true;
   }
 
 }
