@@ -29,6 +29,7 @@ import software.amazon.awssdk.services.qldbsession.QldbSessionClient;
 import software.amazon.qldb.QldbDriver;
 
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -79,7 +80,7 @@ public class QldbTransactionLogIntegrationTest {
       txLog.commit(id);
     }
 
-    var stream = txLog.from(0L);
+    var stream = txLog.from(Optional.of(0L));
 
     Assertions.assertIterableEquals(ids,
         stream.take(30).map(x -> x.getKey()).collect(Collectors.toList()).blockingGet());

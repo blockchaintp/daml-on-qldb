@@ -23,6 +23,9 @@ import com.blockchaintp.daml.stores.service.SeqSource;
  * A long sequence, initialisable from a QLDB tx log sequence table or an explicit point.
  */
 public final class QldbTxSeq implements SeqSource<Long> {
+  /**
+   * Marker for the start of a sequence.
+   */
   private long current;
 
   /**

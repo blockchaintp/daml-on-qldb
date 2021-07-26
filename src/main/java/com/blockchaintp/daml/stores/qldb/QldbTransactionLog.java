@@ -17,6 +17,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -242,9 +243,10 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
   }
 
   @Override
-  public Observable<Map.Entry<UUID, ByteString>> from(final Long offset) {
+  public Observable<Map.Entry<UUID, ByteString>> from(final Optional<Long> offset) {
     tables.checkTables();
-    var readSeq = new QldbTxSeq(offset);
+
+    final var readSeq = getQldbTxSeq(offset);
     var queryPattern = "select s.%s,d.%s,d.%s from %s as d BY d_id, %s as s where d_id = s.%s and s.%s in ( %s )";
     return Observable.interval(pollInterval, TimeUnit.MILLISECONDS).map(x -> readSeq.peekRange(pageSize))
         .flatMap(seq -> driver.execute(tx -> {
@@ -261,6 +263,16 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
 
           return Observable.fromIterable(rx);
         }));
+  }
+
+  private QldbTxSeq getQldbTxSeq(final Optional<Long> offset) {
+    QldbTxSeq readSeq;
+    if (offset.isEmpty()) {
+      readSeq = new QldbTxSeq(this.seqSource.peekNext());
+    } else {
+      readSeq = new QldbTxSeq(offset.get());
+    }
+    return readSeq;
   }
 
 }
