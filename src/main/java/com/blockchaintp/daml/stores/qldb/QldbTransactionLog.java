@@ -45,6 +45,8 @@ import software.amazon.awssdk.services.qldbsession.model.QldbSessionException;
 import software.amazon.qldb.ExecutorNoReturn;
 import software.amazon.qldb.QldbDriver;
 
+import static software.amazon.awssdk.services.qldbsession.model.QldbSessionException.*;
+
 /**
  * Implements a transaction log using 2 QLDB tables.
  *
@@ -166,7 +168,7 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
         var v = s.get("_1");
 
         if (v == null) {
-          throw QldbSessionException.create("", QldbTransactionException.invalidSchema(s));
+          throw create("", QldbTransactionException.invalidSchema(s));
         }
 
         if (v instanceof IonNull) {
@@ -194,14 +196,14 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
         var r = tx.execute(query, ion.newBlob(uuidBytes));
 
         if (r.isEmpty()) {
-          throw QldbException.create("", QldbTransactionException.noMetadata(query));
+          throw create("", QldbTransactionException.noMetadata(query));
         }
 
         var metaData = (IonStruct) r.iterator().next();
         var docid = metaData.get("id");
 
         if (docid == null || docid instanceof IonNull) {
-          throw QldbException.create("", QldbTransactionException.invalidSchema(metaData));
+          throw create("", QldbTransactionException.invalidSchema(metaData));
         }
 
         var struct = ion.newEmptyStruct();
@@ -220,9 +222,9 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
   public void abort(final UUID txId) {
     tables.checkTables();
 
-    driver.execute(tx -> {
-      tx.execute(String.format("delete from %s as o where o.%s = ?", txLogTable, ID_FIELD), ion.newBlob(asBytes(txId)));
-    });
+    driver.execute((ExecutorNoReturn) tx ->
+      tx.execute(String.format("delete from %s as o where o.%s = ?", txLogTable, ID_FIELD), ion.newBlob(asBytes(txId)))
+    );
   }
 
   private Tuple2<Long, Map.Entry<UUID, ByteString>> fromResult(final IonValue result) throws QldbTransactionException {
@@ -256,7 +258,7 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
           var r = tx.execute(query);
 
           var rx = StreamSupport.stream(r.spliterator(), false)
-              .map(record -> API.unchecked(() -> fromResult(record)).get()).sorted(Comparator.comparingLong(x -> x._1))
+              .map(x -> API.unchecked(() -> fromResult(x)).get()).sorted(Comparator.comparingLong(x -> x._1))
               .map(x -> x._2).collect(Collectors.toList());
 
           readSeq.takeRange(rx.size());

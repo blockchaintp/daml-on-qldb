@@ -33,7 +33,6 @@ public class QldbResources implements RequiresAWSResources {
   private static final int DEFAULT_WAIT_TIME_MS = 1000;
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QldbResources.class);
   private final QldbClient infrastructureClient;
-  private final QldbDriver driver;
   private final String ledger;
 
   /**
@@ -41,14 +40,11 @@ public class QldbResources implements RequiresAWSResources {
    *
    * @param qldbClient
    *          the qldb client
-   * @param qldbDriver
-   *          the qldb driver
    * @param ledgerName
    *          the ledger name
    */
-  public QldbResources(final QldbClient qldbClient, final QldbDriver qldbDriver, final String ledgerName) {
+  public QldbResources(final QldbClient qldbClient,  final String ledgerName) {
     this.infrastructureClient = qldbClient;
-    this.driver = qldbDriver;
     this.ledger = ledgerName;
   }
 
