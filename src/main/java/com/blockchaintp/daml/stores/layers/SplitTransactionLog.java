@@ -41,6 +41,7 @@ public final class SplitTransactionLog implements TransactionLog<UUID, ByteStrin
 
   /**
    * Create a split transaction log.
+   *
    * @param txlog
    * @param blobStore
    * @param hasher
