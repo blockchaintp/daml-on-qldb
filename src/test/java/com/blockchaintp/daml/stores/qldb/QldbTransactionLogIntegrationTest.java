@@ -80,6 +80,10 @@ class QldbTransactionLogIntegrationTest {
       txLog.commit(id);
     }
 
+    var aborted = txLog.begin();
+    txLog.sendEvent(aborted, ByteString.copyFromUtf8("aborted"));
+    txLog.abort(aborted);
+
     var stream = txLog.from(Optional.of(0L));
 
     Assertions.assertIterableEquals(ids,

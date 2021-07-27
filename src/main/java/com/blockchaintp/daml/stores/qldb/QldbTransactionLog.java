@@ -189,20 +189,20 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
 
       var uuidBytes = asBytes(txId);
 
-      driver.execute((ExecutorNoReturn) tx -> {
+      driver.execute((ExecutorNoReturn) tx -> API.unchecked(() -> {
         var query = String.format("select metadata.id from _ql_committed_%s as o where o.data.%s = ?", txLogTable,
             ID_FIELD);
         var r = tx.execute(query, ion.newBlob(uuidBytes));
 
         if (r.isEmpty()) {
-          throw create("", QldbTransactionException.noMetadata(query));
+          throw new StoreWriteException(QldbTransactionException.noMetadata(query));
         }
 
         var metaData = (IonStruct) r.iterator().next();
         var docid = metaData.get("id");
 
         if (docid == null || docid instanceof IonNull) {
-          throw create("", QldbTransactionException.invalidSchema(metaData));
+          throw new StoreWriteException(QldbTransactionException.invalidSchema(metaData));
         }
 
         var struct = ion.newEmptyStruct();
@@ -210,10 +210,13 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
         struct.add(DOCID_FIELD, ion.newString(((IonString) docid).stringValue()));
 
         tx.execute(String.format("insert into %s value ?", seqTable), struct);
-      });
+
+        return null;
+      }).get());
     } catch (QldbException e) {
       throw new StoreWriteException(e);
     }
+
     return seqSource.takeNext();
   }
 
@@ -256,8 +259,9 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
           LOG.debug("Querying for page {}", () -> query);
           var r = tx.execute(query);
 
-          var rx = StreamSupport.stream(r.spliterator(), false).map(x -> API.unchecked(() -> fromResult(x)).get())
-              .sorted(Comparator.comparingLong(x -> x._1)).map(x -> x._2).collect(Collectors.toList());
+          var rx = StreamSupport.stream(r.spliterator(), false)
+            .map(x -> API.unchecked(() -> fromResult(x)).get())
+            .sorted(Comparator.comparingLong(x -> x._1)).map(x -> x._2).collect(Collectors.toList());
 
           readSeq.takeRange(rx.size());
 
