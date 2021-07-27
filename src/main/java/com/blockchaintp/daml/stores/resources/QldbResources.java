@@ -14,7 +14,6 @@
 package com.blockchaintp.daml.stores.resources;
 
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.StreamSupport;
 
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
@@ -36,7 +35,6 @@ public class QldbResources implements RequiresAWSResources {
   private final QldbClient infrastructureClient;
   private final QldbDriver driver;
   private final String ledger;
-  private final String table;
 
   /**
    * Constructor.
@@ -47,15 +45,11 @@ public class QldbResources implements RequiresAWSResources {
    *          the qldb driver
    * @param ledgerName
    *          the ledger name
-   * @param tableName
-   *          the table name
    */
-  public QldbResources(final QldbClient qldbClient, final QldbDriver qldbDriver, final String ledgerName,
-      final String tableName) {
+  public QldbResources(final QldbClient qldbClient, final QldbDriver qldbDriver, final String ledgerName) {
     this.infrastructureClient = qldbClient;
     this.driver = qldbDriver;
     this.ledger = ledgerName;
-    this.table = tableName;
   }
 
   private boolean ledgerState(final LedgerState state) {
@@ -70,10 +64,6 @@ public class QldbResources implements RequiresAWSResources {
       // TODO this one is bad, we should not catch all exceptions
       return current.get() == null && state.equals(LedgerState.DELETED);
     }
-  }
-
-  private boolean tableExists() {
-    return StreamSupport.stream(driver.getTableNames().spliterator(), false).anyMatch(s -> s.equals(table));
   }
 
   @Override
@@ -95,23 +85,12 @@ public class QldbResources implements RequiresAWSResources {
       }
     }
 
-    if (tableExists()) {
-      LOG.debug("Table {} exists, skip create", () -> table);
-      return;
-    }
-
-    LOG.info("Creating table {}", () -> table);
-
-    driver.execute(tx -> {
-      tx.execute(String.format("create table %s", table));
-      tx.execute(String.format("create index on %s(id)", table));
-    });
   }
 
   @Override
   public final void destroyResources() {
     if (ledgerState(LedgerState.DELETED)) {
-      LOG.debug("Ledger {} does not exist, skip delete", () -> table);
+      LOG.debug("Ledger {} does not exist, skip delete", () -> ledger);
       return;
     }
     LOG.info("Delete ledger {}", () -> ledger);

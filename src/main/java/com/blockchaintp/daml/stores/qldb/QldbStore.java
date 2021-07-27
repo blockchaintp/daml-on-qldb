@@ -13,6 +13,7 @@
  */
 package com.blockchaintp.daml.stores.qldb;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -37,10 +38,10 @@ import io.vavr.Tuple;
 import io.vavr.collection.Stream;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
+import software.amazon.awssdk.services.qldbsession.model.QldbSessionException;
 import software.amazon.qldb.Executor;
 import software.amazon.qldb.QldbDriver;
 import software.amazon.qldb.Result;
-import software.amazon.qldb.exceptions.QldbDriverException;
 
 /**
  * A K/V store using Amazon QLDB as a backend.
@@ -54,6 +55,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
   private final QldbDriver driver;
   private final String table;
   private final IonSystem ion;
+  private final RequiresTables tables;
 
   /**
    * Constructor for QldbStore.
@@ -67,6 +69,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
     this.driver = qldbDriver;
     this.table = tableName;
     this.ion = IonSystemBuilder.standard().build();
+    this.tables = new RequiresTables(Arrays.asList(Tuple.of(table, ID_FIELD)), qldbDriver);
   }
 
   /**
@@ -83,6 +86,8 @@ public final class QldbStore implements Store<ByteString, ByteString> {
   @Override
   @SuppressWarnings("java:S1905")
   public Optional<Value<ByteString>> get(final Key<ByteString> key) throws StoreReadException {
+    this.tables.checkTables();
+
     LOG.info("get id={} in table={}", () -> key.toNative().toStringUtf8(), () -> table);
 
     try {
@@ -96,7 +101,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
         return Optional.of(Value.of(ByteString.copyFrom(hash.getBytes())));
       }
       return Optional.empty();
-    } catch (QldbDriverException e) {
+    } catch (QldbSessionException e) {
       throw new StoreReadException(e);
     }
   }
@@ -128,6 +133,8 @@ public final class QldbStore implements Store<ByteString, ByteString> {
   @Override
   @SuppressWarnings("java:S1905")
   public Map<Key<ByteString>, Value<ByteString>> get(final List<Key<ByteString>> listOfKeys) throws StoreReadException {
+    this.tables.checkTables();
+
     LOG.info("get ids=({}) in table={}", () -> listOfKeys.stream().map(k -> k.toNative().toStringUtf8()), () -> table);
 
     final var query = String.format("select o.* from %s as o where o.%s in ( %s )", table, ID_FIELD,
@@ -141,7 +148,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
       return Stream.ofAll(r).toJavaMap(
           k -> Tuple.of(Key.of(ByteString.copyFrom(API.unchecked(() -> getIdFromRecord(k)).get().getBytes())),
               Value.of(ByteString.copyFrom(API.unchecked(() -> getHashFromRecord(k)).get().getBytes()))));
-    } catch (QldbDriverException e) {
+    } catch (QldbSessionException e) {
       throw new StoreReadException(e);
     }
   }
@@ -168,6 +175,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
    */
   @Override
   public void put(final Key<ByteString> key, final Value<ByteString> value) throws StoreWriteException {
+    this.tables.checkTables();
 
     LOG.info("upsert id={} in table={}", () -> key.toNative().toStringUtf8(), () -> table);
 
@@ -199,6 +207,8 @@ public final class QldbStore implements Store<ByteString, ByteString> {
    */
   @Override
   public void put(final List<Map.Entry<Key<ByteString>, Value<ByteString>>> listOfPairs) throws StoreWriteException {
+    this.tables.checkTables();
+
     LOG.debug("upsert ids={} in table={}",
         () -> listOfPairs.stream().map(Map.Entry::getKey).collect(Collectors.toList()), () -> table);
 

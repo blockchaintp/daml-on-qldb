@@ -13,16 +13,39 @@
  */
 package com.blockchaintp.daml.stores.service;
 
+import java.util.List;
+
 /**
- * A TransactionLog is a logging K/V store, i.e. it also has the ability to record events.
- *
- * @param <K>
- *          the type of the keys
- * @param <V>
- *          the type of the values
+ * A source of ordered values of I.
  *
  * @param <I>
- *          the type of the sequence
  */
-public interface TransactionLog<K, V, I> extends TransactionLogWriter<K, V, I>, TransactionLogReader<I, K, V> {
+public interface SeqSource<I> {
+  /**
+   *
+   * @return the next I, without consuming it
+   */
+  I peekNext();
+
+  /**
+   *
+   * @return the next I, consuming it
+   */
+  I takeNext();
+
+  /**
+   * A non comsumed sequence of I with the specified size.
+   *
+   * @param size
+   * @return An ordered sequence
+   */
+  List<I> peekRange(long size);
+
+  /**
+   * A comsumed sequence of I with the specified size.
+   *
+   * @param size
+   * @return An ordered sequence
+   */
+  List<I> takeRange(long size);
 }

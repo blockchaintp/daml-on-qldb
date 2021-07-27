@@ -14,8 +14,9 @@
 package com.blockchaintp.daml.stores.service;
 
 import java.util.Map;
+import java.util.Optional;
 
-import org.reactivestreams.Publisher;
+import io.reactivex.rxjava3.core.Observable;
 
 /**
  *
@@ -31,7 +32,8 @@ public interface TransactionLogReader<I, K, V> {
    * Stream committed log entries starting at offset.
    *
    * @param offset
+   *          - use None to start at the last commit
    * @return A stream of comitted log entires.
    */
-  Publisher<Map.Entry<K, V>> from(I offset);
+  Observable<Map.Entry<K, V>> from(Optional<I> offset);
 }
