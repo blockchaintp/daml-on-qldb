@@ -24,7 +24,6 @@ import software.amazon.awssdk.services.qldb.model.DescribeLedgerRequest;
 import software.amazon.awssdk.services.qldb.model.LedgerState;
 import software.amazon.awssdk.services.qldb.model.PermissionsMode;
 import software.amazon.awssdk.services.qldb.model.ResourceNotFoundException;
-import software.amazon.qldb.QldbDriver;
 
 /**
  * Deals with QLDB resources.
@@ -43,7 +42,7 @@ public class QldbResources implements RequiresAWSResources {
    * @param ledgerName
    *          the ledger name
    */
-  public QldbResources(final QldbClient qldbClient,  final String ledgerName) {
+  public QldbResources(final QldbClient qldbClient, final String ledgerName) {
     this.infrastructureClient = qldbClient;
     this.ledger = ledgerName;
   }

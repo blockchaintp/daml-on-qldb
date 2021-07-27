@@ -34,6 +34,7 @@ import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.google.protobuf.ByteString;
 
+import static software.amazon.awssdk.services.qldbsession.model.QldbSessionException.create;
 import io.reactivex.rxjava3.core.Observable;
 import io.vavr.API;
 import io.vavr.Tuple;
@@ -44,8 +45,6 @@ import software.amazon.awssdk.services.qldb.model.QldbException;
 import software.amazon.awssdk.services.qldbsession.model.QldbSessionException;
 import software.amazon.qldb.ExecutorNoReturn;
 import software.amazon.qldb.QldbDriver;
-
-import static software.amazon.awssdk.services.qldbsession.model.QldbSessionException.*;
 
 /**
  * Implements a transaction log using 2 QLDB tables.
@@ -222,9 +221,9 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
   public void abort(final UUID txId) {
     tables.checkTables();
 
-    driver.execute((ExecutorNoReturn) tx ->
-      tx.execute(String.format("delete from %s as o where o.%s = ?", txLogTable, ID_FIELD), ion.newBlob(asBytes(txId)))
-    );
+    driver.execute(
+        (ExecutorNoReturn) tx -> tx.execute(String.format("delete from %s as o where o.%s = ?", txLogTable, ID_FIELD),
+            ion.newBlob(asBytes(txId))));
   }
 
   private Tuple2<Long, Map.Entry<UUID, ByteString>> fromResult(final IonValue result) throws QldbTransactionException {
@@ -257,9 +256,8 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
           LOG.debug("Querying for page {}", () -> query);
           var r = tx.execute(query);
 
-          var rx = StreamSupport.stream(r.spliterator(), false)
-              .map(x -> API.unchecked(() -> fromResult(x)).get()).sorted(Comparator.comparingLong(x -> x._1))
-              .map(x -> x._2).collect(Collectors.toList());
+          var rx = StreamSupport.stream(r.spliterator(), false).map(x -> API.unchecked(() -> fromResult(x)).get())
+              .sorted(Comparator.comparingLong(x -> x._1)).map(x -> x._2).collect(Collectors.toList());
 
           readSeq.takeRange(rx.size());
 

@@ -11,29 +11,27 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.blockchaintp.daml.stores.exception;
+package com.blockchaintp.daml.stores.layers;
+
+import com.blockchaintp.daml.stores.exception.StoreReadException;
 
 /**
- * Represents a read failure of some sort to the store.
+ * An exception on a split store operation.
  */
-public class StoreReadException extends StoreException {
+public final class SpltStoreException extends StoreReadException {
 
-  /**
-   * A read exception with an originating cause.
-   *
-   * @param cause
-   *          the cause
-   */
-  public StoreReadException(final Throwable cause) {
-    super(cause);
+  private SpltStoreException(final String message) {
+    super(message);
   }
 
   /**
-   * A read exception originating in our application.
+   * The corresponding s3 blob for a transaction could not be found.
    *
-   * @param message
+   * @param hash
+   * @param key
+   * @return The exception.
    */
-  public StoreReadException(final String message) {
-    super(message);
+  public static SpltStoreException missingS3Data(final String hash, final String key) {
+    return new SpltStoreException(String.format("Cannot find s3 blob %s for key %s", hash, key));
   }
 }
