@@ -37,3 +37,6 @@
 build
 pom.xml.versionsBackup
 markers
+
+# MkDocs documentation
+site/
