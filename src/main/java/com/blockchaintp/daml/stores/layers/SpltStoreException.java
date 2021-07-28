@@ -13,12 +13,12 @@
  */
 package com.blockchaintp.daml.stores.layers;
 
-import com.blockchaintp.daml.stores.exception.StoreReadException;
+import com.blockchaintp.daml.stores.exception.StoreException;
 
 /**
  * An exception on a split store operation.
  */
-public final class SpltStoreException extends StoreReadException {
+public final class SpltStoreException extends StoreException {
 
   private SpltStoreException(final String message) {
     super(message);

@@ -73,7 +73,7 @@ public final class CoercingTxLog<K1, K2, V1, V2, I1, I2> implements TransactionL
 
   @Override
   public Observable<Map.Entry<K1, V1>> from(final Optional<I1> offset) {
-    return inner.from(offset.map(x -> seqCoercionTo.apply(x)))
+    return inner.from(offset.map(seqCoercionTo::apply))
         .map(r -> Map.entry(keyCoercionFrom.apply(r.getKey()), valueCoercionFrom.apply(r.getValue())));
   }
 

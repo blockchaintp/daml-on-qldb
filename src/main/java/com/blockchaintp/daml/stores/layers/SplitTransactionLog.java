@@ -57,7 +57,7 @@ public final class SplitTransactionLog implements TransactionLog<UUID, ByteStrin
   public Observable<Map.Entry<UUID, ByteString>> from(final Optional<Long> offset) {
     return txLog.from(offset).map(r -> {
       var s3Key = Key.of(DatatypeConverter.printHexBinary(r.getValue().toByteArray()));
-      var withS3data = blobs.get(s3Key).map(v -> Map.entry(r.getKey(), v.map(x -> ByteString.copyFrom(x)).toNative()));
+      var withS3data = blobs.get(s3Key).map(v -> Map.entry(r.getKey(), v.map(ByteString::copyFrom).toNative()));
 
       /// If we are missing underlying s3 data then this is a serious problem
       if (withS3data.isEmpty()) {

@@ -25,7 +25,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 
-public class SplitTransactionLogTest {
+class SplitTransactionLogTest {
 
   @Test
   void commit_writes_records() throws StoreWriteException, StoreReadException {
