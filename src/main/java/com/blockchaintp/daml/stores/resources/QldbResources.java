@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.qldb.QldbClient;
 import software.amazon.awssdk.services.qldb.model.CreateLedgerRequest;
 import software.amazon.awssdk.services.qldb.model.DeleteLedgerRequest;
@@ -55,8 +56,7 @@ public class QldbResources implements RequiresAWSResources {
       LOG.debug("Check ledger state, currently {}", current::get);
 
       return current.get().equals(state);
-    } catch (Throwable e) {
-      // TODO this one is bad, we should not catch all exceptions
+    } catch (SdkException e) {
       return current.get() == null && state.equals(LedgerState.DELETED);
     }
   }

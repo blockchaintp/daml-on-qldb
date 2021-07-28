@@ -85,10 +85,13 @@ public class RetryingStore<K, V> implements Store<K, V> {
 
   final <T> T decorateGet(final CheckedFunction0<T> f) throws StoreReadException {
     try {
-      return getRetry.executeCheckedSupplier(f);
-    } catch (StoreReadException e) {
-      throw e;
-    } catch (Throwable e) {
+      return getRetry.executeSupplier(f.unchecked());
+    } catch (RuntimeException e) {
+      throw new StoreReadException(e);
+    } catch (Exception e) {
+      if (e instanceof StoreReadException) {
+        throw e;
+      }
       throw new StoreReadException(e);
     }
   }
@@ -105,14 +108,17 @@ public class RetryingStore<K, V> implements Store<K, V> {
 
   final void decoratePut(final CheckedRunnable f) throws StoreWriteException {
     try {
-      putRetry.executeCheckedSupplier(() -> {
+      putRetry.executeSupplier(() -> {
         /// We only have a checked Supplier<>, so return a null
-        f.run();
+        f.unchecked().run();
         return null;
       });
-    } catch (StoreWriteException e) {
-      throw e;
-    } catch (Throwable e) {
+    } catch (RuntimeException e) {
+      throw new StoreWriteException(e);
+    } catch (Exception e) {
+      if (e instanceof StoreReadException) {
+        throw e;
+      }
       throw new StoreWriteException(e);
     }
   }
