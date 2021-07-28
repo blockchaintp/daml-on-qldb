@@ -259,9 +259,8 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
           LOG.debug("Querying for page {}", () -> query);
           var r = tx.execute(query);
 
-          var rx = StreamSupport.stream(r.spliterator(), false)
-            .map(x -> API.unchecked(() -> fromResult(x)).get())
-            .sorted(Comparator.comparingLong(x -> x._1)).map(x -> x._2).collect(Collectors.toList());
+          var rx = StreamSupport.stream(r.spliterator(), false).map(x -> API.unchecked(() -> fromResult(x)).get())
+              .sorted(Comparator.comparingLong(x -> x._1)).map(x -> x._2).collect(Collectors.toList());
 
           readSeq.takeRange(rx.size());
 
