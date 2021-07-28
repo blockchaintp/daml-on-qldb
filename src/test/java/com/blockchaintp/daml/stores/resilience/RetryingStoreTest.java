@@ -15,7 +15,8 @@ package com.blockchaintp.daml.stores.resilience;
 
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
-import com.blockchaintp.daml.stores.layers.Retrying;
+import com.blockchaintp.daml.stores.layers.RetryingConfig;
+import com.blockchaintp.daml.stores.layers.RetryingStore;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.Value;
@@ -32,11 +33,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
-class RetryingTest {
+class RetryingStoreTest {
   @Test
   void get_retries_configured_number_of_store_read_exceptions() throws StoreReadException {
     var store = mock(Store.class);
-    var retrying = new Retrying(new Retrying.Config(), store);
+    var retrying = new RetryingStore(new RetryingConfig(), store);
 
     when(store.get(any(Key.class))).thenThrow(new StoreReadException(S3Exception.builder().build()))
         .thenThrow(new StoreReadException(S3Exception.builder().build())).thenReturn(Optional.of(Value.of("stuff")));
@@ -56,7 +57,7 @@ class RetryingTest {
   @Test
   void get_eventually_fails_with_a_store_read_exception() throws StoreReadException {
     var store = mock(Store.class);
-    var retrying = new Retrying(new Retrying.Config(), store);
+    var retrying = new RetryingStore(new RetryingConfig(), store);
 
     when(store.get(any(Key.class))).thenThrow(new StoreReadException(S3Exception.builder().build()))
         .thenThrow(new StoreReadException(S3Exception.builder().build()))
@@ -83,7 +84,7 @@ class RetryingTest {
   @Test
   void put_retries_configured_number_of_store_write_exceptions() throws StoreWriteException {
     var store = mock(Store.class);
-    var retrying = new Retrying(new Retrying.Config(), store);
+    var retrying = new RetryingStore(new RetryingConfig(), store);
 
     doThrow(new StoreWriteException(S3Exception.builder().build()))
         .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(store)
@@ -102,7 +103,7 @@ class RetryingTest {
   @Test
   void put_eventually_fails_with_a_store_write_exceptions() throws StoreWriteException {
     var store = mock(Store.class);
-    var retrying = new Retrying(new Retrying.Config(), store);
+    var retrying = new RetryingStore(new RetryingConfig(), store);
 
     doThrow(new StoreWriteException(S3Exception.builder().build()))
         .doThrow(new StoreWriteException(S3Exception.builder().build()))

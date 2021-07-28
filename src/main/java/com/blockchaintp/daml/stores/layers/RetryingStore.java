@@ -38,23 +38,23 @@ import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
  * @param <V>
  *          Value type
  */
-public class Retrying<K, V> implements Store<K, V> {
+public class RetryingStore<K, V> implements Store<K, V> {
 
-  private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(Retrying.class);
+  private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(RetryingStore.class);
   private final Store<K, V> store;
 
   private final Retry getRetry;
   private final Retry putRetry;
 
   /**
-   * Construct the {@link Retrying} layer around the provided {@link Store}.
+   * Construct the {@link RetryingStore} layer around the provided {@link Store}.
    *
    * @param config
    *          the configuration for the retry
    * @param wrappedStore
    *          the {@link Store} to wrap
    */
-  public Retrying(final Config config, final Store<K, V> wrappedStore) {
+  public RetryingStore(final RetryingConfig config, final Store<K, V> wrappedStore) {
     this.store = wrappedStore;
 
     this.getRetry = Retry.of(String.format("%s#get", store.getClass().getCanonicalName()), RetryConfig.custom()
@@ -130,29 +130,4 @@ public class Retrying<K, V> implements Store<K, V> {
     decoratePut(() -> store.put(listOfPairs));
   }
 
-  /**
-   * Configuration for a{@link Retrying} layer.
-   */
-  public static class Config {
-    private static final int DEFAULT_MAX_RETRIES = 3;
-    /**
-     * The maximum number of retries.
-     */
-    private int maxRetries = DEFAULT_MAX_RETRIES;
-
-    /**
-     * @return the maxRetries
-     */
-    public int getMaxRetries() {
-      return maxRetries;
-    }
-
-    /**
-     * @param retries
-     *          the maxRetries to set
-     */
-    public void setMaxRetries(final int retries) {
-      this.maxRetries = retries;
-    }
-  }
 }

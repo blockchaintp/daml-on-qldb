@@ -15,7 +15,8 @@ package com.blockchaintp.daml.stores.s3;
 
 import java.util.function.UnaryOperator;
 
-import com.blockchaintp.daml.stores.layers.Retrying;
+import com.blockchaintp.daml.stores.layers.RetryingConfig;
+import com.blockchaintp.daml.stores.layers.RetryingStore;
 import com.blockchaintp.daml.stores.service.Store;
 
 import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
@@ -32,7 +33,7 @@ public class S3StoreBuilder {
   private UnaryOperator<PutObjectRequest.Builder> putModifications = x -> x;
   private UnaryOperator<GetObjectRequest.Builder> getModifications = x -> x;
   private String tableName;
-  private Retrying.Config retryingConfig;
+  private RetryingConfig retryingConfig;
 
   /**
    * Construct the builder with the provided s3Client.
@@ -102,7 +103,7 @@ public class S3StoreBuilder {
    * @return the builder
    */
   public final S3StoreBuilder retrying(final int maxRetries) {
-    this.retryingConfig = new Retrying.Config();
+    this.retryingConfig = new RetryingConfig();
     this.retryingConfig.setMaxRetries(maxRetries);
 
     return this;
@@ -127,7 +128,7 @@ public class S3StoreBuilder {
     var store = new S3Store(this.storeName, this.tableName, this.client, this.getModifications, this.putModifications);
 
     if (retryingConfig != null) {
-      return new Retrying<>(retryingConfig, store);
+      return new RetryingStore<>(retryingConfig, store);
     }
 
     return store;

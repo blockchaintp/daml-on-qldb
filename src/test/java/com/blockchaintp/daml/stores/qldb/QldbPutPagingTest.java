@@ -16,10 +16,10 @@ package com.blockchaintp.daml.stores.qldb;
 import com.blockchaintp.daml.stores.StubStore;
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
-import com.blockchaintp.daml.stores.layers.Retrying;
+import com.blockchaintp.daml.stores.layers.RetryingConfig;
+import com.blockchaintp.daml.stores.layers.RetryingStore;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
-import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.daml.stores.service.Value;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -49,7 +49,7 @@ class QldbPutPagingTest {
     }
     var store = new CapacityLimitedStore();
 
-    var qldbSubdividing = new QldbRetryStrategy(new Retrying.Config(), store);
+    var qldbSubdividing = new QldbRetryStrategy(new RetryingConfig(), store);
 
     qldbSubdividing.put(toCommit);
 
@@ -61,7 +61,7 @@ class QldbPutPagingTest {
   @Test
   void put_retries_configured_number_of_store_write_exceptions() throws StoreWriteException {
     var store = mock(Store.class);
-    var retrying = new QldbRetryStrategy(new Retrying.Config(), store);
+    var retrying = new QldbRetryStrategy(new RetryingConfig(), store);
 
     doThrow(new StoreWriteException(S3Exception.builder().build()))
         .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(store).put(any(List.class));
@@ -73,7 +73,7 @@ class QldbPutPagingTest {
   @Test
   void put_eventually_fails_with_a_store_write_exceptions() throws StoreWriteException {
     var store = mock(Store.class);
-    var retrying = new Retrying(new Retrying.Config(), store);
+    var retrying = new RetryingStore(new RetryingConfig(), store);
 
     doThrow(new StoreWriteException(S3Exception.builder().build()))
         .doThrow(new StoreWriteException(S3Exception.builder().build()))
