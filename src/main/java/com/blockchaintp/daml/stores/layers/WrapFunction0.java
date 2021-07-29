@@ -45,11 +45,11 @@ public final class WrapFunction0<T, E extends StoreException> {
    * @param inner
    * @param wrap
    * @param <R>
-   * @param <E1>
+   * @param <EX>
    * @return A wrapped function.
    */
-  public static <R, E1 extends StoreException> WrapFunction0<R, E1> of(final Function0<R> inner,
-      final Function1<Exception, E1> wrap) {
+  public static <R, EX extends StoreException> WrapFunction0<R, EX> of(final Function0<R> inner,
+      final Function1<Exception, EX> wrap) {
     return new WrapFunction0<>(inner, wrap);
   }
 
