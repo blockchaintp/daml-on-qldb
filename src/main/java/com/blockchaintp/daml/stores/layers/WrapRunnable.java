@@ -40,10 +40,10 @@ public final class WrapRunnable<E extends StoreException> {
    *
    * @param f
    * @param wrap
-   * @param <EX>
+   * @param <E1>
    * @return A wrapped function.
    */
-  public static <EX extends StoreException> WrapRunnable<EX> of(final Runnable f, final Function1<Exception, EX> wrap) {
+  public static <E1 extends StoreException> WrapRunnable<E1> of(final Runnable f, final Function1<Exception, E1> wrap) {
     return new WrapRunnable<>(f, wrap);
   }
 
