@@ -72,21 +72,25 @@ public final class RetryingTransactionLog<K, V, I> implements TransactionLog<K, 
 
   @Override
   public K begin() throws StoreWriteException {
-    return Retry.decorateCheckedSupplier(retry("begin"), store::begin).unchecked().apply();
+    return WrapFunction0
+        .of(Retry.decorateCheckedSupplier(retry("begin"), store::begin).unchecked(), StoreWriteException::new).apply();
   }
 
   @Override
   public void sendEvent(final K id, final V data) throws StoreWriteException {
-    Retry.decorateCheckedRunnable(retry("sendEvent"), () -> store.sendEvent(id, data)).unchecked().run();
+    WrapRunnable.of(Retry.decorateCheckedRunnable(retry("sendEvent"), () -> store.sendEvent(id, data)).unchecked(),
+        StoreWriteException::new).run();
   }
 
   @Override
   public I commit(final K txId) throws StoreWriteException {
-    return Retry.decorateCheckedSupplier(retry("commit"), () -> store.commit(txId)).unchecked().apply();
+    return WrapFunction0.of(Retry.decorateCheckedSupplier(retry("commit"), () -> store.commit(txId)).unchecked(),
+        StoreWriteException::new).apply();
   }
 
   @Override
   public void abort(final K txId) throws StoreWriteException {
-    Retry.decorateCheckedRunnable(retry("abort"), () -> store.abort(txId)).unchecked().run();
+    WrapRunnable.of(Retry.decorateCheckedRunnable(retry("abort"), () -> store.abort(txId)).unchecked(),
+        StoreWriteException::new).run();
   }
 }

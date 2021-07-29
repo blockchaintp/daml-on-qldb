@@ -25,8 +25,6 @@ import com.blockchaintp.daml.stores.service.Value;
 
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
-import io.vavr.CheckedFunction0;
-import io.vavr.CheckedRunnable;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 
@@ -60,8 +58,8 @@ public class RetryingStore<K, V> implements Store<K, V> {
     this.getRetry = Retry.of(String.format("%s#get", store.getClass().getCanonicalName()), RetryConfig.custom()
         .maxAttempts(config.getMaxRetries()).retryOnException(StoreReadException.class::isInstance).build());
 
-    this.putRetry = Retry.of(String.format("%s#put", store.getClass().getCanonicalName()), RetryConfig.custom()
-        .maxAttempts(config.getMaxRetries()).retryOnException(StoreWriteException.class::isInstance).build());
+    this.putRetry = Retry.of(String.format("%s#put", store.getClass().getCanonicalName()),
+        RetryConfig.custom().maxAttempts(config.getMaxRetries()).retryOnException(s -> true).build());
 
     getRetry.getEventPublisher().onRetry(r -> LOG.info("Retrying {} attempt {} due to {}", r::getName,
         r::getNumberOfRetryAttempts, r::getLastThrowable, () -> r.getLastThrowable().getMessage()));
@@ -83,57 +81,38 @@ public class RetryingStore<K, V> implements Store<K, V> {
     return store;
   }
 
-  final <T> T decorateGet(final CheckedFunction0<T> f) throws StoreReadException {
-    try {
-      return getRetry.executeSupplier(f.unchecked());
-    } catch (RuntimeException e) {
-      throw new StoreReadException(e);
-    } catch (Exception e) {
-      if (e instanceof StoreReadException) {
-        throw e;
-      }
-      throw new StoreReadException(e);
-    }
-  }
-
   @Override
   public final Optional<Value<V>> get(final Key<K> key) throws StoreReadException {
-    return decorateGet(() -> store.get(key));
+    return WrapFunction0
+        .of(Retry.decorateCheckedSupplier(getRetry, () -> store.get(key)).unchecked(), StoreReadException::new).apply();
   }
 
   @Override
   public final Map<Key<K>, Value<V>> get(final List<Key<K>> listOfKeys) throws StoreReadException {
-    return decorateGet(() -> store.get(listOfKeys));
-  }
-
-  final void decoratePut(final CheckedRunnable f) throws StoreWriteException {
-    try {
-      putRetry.executeSupplier(() -> {
-        /// We only have a checked Supplier<>, so return a null
-        f.unchecked().run();
-        return null;
-      });
-    } catch (RuntimeException e) {
-      throw new StoreWriteException(e);
-    } catch (Exception e) {
-      if (e instanceof StoreReadException) {
-        throw e;
-      }
-      throw new StoreWriteException(e);
-    }
+    return WrapFunction0
+        .of(Retry.decorateCheckedSupplier(getRetry, () -> store.get(listOfKeys)).unchecked(), StoreReadException::new)
+        .apply();
   }
 
   @Override
   public final void put(final Key<K> key, final Value<V> value) throws StoreWriteException {
-    decoratePut(() -> store.put(key, value));
+    WrapRunnable
+        .of(Retry.decorateCheckedRunnable(putRetry, () -> store.put(key, value)).unchecked(), StoreWriteException::new)
+        .run();
   }
 
   /**
-   * This may be overriden by subclasses to provide a different put implementation.
+   * It is useful to override here for paging behaviour.
+   *
+   * @param listOfPairs
+   *          the list of K/V pairs to put
+   * @throws StoreWriteException
    */
   @Override
   public void put(final List<Map.Entry<Key<K>, Value<V>>> listOfPairs) throws StoreWriteException {
-    decoratePut(() -> store.put(listOfPairs));
+    WrapRunnable
+        .of(Retry.decorateCheckedRunnable(putRetry, () -> store.put(listOfPairs)).unchecked(), StoreWriteException::new)
+        .run();
   }
 
 }
