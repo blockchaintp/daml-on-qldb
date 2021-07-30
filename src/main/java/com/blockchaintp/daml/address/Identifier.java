@@ -17,12 +17,6 @@ import com.blockchaintp.daml.stores.service.Opaque;
 
 /**
  * A generic identifier.
- *
- * @param <T>
  */
-public class Identifier<T> extends Opaque<T> {
-
-  protected Identifier(final T v) {
-    super(v);
-  }
+public interface Identifier {
 }

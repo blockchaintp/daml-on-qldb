@@ -15,11 +15,6 @@ package com.blockchaintp.daml.address;
 
 /**
  * Represents a ledger address.
- *
- * @param <T>
  */
-public final class LedgerAddress<T> extends Identifier<T> {
-  protected LedgerAddress(final T v) {
-    super(v);
-  }
+public interface LedgerAddress extends Identifier {
 }
