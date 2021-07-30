@@ -62,7 +62,7 @@ class QldbStoreIntegrationTest {
 
     this.resources = new QldbResources(
         QldbClient.builder().credentialsProvider(DefaultCredentialsProvider.create()).region(Region.EU_WEST_2).build(),
-        driver, ledger);
+        ledger);
 
     final var storeBuilder = QldbStore.forDriver(driver).tableName("qldbstoreintegrationtest");
 

@@ -11,29 +11,30 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.blockchaintp.daml.stores.exception;
+package com.blockchaintp.daml.stores.layers;
 
 /**
- * Represents a read failure of some sort to the store.
+ * Configuration for a{@link RetryingStore} layer.
  */
-public class StoreReadException extends StoreException {
+public class RetryingConfig {
+  private static final int DEFAULT_MAX_RETRIES = 3;
+  /**
+   * The maximum number of retries.
+   */
+  private int maxRetries = DEFAULT_MAX_RETRIES;
 
   /**
-   * A read exception with an originating cause.
-   *
-   * @param cause
-   *          the cause
+   * @return the maxRetries
    */
-  public StoreReadException(final Throwable cause) {
-    super(cause);
+  public int getMaxRetries() {
+    return maxRetries;
   }
 
   /**
-   * A read exception originating in our application.
-   *
-   * @param message
+   * @param retries
+   *          the maxRetries to set
    */
-  public StoreReadException(final String message) {
-    super(message);
+  public void setMaxRetries(final int retries) {
+    this.maxRetries = retries;
   }
 }

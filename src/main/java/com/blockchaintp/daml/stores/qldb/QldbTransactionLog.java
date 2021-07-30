@@ -34,6 +34,7 @@ import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.google.protobuf.ByteString;
 
+import static software.amazon.awssdk.services.qldbsession.model.QldbSessionException.create;
 import io.reactivex.rxjava3.core.Observable;
 import io.vavr.API;
 import io.vavr.Tuple;
@@ -166,7 +167,7 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
         var v = s.get("_1");
 
         if (v == null) {
-          throw QldbSessionException.create("", QldbTransactionException.invalidSchema(s));
+          throw create("", QldbTransactionException.invalidSchema(s));
         }
 
         if (v instanceof IonNull) {
@@ -188,20 +189,20 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
 
       var uuidBytes = asBytes(txId);
 
-      driver.execute((ExecutorNoReturn) tx -> {
+      driver.execute((ExecutorNoReturn) tx -> API.unchecked(() -> {
         var query = String.format("select metadata.id from _ql_committed_%s as o where o.data.%s = ?", txLogTable,
             ID_FIELD);
         var r = tx.execute(query, ion.newBlob(uuidBytes));
 
         if (r.isEmpty()) {
-          throw QldbException.create("", QldbTransactionException.noMetadata(query));
+          throw new StoreWriteException(QldbTransactionException.noMetadata(query));
         }
 
         var metaData = (IonStruct) r.iterator().next();
         var docid = metaData.get("id");
 
         if (docid == null || docid instanceof IonNull) {
-          throw QldbException.create("", QldbTransactionException.invalidSchema(metaData));
+          throw new StoreWriteException(QldbTransactionException.invalidSchema(metaData));
         }
 
         var struct = ion.newEmptyStruct();
@@ -209,10 +210,13 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
         struct.add(DOCID_FIELD, ion.newString(((IonString) docid).stringValue()));
 
         tx.execute(String.format("insert into %s value ?", seqTable), struct);
-      });
+
+        return null;
+      }).get());
     } catch (QldbException e) {
       throw new StoreWriteException(e);
     }
+
     return seqSource.takeNext();
   }
 
@@ -220,9 +224,9 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
   public void abort(final UUID txId) {
     tables.checkTables();
 
-    driver.execute(tx -> {
-      tx.execute(String.format("delete from %s as o where o.%s = ?", txLogTable, ID_FIELD), ion.newBlob(asBytes(txId)));
-    });
+    driver.execute(
+        (ExecutorNoReturn) tx -> tx.execute(String.format("delete from %s as o where o.%s = ?", txLogTable, ID_FIELD),
+            ion.newBlob(asBytes(txId))));
   }
 
   private Tuple2<Long, Map.Entry<UUID, ByteString>> fromResult(final IonValue result) throws QldbTransactionException {
@@ -255,9 +259,8 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
           LOG.debug("Querying for page {}", () -> query);
           var r = tx.execute(query);
 
-          var rx = StreamSupport.stream(r.spliterator(), false)
-              .map(record -> API.unchecked(() -> fromResult(record)).get()).sorted(Comparator.comparingLong(x -> x._1))
-              .map(x -> x._2).collect(Collectors.toList());
+          var rx = StreamSupport.stream(r.spliterator(), false).map(x -> API.unchecked(() -> fromResult(x)).get())
+              .sorted(Comparator.comparingLong(x -> x._1)).map(x -> x._2).collect(Collectors.toList());
 
           readSeq.takeRange(rx.size());
 

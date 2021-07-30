@@ -33,7 +33,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class QldbTransactionLogIntegrationTest {
+class QldbTransactionLogIntegrationTest {
 
   private QldbTransactionLog txLog;
   private IonSystem ionSystem;
@@ -53,7 +53,7 @@ public class QldbTransactionLogIntegrationTest {
 
     this.resources = new QldbResources(
         QldbClient.builder().credentialsProvider(DefaultCredentialsProvider.create()).region(Region.EU_WEST_2).build(),
-        driver, ledger);
+        ledger);
 
     final var storeBuilder = QldbTransactionLog.forDriver(driver).tablePrefix("qldbtxintegrationtest");
 
@@ -79,6 +79,10 @@ public class QldbTransactionLogIntegrationTest {
 
       txLog.commit(id);
     }
+
+    var aborted = txLog.begin();
+    txLog.sendEvent(aborted, ByteString.copyFromUtf8("aborted"));
+    txLog.abort(aborted);
 
     var stream = txLog.from(Optional.of(0L));
 

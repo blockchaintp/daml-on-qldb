@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.qldb.QldbClient;
 import software.amazon.awssdk.services.qldb.model.CreateLedgerRequest;
 import software.amazon.awssdk.services.qldb.model.DeleteLedgerRequest;
@@ -24,7 +25,6 @@ import software.amazon.awssdk.services.qldb.model.DescribeLedgerRequest;
 import software.amazon.awssdk.services.qldb.model.LedgerState;
 import software.amazon.awssdk.services.qldb.model.PermissionsMode;
 import software.amazon.awssdk.services.qldb.model.ResourceNotFoundException;
-import software.amazon.qldb.QldbDriver;
 
 /**
  * Deals with QLDB resources.
@@ -33,7 +33,6 @@ public class QldbResources implements RequiresAWSResources {
   private static final int DEFAULT_WAIT_TIME_MS = 1000;
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QldbResources.class);
   private final QldbClient infrastructureClient;
-  private final QldbDriver driver;
   private final String ledger;
 
   /**
@@ -41,14 +40,11 @@ public class QldbResources implements RequiresAWSResources {
    *
    * @param qldbClient
    *          the qldb client
-   * @param qldbDriver
-   *          the qldb driver
    * @param ledgerName
    *          the ledger name
    */
-  public QldbResources(final QldbClient qldbClient, final QldbDriver qldbDriver, final String ledgerName) {
+  public QldbResources(final QldbClient qldbClient, final String ledgerName) {
     this.infrastructureClient = qldbClient;
-    this.driver = qldbDriver;
     this.ledger = ledgerName;
   }
 
@@ -60,8 +56,7 @@ public class QldbResources implements RequiresAWSResources {
       LOG.debug("Check ledger state, currently {}", current::get);
 
       return current.get().equals(state);
-    } catch (Throwable e) {
-      // TODO this one is bad, we should not catch all exceptions
+    } catch (SdkException e) {
       return current.get() == null && state.equals(LedgerState.DELETED);
     }
   }

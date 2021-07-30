@@ -19,7 +19,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
-import com.blockchaintp.daml.stores.layers.Retrying;
+import com.blockchaintp.daml.stores.layers.RetryingConfig;
+import com.blockchaintp.daml.stores.layers.RetryingStore;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.Value;
@@ -40,7 +41,7 @@ import software.amazon.awssdk.services.qldbsession.model.CapacityExceededExcepti
  * @see <a href= "https://docs.aws.amazon.com/qldb/latest/developerguide/driver-errors.html">QLDB
  *      Driver errors</a>
  */
-public class QldbRetryStrategy<K, V> extends Retrying<K, V> implements Store<K, V> {
+public class QldbRetryStrategy<K, V> extends RetryingStore<K, V> implements Store<K, V> {
   private static final int DEFAULT_MAX_DOCUMENTS = 40;
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QldbRetryStrategy.class);
   private final Retry putRetry;
@@ -54,7 +55,7 @@ public class QldbRetryStrategy<K, V> extends Retrying<K, V> implements Store<K, 
    * @param store
    *          the store, specifically meant to be used with a QLDBStore, but not required to do so
    */
-  public QldbRetryStrategy(final Config config, final Store<K, V> store) {
+  public QldbRetryStrategy(final RetryingConfig config, final Store<K, V> store) {
     super(config, store);
 
     this.putRetry = Retry.of(String.format("%s#put-qldb-batch", store.getClass().getCanonicalName()),

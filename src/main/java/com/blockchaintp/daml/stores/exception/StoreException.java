@@ -13,12 +13,10 @@
  */
 package com.blockchaintp.daml.stores.exception;
 
-import java.io.IOException;
-
 /**
  * Represents a generic exception in the underlying store.
  */
-public class StoreException extends IOException {
+public class StoreException extends Exception {
 
   /**
    * An exception with an originating cause.

@@ -25,8 +25,6 @@ import com.blockchaintp.daml.stores.service.Value;
 
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
-import io.vavr.CheckedFunction0;
-import io.vavr.CheckedRunnable;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 
@@ -38,30 +36,30 @@ import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
  * @param <V>
  *          Value type
  */
-public class Retrying<K, V> implements Store<K, V> {
+public class RetryingStore<K, V> implements Store<K, V> {
 
-  private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(Retrying.class);
+  private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(RetryingStore.class);
   private final Store<K, V> store;
 
   private final Retry getRetry;
   private final Retry putRetry;
 
   /**
-   * Construct the {@link Retrying} layer around the provided {@link Store}.
+   * Construct the {@link RetryingStore} layer around the provided {@link Store}.
    *
    * @param config
    *          the configuration for the retry
    * @param wrappedStore
    *          the {@link Store} to wrap
    */
-  public Retrying(final Config config, final Store<K, V> wrappedStore) {
+  public RetryingStore(final RetryingConfig config, final Store<K, V> wrappedStore) {
     this.store = wrappedStore;
 
     this.getRetry = Retry.of(String.format("%s#get", store.getClass().getCanonicalName()), RetryConfig.custom()
         .maxAttempts(config.getMaxRetries()).retryOnException(StoreReadException.class::isInstance).build());
 
-    this.putRetry = Retry.of(String.format("%s#put", store.getClass().getCanonicalName()), RetryConfig.custom()
-        .maxAttempts(config.getMaxRetries()).retryOnException(StoreWriteException.class::isInstance).build());
+    this.putRetry = Retry.of(String.format("%s#put", store.getClass().getCanonicalName()),
+        RetryConfig.custom().maxAttempts(config.getMaxRetries()).retryOnException(s -> true).build());
 
     getRetry.getEventPublisher().onRetry(r -> LOG.info("Retrying {} attempt {} due to {}", r::getName,
         r::getNumberOfRetryAttempts, r::getLastThrowable, () -> r.getLastThrowable().getMessage()));
@@ -83,76 +81,38 @@ public class Retrying<K, V> implements Store<K, V> {
     return store;
   }
 
-  final <T> T decorateGet(final CheckedFunction0<T> f) throws StoreReadException {
-    try {
-      return getRetry.executeCheckedSupplier(f);
-    } catch (StoreReadException e) {
-      throw e;
-    } catch (Throwable e) {
-      throw new StoreReadException(e);
-    }
-  }
-
   @Override
   public final Optional<Value<V>> get(final Key<K> key) throws StoreReadException {
-    return decorateGet(() -> store.get(key));
+    return WrapFunction0
+        .of(Retry.decorateCheckedSupplier(getRetry, () -> store.get(key)).unchecked(), StoreReadException::new).apply();
   }
 
   @Override
   public final Map<Key<K>, Value<V>> get(final List<Key<K>> listOfKeys) throws StoreReadException {
-    return decorateGet(() -> store.get(listOfKeys));
-  }
-
-  final void decoratePut(final CheckedRunnable f) throws StoreWriteException {
-    try {
-      putRetry.executeCheckedSupplier(() -> {
-        /// We only have a checked Supplier<>, so return a null
-        f.run();
-        return null;
-      });
-    } catch (StoreWriteException e) {
-      throw e;
-    } catch (Throwable e) {
-      throw new StoreWriteException(e);
-    }
+    return WrapFunction0
+        .of(Retry.decorateCheckedSupplier(getRetry, () -> store.get(listOfKeys)).unchecked(), StoreReadException::new)
+        .apply();
   }
 
   @Override
   public final void put(final Key<K> key, final Value<V> value) throws StoreWriteException {
-    decoratePut(() -> store.put(key, value));
+    WrapRunnable
+        .of(Retry.decorateCheckedRunnable(putRetry, () -> store.put(key, value)).unchecked(), StoreWriteException::new)
+        .run();
   }
 
   /**
-   * This may be overriden by subclasses to provide a different put implementation.
+   * It is useful to override here for paging behaviour.
+   *
+   * @param listOfPairs
+   *          the list of K/V pairs to put
+   * @throws StoreWriteException
    */
   @Override
   public void put(final List<Map.Entry<Key<K>, Value<V>>> listOfPairs) throws StoreWriteException {
-    decoratePut(() -> store.put(listOfPairs));
+    WrapRunnable
+        .of(Retry.decorateCheckedRunnable(putRetry, () -> store.put(listOfPairs)).unchecked(), StoreWriteException::new)
+        .run();
   }
 
-  /**
-   * Configuration for a{@link Retrying} layer.
-   */
-  public static class Config {
-    private static final int DEFAULT_MAX_RETRIES = 3;
-    /**
-     * The maximum number of retries.
-     */
-    private int maxRetries = DEFAULT_MAX_RETRIES;
-
-    /**
-     * @return the maxRetries
-     */
-    public int getMaxRetries() {
-      return maxRetries;
-    }
-
-    /**
-     * @param retries
-     *          the maxRetries to set
-     */
-    public void setMaxRetries(final int retries) {
-      this.maxRetries = retries;
-    }
-  }
 }

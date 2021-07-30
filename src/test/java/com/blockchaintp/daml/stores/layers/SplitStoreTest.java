@@ -38,7 +38,6 @@ class SplitStoreTest {
   @Test
   void unindexed_put_enters_hash_into_txlog_after_storing_in_blobstore()
       throws StoreWriteException, StoreReadException {
-    var ion = IonSystemBuilder.standard().build();
     var txLog = new com.blockchaintp.daml.stores.StubStore<ByteString, ByteString>();
     var blobStore = new com.blockchaintp.daml.stores.StubStore<String, byte[]>();
     var splitStore = new SplitStore(false, mock(StoreReader.class), txLog, blobStore, bytes -> new byte[] { 'o', 'k' });
