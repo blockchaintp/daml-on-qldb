@@ -1,3 +1,16 @@
+/*
+ * Copyright 2021 Blockchain Technology Partners
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.blockchaintp.daml.participant;
 
 import java.util.stream.Collectors;
@@ -13,6 +26,7 @@ import com.daml.ledger.participant.state.kvutils.api.LedgerRecord;
 import com.daml.ledger.participant.state.kvutils.api.LedgerWriter;
 import com.daml.ledger.participant.state.v1.Offset;
 import com.daml.ledger.participant.state.v1.SubmissionResult;
+import com.daml.ledger.resources.ResourceContext;
 import com.daml.telemetry.TelemetryContext;
 
 import akka.NotUsed;
@@ -20,12 +34,10 @@ import akka.stream.scaladsl.Source;
 import io.reactivex.rxjava3.core.BackpressureStrategy;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
-
 import scala.Option;
 import scala.concurrent.ExecutionContext;
-import scala.jdk.javaapi.OptionConverters;
 import scala.concurrent.Future;
-
+import scala.jdk.javaapi.OptionConverters;
 
 /**
  *
@@ -41,6 +53,21 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   private final String participantId;
 
   /**
+   * Convenience method for creating a builder.
+   *
+   * @param theParticipantId
+   * @param theLedgerId
+   * @param theContext
+   * @param <I2>
+   * @param <A2>
+   * @return A partially configured participant builder.
+   */
+  public static <I2 extends Identifier, A2 extends LedgerAddress> ParticipantBuilder<I2, A2> builder(
+      final String theParticipantId, final String theLedgerId, final ResourceContext theContext) {
+    return new ParticipantBuilder<I2, A2>(theParticipantId, theLedgerId, theContext);
+  }
+
+  /**
    *
    * @param theTxLog
    * @param theCommitPayloadBuilder
@@ -48,7 +75,9 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
    * @param theLedgerId
    * @param theParticipantId
    */
-  public Participant(final TransactionLogReader<Offset, I, LedgerRecord> theTxLog, final CommitPayloadBuilder<I> theCommitPayloadBuilder, final LedgerSubmitter<I, A> theSubmitter, final String theLedgerId, final String theParticipantId) {
+  public Participant(final TransactionLogReader<Offset, I, LedgerRecord> theTxLog,
+      final CommitPayloadBuilder<I> theCommitPayloadBuilder, final LedgerSubmitter<I, A> theSubmitter,
+      final String theLedgerId, final String theParticipantId) {
     txLog = theTxLog;
     commitPayloadBuilder = theCommitPayloadBuilder;
     submitter = theSubmitter;
@@ -63,11 +92,8 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
 
   @Override
   public Source<LedgerRecord, NotUsed> events(final Option<Offset> startExclusive) {
-    return Source.fromPublisher(
-      txLog.from(OptionConverters.toJava(startExclusive))
-        .map(rx -> rx.getValue())
-        .toFlowable(BackpressureStrategy.BUFFER)
-    );
+    return Source.fromPublisher(txLog.from(OptionConverters.toJava(startExclusive)).map(rx -> rx.getValue())
+        .toFlowable(BackpressureStrategy.BUFFER));
   }
 
   @Override
@@ -81,14 +107,13 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   }
 
   @Override
-  public Future<SubmissionResult> commit(final String correlationId, final Raw.Envelope envelope, final CommitMetadata metadata, final TelemetryContext telemetryContext) {
+  public Future<SubmissionResult> commit(final String correlationId, final Raw.Envelope envelope,
+      final CommitMetadata metadata, final TelemetryContext telemetryContext) {
 
     return Future.apply(() -> {
       try {
-        var ref = commitPayloadBuilder.build(envelope, metadata, correlationId)
-          .stream()
-          .map(submitter::submitPayload)
-          .collect(Collectors.toList());
+        var ref = commitPayloadBuilder.build(envelope, metadata, correlationId).stream().map(submitter::submitPayload)
+            .collect(Collectors.toList());
         return SubmissionResult.Acknowledged$.MODULE$;
       } catch (final Exception e) {
         LOG.warn("Interrupted while submitting transaction", e);

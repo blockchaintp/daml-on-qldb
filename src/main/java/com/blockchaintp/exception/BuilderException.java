@@ -11,12 +11,12 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.blockchaintp.daml.stores.s3;
+package com.blockchaintp.exception;
 
 /**
- * RuntimeExceptions relating to the construction of S3Store objects.
+ * RuntimeExceptions relating to the operation of builder.
  */
-public class S3StoreBuilderException extends RuntimeException {
+public class BuilderException extends RuntimeException {
   /**
    * Exception with message and cause.
    *
@@ -25,7 +25,7 @@ public class S3StoreBuilderException extends RuntimeException {
    * @param cause
    *          the originating exception
    */
-  public S3StoreBuilderException(final String message, final Throwable cause) {
+  public BuilderException(final String message, final Throwable cause) {
     super(message, cause);
   }
 
@@ -35,7 +35,7 @@ public class S3StoreBuilderException extends RuntimeException {
    * @param message
    *          the message
    */
-  public S3StoreBuilderException(final String message) {
+  public BuilderException(final String message) {
     super(message);
   }
 }

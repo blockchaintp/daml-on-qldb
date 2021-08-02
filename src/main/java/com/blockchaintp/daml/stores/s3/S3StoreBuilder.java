@@ -18,6 +18,7 @@ import java.util.function.UnaryOperator;
 import com.blockchaintp.daml.stores.layers.RetryingConfig;
 import com.blockchaintp.daml.stores.layers.RetryingStore;
 import com.blockchaintp.daml.stores.service.Store;
+import com.blockchaintp.exception.BuilderException;
 
 import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -113,16 +114,16 @@ public class S3StoreBuilder {
    * Build the store and return it.
    *
    * @return the S3Store
-   * @throws S3StoreBuilderException
+   * @throws BuilderException
    *           an error in construction
    */
-  public final Store<String, byte[]> build() throws S3StoreBuilderException {
+  public final Store<String, byte[]> build() throws BuilderException {
     if (this.storeName == null) {
-      throw new S3StoreBuilderException("Ledger name must be specified");
+      throw new BuilderException("Ledger name must be specified");
     }
 
     if (this.tableName == null) {
-      throw new S3StoreBuilderException("Table name must be specified");
+      throw new BuilderException("Table name must be specified");
     }
 
     var store = new S3Store(this.storeName, this.tableName, this.client, this.getModifications, this.putModifications);

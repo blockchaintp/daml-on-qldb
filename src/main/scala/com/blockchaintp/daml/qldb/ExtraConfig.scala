@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Blockchain Technology Partners
+ * Copyright 2020-2021 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -11,12 +11,27 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.blockchaintp.daml.address;
+package com.blockchaintp.daml.qldb
 
-import com.daml.ledger.validator.StateKeySerializationStrategy;
+final case class ExtraConfig(
+    keystore: String,
+    maxOpsPerBatch: Int,
+    maxOutStandingBatches: Int,
+    logLevel: String,
+    authType: String,
+    secret: String,
+    jwksUrl: String
+)
 
-/**
- * A generic identifier.
- */
-public interface Identifier extends StateKeySerializationStrategy {
+object ExtraConfig {
+  val default =
+    ExtraConfig(
+      keystore = "/etc/daml/keystore",
+      maxOpsPerBatch = "1000".toInt,
+      maxOutStandingBatches = "2".toInt,
+      logLevel = "info",
+      authType = "none",
+      secret = "",
+      jwksUrl = ""
+    )
 }

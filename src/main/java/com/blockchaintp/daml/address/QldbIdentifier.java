@@ -13,10 +13,27 @@
  */
 package com.blockchaintp.daml.address;
 
-import com.daml.ledger.validator.StateKeySerializationStrategy;
+import com.daml.ledger.participant.state.kvutils.DamlKvutils;
+import com.daml.ledger.participant.state.kvutils.Raw;
+import com.daml.ledger.validator.DefaultStateKeySerializationStrategy;
 
 /**
- * A generic identifier.
+ *
  */
-public interface Identifier extends StateKeySerializationStrategy {
+public final class QldbIdentifier implements Identifier {
+  /**
+   *
+   */
+  public QldbIdentifier() {
+  }
+
+  @Override
+  public Raw.StateKey serializeStateKey(final DamlKvutils.DamlStateKey key) {
+    return DefaultStateKeySerializationStrategy.serializeStateKey(key);
+  }
+
+  @Override
+  public DamlKvutils.DamlStateKey deserializeStateKey(final Raw.StateKey input) {
+    return DefaultStateKeySerializationStrategy.deserializeStateKey(input);
+  }
 }
