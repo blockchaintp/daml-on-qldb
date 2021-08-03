@@ -48,6 +48,43 @@ public final class CoercingTxLog<K1, K2, V1, V2, I1, I2> implements TransactionL
   private final TransactionLog<K2, V2, I2> inner;
 
   /**
+   * Convenience method for building a coercing transaction log.
+   * @param keyCoercionFrom
+   * @param valueCoercionFrom
+   * @param seqCoercionFrom
+   * @param keyCoercionTo
+   * @param valueCoercionTo
+   * @param seqCoercionTo
+   * @param inner
+   * @param <KK1>
+   * @param <KK2>
+   * @param <VV1>
+   * @param <VV2>
+   * @param <II1>
+   * @param <II2>
+   * @return a wrapped, coercing transaction log.
+   */
+  public static <KK1, KK2, VV1, VV2, II1, II2> CoercingTxLog<KK1, KK2, VV1, VV2, II1, II2> from(
+    final Function<KK2, KK1> keyCoercionFrom,
+    final Function<VV2, VV1> valueCoercionFrom,
+    final Function<II2, II1> seqCoercionFrom,
+    final Function<KK1, KK2> keyCoercionTo,
+    final Function<VV1, VV2> valueCoercionTo,
+    final Function<II1, II2> seqCoercionTo,
+    final TransactionLog<KK2, VV2, II2> inner
+  ) {
+      return new CoercingTxLog<KK1, KK2, VV1, VV2, II1, II2>(
+        keyCoercionFrom,
+        valueCoercionFrom,
+        seqCoercionFrom,
+        keyCoercionTo,
+        valueCoercionTo,
+        seqCoercionTo,
+        inner
+      );
+  }
+
+  /**
    * Wraps a transaction log with bijections to convert type parameters.
    *
    * @param theKeyCoercionFrom

@@ -15,6 +15,8 @@ package com.blockchaintp.daml.qldb
 
 final case class ExtraConfig(
     keystore: String,
+    region: String,
+    maxS3ClientConcurrency: Int,
     maxOpsPerBatch: Int,
     maxOutStandingBatches: Int,
     logLevel: String,
@@ -28,6 +30,6 @@ object ExtraConfig {
   val default =
     ExtraConfig(
       keystore = "/etc/daml/keystore", maxOpsPerBatch = "1000".toInt, maxOutStandingBatches = "2".toInt,
-      logLevel = "info", authType = "none", secret = "", jwksUrl = ""
+      logLevel = "info", authType = "none", secret = "", jwksUrl = "",region = "US_EAST_2", maxS3ClientConcurrency = 30
     )
 }
