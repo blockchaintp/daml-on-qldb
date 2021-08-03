@@ -34,7 +34,7 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
   private final String ledgerId;
   private TransactionLogReader<Offset, I, LedgerRecord> txLog;
   private LedgerSubmitter<I, A> submitter;
-  private final CommitPayloadBuilder commitPayloadBuilder = new CommitPayloadBuilder();
+  private final CommitPayloadBuilder commitPayloadBuilder;
 
   /**
    * Construct a participant builder for the given identifiers.
@@ -46,6 +46,7 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
   public ParticipantBuilder(final String theLedgerId, final String theParticipantId, final ResourceContext theContext) {
     participantId = theParticipantId;
     ledgerId = theLedgerId;
+    commitPayloadBuilder = new CommitPayloadBuilder(participantId);
   }
 
   /**

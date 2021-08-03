@@ -15,7 +15,6 @@ package com.blockchaintp.daml.participant;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -33,9 +32,60 @@ import com.google.protobuf.ByteString;
  * @param <A>
  */
 public final class CommitPayloadBuilder<A extends Identifier> {
-  private BiFunction<Raw.Envelope, String, List<DamlOperation>> fragmentationStrategy;
+
+  /**
+   * Behaviours for breaking down a large submission into multiple fragments to be re-assembled
+   * elsewhere.
+   */
+  public interface FragmentationStrategy {
+    /**
+     *
+     * @param theEnvelope
+     * @param theLogEntryId
+     * @param theCorrelationId
+     * @return One or more daml operations to be committed.
+     */
+    List<DamlOperation> fragment(Raw.Envelope theEnvelope, ByteString theLogEntryId, String theCorrelationId);
+  }
+
+  /**
+   *
+   */
+  public final class NoFragmentation implements FragmentationStrategy {
+    private final String participantId;
+
+    /**
+     * Package the submission as a single transaction, do not fragment.
+     *
+     * @param theParticipantId
+     */
+    public NoFragmentation(final String theParticipantId) {
+      participantId = theParticipantId;
+    }
+
+    @Override
+    public List<DamlOperation> fragment(final Raw.Envelope theEnvelope, final ByteString theLogEntryId,
+        final String theCorrelationId) {
+      final var tx = DamlTransaction.newBuilder().setSubmission(theEnvelope.bytes()).setLogEntryId(theLogEntryId)
+          .build();
+      return Arrays.asList(DamlOperation.newBuilder().setCorrelationId(theCorrelationId)
+          .setSubmittingParticipant(participantId).setTransaction(tx).build());
+    }
+  }
+
+  private FragmentationStrategy fragmentationStrategy;
   private Function<CommitMetadata, Stream<A>> outputAddressReader;
   private Function<CommitMetadata, Stream<A>> inputAddressReader;
+  private final String participantId;
+
+  /**
+   *
+   * @param theParticipantId
+   */
+  public CommitPayloadBuilder(final String theParticipantId) {
+    participantId = theParticipantId;
+    withNoFragmentation();
+  }
 
   /**
    *
@@ -60,29 +110,12 @@ public final class CommitPayloadBuilder<A extends Identifier> {
   }
 
   /**
-   * A non fragmenting strategy.
+   * Do not fragment commits before submission.
    *
-   * @param logEntryId
-   * @param correlationId
-   * @param participantId
-   * @param data
-   * @return A single operation.
+   * @return A configured builder.
    */
-  public static List<DamlOperation> noFragmentation(final ByteString logEntryId, final String correlationId,
-      final String participantId, final Raw.Envelope data) {
-    final var tx = DamlTransaction.newBuilder().setSubmission(data.bytes()).setLogEntryId(logEntryId).build();
-    return Arrays.asList(DamlOperation.newBuilder().setCorrelationId(correlationId)
-        .setSubmittingParticipant(participantId).setTransaction(tx).build());
-  }
-
-  /**
-   *
-   * @param theStrategy
-   * @return The configured builder.
-   */
-  public CommitPayloadBuilder<A> withFragmentationStrategy(
-      final BiFunction<Raw.Envelope, String, List<DamlOperation>> theStrategy) {
-    this.fragmentationStrategy = theStrategy;
+  public CommitPayloadBuilder<A> withNoFragmentation() {
+    this.fragmentationStrategy = new NoFragmentation(participantId);
 
     return this;
   }
@@ -103,7 +136,7 @@ public final class CommitPayloadBuilder<A extends Identifier> {
     if (fragmentationStrategy == null) {
       throw new BuilderException("Commit payload builders need a fragmentation strategy");
     }
-    return fragmentationStrategy.apply(theEnvelope, correlationId).stream()
+    return fragmentationStrategy.fragment(theEnvelope, null, correlationId).stream()
         .map(op -> new CommitPayload<A>(op, metadata, inputAddressReader, outputAddressReader))
         .collect(Collectors.toList());
   }

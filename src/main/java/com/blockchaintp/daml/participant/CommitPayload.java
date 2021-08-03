@@ -35,16 +35,6 @@ public class CommitPayload<A extends Identifier> {
   private Set<A> writes;
 
   /**
-   * Create a builder for payloads.
-   *
-   * @param <A1>
-   * @return A builder
-   */
-  public static <A1 extends Identifier> CommitPayloadBuilder<A1> builder() {
-    return new CommitPayloadBuilder<A1>();
-  }
-
-  /**
    *
    * @param theOperation
    * @param theMetadata
