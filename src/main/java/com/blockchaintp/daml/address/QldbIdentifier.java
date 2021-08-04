@@ -14,26 +14,14 @@
 package com.blockchaintp.daml.address;
 
 import com.daml.ledger.participant.state.kvutils.DamlKvutils;
-import com.daml.ledger.participant.state.kvutils.Raw;
-import com.daml.ledger.validator.DefaultStateKeySerializationStrategy;
 
 /**
  *
  */
 public final class QldbIdentifier implements Identifier {
-  /**
-   *
-   */
-  public QldbIdentifier() {
-  }
 
   @Override
-  public Raw.StateKey serializeStateKey(final DamlKvutils.DamlStateKey key) {
-    return DefaultStateKeySerializationStrategy.serializeStateKey(key);
-  }
-
-  @Override
-  public DamlKvutils.DamlStateKey deserializeStateKey(final Raw.StateKey input) {
-    return DefaultStateKeySerializationStrategy.deserializeStateKey(input);
+  public DamlKvutils.DamlStateKey toKey() {
+    return null;
   }
 }

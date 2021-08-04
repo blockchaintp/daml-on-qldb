@@ -28,7 +28,7 @@ import com.daml.ledger.participant.state.kvutils.api.CommitMetadata;
  * @param <A>
  *          the type of the identifier (e.g. {@link LedgerAddress} or {@link Identifier})
  */
-public class CommitPayload<A extends Identifier> {
+public final class CommitPayload<A extends Identifier> {
   private final CommitMetadata metadata;
   private DamlOperation operation;
   private Set<A> reads;
@@ -55,5 +55,13 @@ public class CommitPayload<A extends Identifier> {
    */
   public DamlOperation getOperation() {
     return operation;
+  }
+
+  /**
+   *
+   * @return The set of read addresses.
+   */
+  public Set<A> getReads() {
+    return reads;
   }
 }

@@ -13,10 +13,15 @@
  */
 package com.blockchaintp.daml.address;
 
-import com.daml.ledger.validator.StateKeySerializationStrategy;
+import com.daml.ledger.participant.state.kvutils.DamlKvutils;
 
 /**
  * A generic identifier.
  */
-public interface Identifier extends StateKeySerializationStrategy {
+public interface Identifier {
+  /**
+   *
+   * @return The state key;
+   */
+  DamlKvutils.DamlStateKey toKey();
 }

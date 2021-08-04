@@ -14,19 +14,14 @@
 package com.blockchaintp.daml.address;
 
 import com.daml.ledger.participant.state.kvutils.DamlKvutils;
-import com.daml.ledger.participant.state.kvutils.Raw;
 
 /**
  *
  */
 public final class QldbAddress implements LedgerAddress {
-  @Override
-  public Raw.StateKey serializeStateKey(final DamlKvutils.DamlStateKey key) {
-    return null;
-  }
 
   @Override
-  public DamlKvutils.DamlStateKey deserializeStateKey(final Raw.StateKey input) {
+  public DamlKvutils.DamlStateKey toKey() {
     return null;
   }
 }
