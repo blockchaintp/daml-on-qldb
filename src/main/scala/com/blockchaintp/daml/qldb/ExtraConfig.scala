@@ -30,6 +30,6 @@ object ExtraConfig {
   val default =
     ExtraConfig(
       keystore = "/etc/daml/keystore", maxOpsPerBatch = "1000".toInt, maxOutStandingBatches = "2".toInt,
-      logLevel = "info", authType = "none", secret = "", jwksUrl = "",region = "US_EAST_2", maxS3ClientConcurrency = 30
+      logLevel = "info", authType = "none", secret = "", jwksUrl = "", region = "US_EAST_2", maxS3ClientConcurrency = 30
     )
 }

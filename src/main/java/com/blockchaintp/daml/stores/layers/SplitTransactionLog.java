@@ -41,11 +41,13 @@ public final class SplitTransactionLog implements TransactionLog<UUID, ByteStrin
 
   /**
    * Convenience method for split transaction log builder access.
+   *
    * @param theTxLog
    * @param blobs
    * @return A partially configured builder.
    */
-  public static SplitTransactionLogBuilder from(final TransactionLog<UUID, ByteString, Long> theTxLog, final Store<String, byte[]> blobs) {
+  public static SplitTransactionLogBuilder from(final TransactionLog<UUID, ByteString, Long> theTxLog,
+      final Store<String, byte[]> blobs) {
     return new SplitTransactionLogBuilder(theTxLog, blobs);
   }
 

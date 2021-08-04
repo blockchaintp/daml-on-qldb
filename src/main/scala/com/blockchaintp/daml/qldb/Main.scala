@@ -19,7 +19,9 @@ import com.blockchaintp.daml.address.QldbIdentifier
 import com.blockchaintp.daml.participant.CommitPayloadBuilder
 import com.blockchaintp.daml.participant.ParticipantBuilder
 import com.blockchaintp.daml.runtime.BuilderLedgerFactory
-import com.blockchaintp.daml.stores.layers.{CoercingTxLog, SplitStore, SplitTransactionLog}
+import com.blockchaintp.daml.stores.layers.CoercingTxLog
+import com.blockchaintp.daml.stores.layers.SplitStore
+import com.blockchaintp.daml.stores.layers.SplitTransactionLog
 import com.blockchaintp.daml.stores.qldb.QldbTransactionLog
 import com.blockchaintp.daml.stores.s3.S3Store
 import com.daml.jwt.JwksVerifier
@@ -39,7 +41,8 @@ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
 import software.amazon.awssdk.http.async.SdkAsyncHttpClient
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.qldbsession.QldbSessionClient
-import software.amazon.awssdk.services.s3.{S3AsyncClient, S3AsyncClientBuilder}
+import software.amazon.awssdk.services.s3.S3AsyncClient
+import software.amazon.awssdk.services.s3.S3AsyncClientBuilder
 import software.amazon.qldb.QldbDriver
 
 import java.nio.file.Paths
@@ -52,21 +55,32 @@ object Main {
     val runner = new Runner(
       "Qldb Ledger",
       new LedgerFactory((config: Config[ExtraConfig], builder: ParticipantBuilder[QldbIdentifier, QldbAddress]) => {
-        val httpClient = NettyNioAsyncHttpClient.builder.maxConcurrency(config.extra.maxS3ClientConcurrency).build()
-        val clientBuilder = S3AsyncClient.builder.httpClient(httpClient).region(Region.of(config.extra.region))credentialsProvider(DefaultCredentialsProvider.builder.build)
-        var txBlobStore = S3Store.forClient(clientBuilder)
+        val clientBuilder = S3AsyncClient.builder
+          .region(Region.of(config.extra.region))
+          .credentialsProvider(DefaultCredentialsProvider.builder.build)
+
+        var txBlobStore = S3Store
+          .forClient(clientBuilder)
           .forStore(config.ledgerId)
           .forTable("blobs")
           .retrying(3)
           .build();
 
-        val sessionBuilder = QldbSessionClient.builder.region(Region.of(config.extra.region)).credentialsProvider(DefaultCredentialsProvider.builder.build())
+        val sessionBuilder = QldbSessionClient.builder
+          .region(Region.of(config.extra.region))
+          .credentialsProvider(DefaultCredentialsProvider.builder.build())
+
         val ionSystem = IonSystemBuilder.standard.build
-        val driver = QldbDriver.builder.ledger(config.ledgerId).sessionClientBuilder(sessionBuilder).ionSystem(ionSystem).build()
-        val qldbTransactionLog = QldbTransactionLog.forDriver(driver)
+        val driver =
+          QldbDriver.builder.ledger(config.ledgerId).sessionClientBuilder(sessionBuilder).ionSystem(ionSystem).build()
+        val qldbTransactionLog = QldbTransactionLog
+          .forDriver(driver)
           .tablePrefix("default")
           .build();
 
+        var splitTransactionLog = SplitTransactionLog
+          .from(qldbTransactionLog, txBlobStore)
+          .build();
 
         builder.configureCommitPayloadBuilder(p => p.withNoFragmentation())
       })

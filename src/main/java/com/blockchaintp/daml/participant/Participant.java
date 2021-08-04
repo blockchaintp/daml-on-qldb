@@ -19,6 +19,7 @@ import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.address.LedgerAddress;
 import com.blockchaintp.daml.stores.service.TransactionLogReader;
 import com.daml.ledger.api.health.HealthStatus;
+import com.daml.ledger.participant.state.kvutils.DamlKvutils;
 import com.daml.ledger.participant.state.kvutils.Raw;
 import com.daml.ledger.participant.state.kvutils.api.CommitMetadata;
 import com.daml.ledger.participant.state.kvutils.api.LedgerReader;
@@ -46,11 +47,12 @@ import scala.jdk.javaapi.OptionConverters;
  */
 public final class Participant<I extends Identifier, A extends LedgerAddress> implements LedgerReader, LedgerWriter {
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(Participant.class);
-  private final TransactionLogReader<Offset, I, LedgerRecord> txLog;
+  private final TransactionLogReader<Offset, DamlKvutils.DamlLogEntryId, LedgerRecord> txLog;
   private final CommitPayloadBuilder<I> commitPayloadBuilder;
   private final LedgerSubmitter<I, A> submitter;
   private final String ledgerId;
   private final String participantId;
+  private final ExecutionContext context;
 
   /**
    * Convenience method for creating a builder.
@@ -68,21 +70,22 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   }
 
   /**
-   *
    * @param theTxLog
    * @param theCommitPayloadBuilder
    * @param theSubmitter
    * @param theLedgerId
    * @param theParticipantId
+   * @param theContext
    */
-  public Participant(final TransactionLogReader<Offset, I, LedgerRecord> theTxLog,
+  public Participant(final TransactionLogReader<Offset, DamlKvutils.DamlLogEntryId, LedgerRecord> theTxLog,
       final CommitPayloadBuilder<I> theCommitPayloadBuilder, final LedgerSubmitter<I, A> theSubmitter,
-      final String theLedgerId, final String theParticipantId) {
+      final String theLedgerId, final String theParticipantId, final ExecutionContext theContext) {
     txLog = theTxLog;
     commitPayloadBuilder = theCommitPayloadBuilder;
     submitter = theSubmitter;
     ledgerId = theLedgerId;
     participantId = theParticipantId;
+    context = theContext;
   }
 
   @Override

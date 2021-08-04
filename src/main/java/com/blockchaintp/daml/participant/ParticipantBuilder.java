@@ -19,6 +19,7 @@ import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.address.LedgerAddress;
 import com.blockchaintp.daml.stores.service.TransactionLogReader;
 import com.blockchaintp.exception.BuilderException;
+import com.daml.ledger.participant.state.kvutils.DamlKvutils;
 import com.daml.ledger.participant.state.kvutils.api.LedgerRecord;
 import com.daml.ledger.participant.state.v1.Offset;
 import com.daml.ledger.resources.ResourceContext;
@@ -32,7 +33,8 @@ import com.daml.ledger.resources.ResourceContext;
 public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddress> {
   private final String participantId;
   private final String ledgerId;
-  private TransactionLogReader<Offset, I, LedgerRecord> txLog;
+  private ResourceContext context;
+  private TransactionLogReader<Offset, DamlKvutils.DamlLogEntryId, LedgerRecord> txLog;
   private LedgerSubmitter<I, A> submitter;
   private final CommitPayloadBuilder commitPayloadBuilder;
 
@@ -46,6 +48,7 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
   public ParticipantBuilder(final String theLedgerId, final String theParticipantId, final ResourceContext theContext) {
     participantId = theParticipantId;
     ledgerId = theLedgerId;
+    context = theContext;
     commitPayloadBuilder = new CommitPayloadBuilder(participantId);
   }
 
@@ -55,7 +58,8 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
    * @param reader
    * @return The configured builder.
    */
-  public ParticipantBuilder<I, A> withTransactionLogReader(final TransactionLogReader<Offset, I, LedgerRecord> reader) {
+  public ParticipantBuilder<I, A> withTransactionLogReader(
+      final TransactionLogReader<Offset, DamlKvutils.DamlLogEntryId, LedgerRecord> reader) {
     this.txLog = reader;
 
     return this;
@@ -99,6 +103,7 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
       throw new BuilderException("Participant requires a configured submitter");
     }
 
-    return new Participant<I, A>(txLog, commitPayloadBuilder, submitter, ledgerId, participantId);
+    return new Participant<I, A>(txLog, commitPayloadBuilder, submitter, ledgerId, participantId,
+        context.executionContext());
   }
 }

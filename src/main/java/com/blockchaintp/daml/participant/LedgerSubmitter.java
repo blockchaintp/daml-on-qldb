@@ -13,6 +13,8 @@
  */
 package com.blockchaintp.daml.participant;
 
+import java.util.Optional;
+
 import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.address.LedgerAddress;
 
@@ -42,7 +44,7 @@ public interface LedgerSubmitter<A extends Identifier, B extends LedgerAddress> 
    *          the reference to check.
    * @return a status object.
    */
-  SubmissionStatus checkSubmission(SubmissionReference ref);
+  Optional<SubmissionStatus> checkSubmission(SubmissionReference ref);
 
   /**
    * For convenience we can translate one the payload to the expected output payload.

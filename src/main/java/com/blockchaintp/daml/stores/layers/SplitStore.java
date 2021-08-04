@@ -41,14 +41,14 @@ public final class SplitStore implements Store<ByteString, ByteString> {
   private final StoreReader<ByteString, ByteString> reader;
   private final UnaryOperator<byte[]> hashFn;
 
-
   /**
    *
    * @param refstore
    * @param blobStore
    * @return A builder for a splitstore composed from refstore and blobstore
    */
-  public static SplitStoreBuilder fromStores(final Store<ByteString, ByteString> refstore, final Store<String, byte[]> blobStore) {
+  public static SplitStoreBuilder fromStores(final Store<ByteString, ByteString> refstore,
+      final Store<String, byte[]> blobStore) {
     return new SplitStoreBuilder(refstore, blobStore);
   }
 
