@@ -34,15 +34,16 @@ import com.daml.ledger.api.auth.AuthServiceJWT
 import com.daml.ledger.api.auth.AuthServiceWildcard
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlStateKey
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlStateValue
-import com.daml.ledger.participant.state.kvutils.KeyValueCommitting
+import com.daml.ledger.participant.state.kvutils.{DamlKvutils, KeyValueCommitting}
 import com.daml.ledger.participant.state.kvutils.app.Config
 import com.daml.ledger.participant.state.kvutils.app.Runner
-import com.daml.ledger.participant.state.v1.Configuration
-import com.daml.ledger.participant.state.v1.TimeModel
+import com.daml.ledger.participant.state.v1.{Configuration, Offset, Offset$, TimeModel}
 import com.daml.ledger.resources.ResourceContext
 import com.daml.platform.configuration.LedgerConfiguration
 import com.daml.resources.ProgramResource
+import com.google.common.primitives.Longs
 import com.google.protobuf.ByteString
+import io.vavr.API
 import scopt.OptionParser
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
 import software.amazon.awssdk.http.async.SdkAsyncHttpClient
@@ -52,8 +53,10 @@ import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.S3AsyncClientBuilder
 import software.amazon.qldb.QldbDriver
 
+import java.nio.ByteBuffer
 import java.nio.file.Paths
 import java.time.Duration
+import java.util.UUID
 import scala.util.Try
 
 object Main {
@@ -113,9 +116,17 @@ object Main {
           .tablePrefix("default")
           .build();
 
-        var transactionLog = SplitTransactionLog
-          .from(qldbTransactionLog, txBlobStore)
-          .build();
+        var transactionLog = CoercingTxLog.from(
+          (k: UUID) => DamlKvutils.DamlLogEntryId.newBuilder.setEntryId(ByteString.copyFrom(asBytes(k))).build,
+          API.unchecked((v: ByteString) => DamlKvutils.DamlLogEntry.parseFrom(v)),
+          (i: Long) => Offset.fromByteArray(Longs.toByteArray(i)),
+          (k: DamlKvutils.DamlLogEntryId) => asUuid(k.getEntryId.toByteArray),
+          (v: DamlKvutils.DamlLogEntry) => v.toByteString,
+          (i: Offset) => Longs.fromByteArray(i.toByteArray),
+          SplitTransactionLog
+            .from(qldbTransactionLog, txBlobStore)
+            .build()
+        );
 
         builder.configureCommitPayloadBuilder(p => p.withNoFragmentation())
       })
@@ -123,6 +134,19 @@ object Main {
     new ProgramResource(runner).run(ResourceContext.apply)
   }
 
+  private def asUuid(bytes: Array[Byte]) = {
+    val bb = ByteBuffer.wrap(bytes)
+    val firstLong = bb.getLong
+    val secondLong = bb.getLong
+    new UUID(firstLong, secondLong)
+  }
+
+  private def asBytes(uuid: UUID) = {
+    val bb = ByteBuffer.wrap(new Array[Byte](16))
+    bb.putLong(uuid.getMostSignificantBits)
+    bb.putLong(uuid.getLeastSignificantBits)
+    bb.array
+  }
   class LedgerFactory(
       build: (
           Config[ExtraConfig],
@@ -163,7 +187,7 @@ object Main {
 
     override val defaultExtraConfig: ExtraConfig = ExtraConfig.default
 
-    private def validatePath(path: String, message: String): Either[String, Unit] = {
+    private def validatePath(path: String, message: String) = {
       val valid = Try(Paths.get(path).toFile.canRead).getOrElse(false)
       if (valid) Right(()) else Left(message)
     }
