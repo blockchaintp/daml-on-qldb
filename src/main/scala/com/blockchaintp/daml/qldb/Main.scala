@@ -17,11 +17,14 @@ import com.amazon.ion.system.IonSystemBuilder
 import com.blockchaintp.daml.address.QldbAddress
 import com.blockchaintp.daml.address.QldbIdentifier
 import com.blockchaintp.daml.participant.CommitPayloadBuilder
+import com.blockchaintp.daml.participant.InProcLedgerSubmitter
 import com.blockchaintp.daml.participant.ParticipantBuilder
 import com.blockchaintp.daml.runtime.BuilderLedgerFactory
+import com.blockchaintp.daml.stores.layers.CoercingStore
 import com.blockchaintp.daml.stores.layers.CoercingTxLog
 import com.blockchaintp.daml.stores.layers.SplitStore
 import com.blockchaintp.daml.stores.layers.SplitTransactionLog
+import com.blockchaintp.daml.stores.qldb.QldbStore
 import com.blockchaintp.daml.stores.qldb.QldbTransactionLog
 import com.blockchaintp.daml.stores.s3.S3Store
 import com.daml.jwt.JwksVerifier
@@ -29,6 +32,9 @@ import com.daml.jwt.RSA256Verifier
 import com.daml.ledger.api.auth.AuthService
 import com.daml.ledger.api.auth.AuthServiceJWT
 import com.daml.ledger.api.auth.AuthServiceWildcard
+import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlStateKey
+import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlStateValue
+import com.daml.ledger.participant.state.kvutils.KeyValueCommitting
 import com.daml.ledger.participant.state.kvutils.app.Config
 import com.daml.ledger.participant.state.kvutils.app.Runner
 import com.daml.ledger.participant.state.v1.Configuration
@@ -36,6 +42,7 @@ import com.daml.ledger.participant.state.v1.TimeModel
 import com.daml.ledger.resources.ResourceContext
 import com.daml.platform.configuration.LedgerConfiguration
 import com.daml.resources.ProgramResource
+import com.google.protobuf.ByteString
 import scopt.OptionParser
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
 import software.amazon.awssdk.http.async.SdkAsyncHttpClient
@@ -62,7 +69,14 @@ object Main {
         var txBlobStore = S3Store
           .forClient(clientBuilder)
           .forStore(config.ledgerId)
-          .forTable("blobs")
+          .forTable("tx_log_blobs")
+          .retrying(3)
+          .build();
+
+        var stateBlobStore = S3Store
+          .forClient(clientBuilder)
+          .forStore(config.ledgerId)
+          .forTable("daml_state_blobs")
           .retrying(3)
           .build();
 
@@ -73,12 +87,33 @@ object Main {
         val ionSystem = IonSystemBuilder.standard.build
         val driver =
           QldbDriver.builder.ledger(config.ledgerId).sessionClientBuilder(sessionBuilder).ionSystem(ionSystem).build()
+
+        var stateQldbStore = QldbStore
+          .forDriver(driver)
+          .retrying(3)
+          .tableName("daml_state")
+          .build();
+
+        var stateStore = {
+          CoercingStore.from(
+            (daml: ByteString) => DamlStateKey.parseFrom(daml),
+            (daml: ByteString) => DamlStateValue.parseFrom(daml),
+            (daml: DamlStateKey) => daml.toByteString(),
+            (daml: DamlStateValue) => daml.toByteString(),
+            SplitStore
+              .fromStores(stateQldbStore, stateBlobStore)
+              .verified(true)
+              .withS3Index(true)
+              .build()
+          )
+        }
+
         val qldbTransactionLog = QldbTransactionLog
           .forDriver(driver)
           .tablePrefix("default")
           .build();
 
-        var splitTransactionLog = SplitTransactionLog
+        var transactionLog = SplitTransactionLog
           .from(qldbTransactionLog, txBlobStore)
           .build();
 

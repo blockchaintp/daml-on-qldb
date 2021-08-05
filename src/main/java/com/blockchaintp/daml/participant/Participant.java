@@ -28,6 +28,7 @@ import com.daml.ledger.participant.state.kvutils.api.LedgerWriter;
 import com.daml.ledger.participant.state.v1.Offset;
 import com.daml.ledger.participant.state.v1.SubmissionResult;
 import com.daml.ledger.resources.ResourceContext;
+import com.daml.lf.engine.Engine;
 import com.daml.telemetry.TelemetryContext;
 
 import akka.NotUsed;
@@ -57,6 +58,7 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   /**
    * Convenience method for creating a builder.
    *
+   * @param theEngine
    * @param theParticipantId
    * @param theLedgerId
    * @param theContext
@@ -65,8 +67,9 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
    * @return A partially configured participant builder.
    */
   public static <I2 extends Identifier, A2 extends LedgerAddress> ParticipantBuilder<I2, A2> builder(
-      final String theParticipantId, final String theLedgerId, final ResourceContext theContext) {
-    return new ParticipantBuilder<I2, A2>(theParticipantId, theLedgerId, theContext);
+      final Engine theEngine, final String theParticipantId, final String theLedgerId,
+      final ResourceContext theContext) {
+    return new ParticipantBuilder<I2, A2>(theEngine, theParticipantId, theLedgerId, theContext);
   }
 
   /**

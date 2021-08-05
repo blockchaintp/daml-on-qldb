@@ -23,9 +23,13 @@ import com.daml.ledger.participant.state.v1.ParticipantId
 import com.daml.ledger.resources.Resource
 import com.daml.ledger.resources.ResourceContext
 import com.daml.ledger.resources.ResourceOwner
+import com.daml.lf.engine.Engine
+import com.daml.logging.LoggingContext
 import com.daml.resources
 
 class ParticipantOwner[ExtraConfig, Id <: Identifier, Address <: LedgerAddress](
+    var engine: Engine,
+    var logCtx: LoggingContext,
     var ledgerId: LedgerId,
     var participantId: ParticipantId,
     var config: Config[ExtraConfig],
@@ -36,7 +40,7 @@ class ParticipantOwner[ExtraConfig, Id <: Identifier, Address <: LedgerAddress](
       context: ResourceContext
   ): resources.Resource[ResourceContext, Participant[Id, Address]] = {
     Resource.successful(
-      build(config, new ParticipantBuilder[Id, Address](ledgerId, participantId, context)).build()
+      build(config, new ParticipantBuilder[Id, Address](engine, ledgerId, participantId, context)).build()
     )
   }
 }

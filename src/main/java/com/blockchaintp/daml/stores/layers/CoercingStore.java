@@ -45,6 +45,27 @@ public class CoercingStore<K1, K2, V1, V2> implements Store<K1, V1> {
   private final Function<V1, V2> valueCoercionTo;
 
   /**
+   * Convenience method to wrap a store.
+   *
+   * @param keyCoercionFrom
+   * @param valueCoercionFrom
+   * @param keyCoercionTo
+   * @param valueCoercionTo
+   * @param inner
+   * @param <KK1>
+   * @param <KK2>
+   * @param <VV1>
+   * @param <VV2>
+   * @return a wrapped store
+   */
+  public static <KK1, KK2, VV1, VV2> Store<KK1, VV1> from(final Function<KK2, KK1> keyCoercionFrom,
+      final Function<VV2, VV1> valueCoercionFrom, final Function<KK1, KK2> keyCoercionTo,
+      final Function<VV1, VV2> valueCoercionTo, final Store<KK2, VV2> inner) {
+    return new CoercingStore<KK1, KK2, VV1, VV2>(keyCoercionFrom, keyCoercionTo, valueCoercionFrom, valueCoercionTo,
+        inner);
+  }
+
+  /**
    * Wrap an underlying store with value and kehy coercions.
    *
    * @param theInner
@@ -53,9 +74,9 @@ public class CoercingStore<K1, K2, V1, V2> implements Store<K1, V1> {
    * @param theKeyCoercionTo
    * @param theValueCoercionTo
    */
-  public CoercingStore(final Store<K2, V2> theInner, final Function<K2, K1> theKeyCoercionFrom,
-      final Function<V2, V1> theValueCoercionFrom, final Function<K1, K2> theKeyCoercionTo,
-      final Function<V1, V2> theValueCoercionTo) {
+  public CoercingStore(final Function<K2, K1> theKeyCoercionFrom, final Function<K1, K2> theKeyCoercionTo,
+      final Function<V2, V1> theValueCoercionFrom, final Function<V1, V2> theValueCoercionTo,
+      final Store<K2, V2> theInner) {
     this.inner = theInner;
     this.keyCoercionFrom = theKeyCoercionFrom;
     this.valueCoercionFrom = theValueCoercionFrom;

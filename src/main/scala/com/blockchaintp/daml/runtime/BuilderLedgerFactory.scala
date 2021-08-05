@@ -61,6 +61,8 @@ abstract class BuilderLedgerFactory[
       logCtx: LoggingContext
   ): ResourceOwner[KeyValueLedger] = {
     new ParticipantOwner(
+      engine,
+      logCtx,
       config.ledgerId,
       participantConfig.participantId,
       config,

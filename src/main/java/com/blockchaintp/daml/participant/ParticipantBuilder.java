@@ -23,6 +23,7 @@ import com.daml.ledger.participant.state.kvutils.DamlKvutils;
 import com.daml.ledger.participant.state.kvutils.api.LedgerRecord;
 import com.daml.ledger.participant.state.v1.Offset;
 import com.daml.ledger.resources.ResourceContext;
+import com.daml.lf.engine.Engine;
 
 /**
  *
@@ -33,7 +34,8 @@ import com.daml.ledger.resources.ResourceContext;
 public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddress> {
   private final String participantId;
   private final String ledgerId;
-  private ResourceContext context;
+  private final Engine engine;
+  private final ResourceContext context;
   private TransactionLogReader<Offset, DamlKvutils.DamlLogEntryId, LedgerRecord> txLog;
   private LedgerSubmitter<I, A> submitter;
   private final CommitPayloadBuilder commitPayloadBuilder;
@@ -41,11 +43,14 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
   /**
    * Construct a participant builder for the given identifiers.
    *
+   * @param theEngine
    * @param theLedgerId
    * @param theParticipantId
    * @param theContext
    */
-  public ParticipantBuilder(final String theLedgerId, final String theParticipantId, final ResourceContext theContext) {
+  public ParticipantBuilder(final Engine theEngine, final String theLedgerId, final String theParticipantId,
+      final ResourceContext theContext) {
+    engine = theEngine;
     participantId = theParticipantId;
     ledgerId = theLedgerId;
     context = theContext;
