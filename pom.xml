@@ -52,6 +52,12 @@
             <artifactId>maven-jar-plugin</artifactId>
             <configuration>
               <classifier>jdk8</classifier>
+              <archive>
+                <manifest>
+                  <addClasspath>true</addClasspath>
+                  <mainClass>com.blockchaintp.daml.qldb.Main$</mainClass>
+                </manifest>
+              </archive>
             </configuration>
           </plugin>
           <plugin>
@@ -122,22 +128,10 @@
         <artifactId>sandbox_${scala.lang.version}</artifactId>
         <version>${daml.sdk.version}</version>
       </dependency>
-
-      <!-- Netty -->
       <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-handler</artifactId>
-        <version>5.0.0.Alpha2</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-transport</artifactId>
-        <version>5.0.0.Alpha2</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-tcnative-boringssl-static</artifactId>
-        <version>2.0.40.Final</version>
+        <groupId>com.daml</groupId>
+        <artifactId>ledger-api-common_${scala.lang.version}</artifactId>
+        <version>${daml.sdk.version}</version>
       </dependency>
 
       <!-- Logging -->
@@ -216,29 +210,19 @@
       </dependency>
 
       <!-- AWS SDK  -->
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>bom</artifactId>
-        <version>2.15.79</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
+        <dependency>
+          <groupId>software.amazon.awssdk</groupId>
+          <artifactId>bom</artifactId>
+          <version>2.17.13</version>
+          <type>pom</type>
+          <scope>import</scope>
+        </dependency>
 
       <!-- AWS QLDB -->
       <dependency>
         <groupId>software.amazon.qldb</groupId>
         <artifactId>amazon-qldb-driver-java</artifactId>
         <version>2.3.1</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>qldbsession</artifactId>
-        <version>2.17.10</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>qldb</artifactId>
-        <version>2.17.10</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -315,12 +299,17 @@
         <scope>test</scope>
     </dependency>
 
+
     <!-- Rx -->
     <dependency>
       <groupId>io.reactivex.rxjava3</groupId>
       <artifactId>rxjava</artifactId>
     </dependency>
     <!-- AWS -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>netty-nio-client</artifactId>
+    </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>s3</artifactId>
@@ -345,18 +334,7 @@
     </dependency>
 
     <!-- Netty -->
-    <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-handler</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-transport</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-tcnative-boringssl-static</artifactId>
-    </dependency>
+
 
     <!-- DAML Dependencies -->
       <dependency>
@@ -526,10 +504,6 @@
               </goals>
             </execution>
           </executions>
-          <configuration>
-            <source>${java.source.version}</source>
-            <target>${java.target.version}</target>
-          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -697,6 +671,7 @@
                 </execution>
             </executions>
         </plugin>
+
       </plugins>
     </pluginManagement>
 
@@ -749,7 +724,7 @@
             <manifest>
               <addClasspath>true</addClasspath>
               <classpathPrefix>lib/</classpathPrefix>
-              <mainClass>com.blockchaintp.daml.DamlOnQldb</mainClass>
+              <mainClass>com.blockchaintp.daml.qldb.Main</mainClass>
             </manifest>
           </archive>
         </configuration>
