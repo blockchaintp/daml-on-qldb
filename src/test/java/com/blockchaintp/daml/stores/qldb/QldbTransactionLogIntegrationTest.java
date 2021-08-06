@@ -86,8 +86,7 @@ class QldbTransactionLogIntegrationTest {
 
     var stream = txLog.from(Optional.of(0L));
 
-    Assertions.assertIterableEquals(ids,
-        stream.take(30).map(x -> x.getKey()).collect(Collectors.toList()).blockingGet());
+    Assertions.assertIterableEquals(ids, stream.take(30).map(x -> x._2).collect(Collectors.toList()).blockingGet());
   }
 
 }

@@ -27,17 +27,28 @@ import com.blockchaintp.daml.stores.layers.SplitTransactionLog
 import com.blockchaintp.daml.stores.qldb.QldbStore
 import com.blockchaintp.daml.stores.qldb.QldbTransactionLog
 import com.blockchaintp.daml.stores.s3.S3Store
+import com.blockchaintp.daml.stores.service.TransactionLogWriter
 import com.daml.jwt.JwksVerifier
 import com.daml.jwt.RSA256Verifier
 import com.daml.ledger.api.auth.AuthService
 import com.daml.ledger.api.auth.AuthServiceJWT
 import com.daml.ledger.api.auth.AuthServiceWildcard
+import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlLogEntry
+import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlLogEntryId
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlStateKey
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlStateValue
-import com.daml.ledger.participant.state.kvutils.{DamlKvutils, KeyValueCommitting}
+import com.daml.ledger.participant.state.kvutils.Raw.Envelope
+import com.daml.ledger.participant.state.kvutils.Raw.LogEntryId
+import com.daml.ledger.participant.state.kvutils.DamlKvutils
+import com.daml.ledger.participant.state.kvutils.Envelope
+import com.daml.ledger.participant.state.kvutils.KeyValueCommitting
+import com.daml.ledger.participant.state.kvutils.Raw
 import com.daml.ledger.participant.state.kvutils.app.Config
 import com.daml.ledger.participant.state.kvutils.app.Runner
-import com.daml.ledger.participant.state.v1.{Configuration, Offset, Offset$, TimeModel}
+import com.daml.ledger.participant.state.v1.Configuration
+import com.daml.ledger.participant.state.v1.Offset
+import com.daml.ledger.participant.state.v1.Offset$
+import com.daml.ledger.participant.state.v1.TimeModel
 import com.daml.ledger.resources.ResourceContext
 import com.daml.platform.configuration.LedgerConfiguration
 import com.daml.resources.ProgramResource
@@ -116,37 +127,18 @@ object Main {
           .tablePrefix("default")
           .build();
 
-        var transactionLog = CoercingTxLog.from(
-          (k: UUID) => DamlKvutils.DamlLogEntryId.newBuilder.setEntryId(ByteString.copyFrom(asBytes(k))).build,
-          API.unchecked((v: ByteString) => DamlKvutils.DamlLogEntry.parseFrom(v)),
-          (i: Long) => Offset.fromByteArray(Longs.toByteArray(i)),
-          (k: DamlKvutils.DamlLogEntryId) => asUuid(k.getEntryId.toByteArray),
-          (v: DamlKvutils.DamlLogEntry) => v.toByteString,
-          (i: Offset) => Longs.fromByteArray(i.toByteArray),
-          SplitTransactionLog
-            .from(qldbTransactionLog, txBlobStore)
-            .build()
-        );
+        var txLog = SplitTransactionLog
+          .from(qldbTransactionLog, txBlobStore)
+          .build();
 
-        builder.configureCommitPayloadBuilder(p => p.withNoFragmentation())
+        builder
+          .withTransactionLogReader(txLog)
+          .configureCommitPayloadBuilder(p => p.withNoFragmentation())
       })
     ).owner(args)
     new ProgramResource(runner).run(ResourceContext.apply)
   }
 
-  private def asUuid(bytes: Array[Byte]) = {
-    val bb = ByteBuffer.wrap(bytes)
-    val firstLong = bb.getLong
-    val secondLong = bb.getLong
-    new UUID(firstLong, secondLong)
-  }
-
-  private def asBytes(uuid: UUID) = {
-    val bb = ByteBuffer.wrap(new Array[Byte](16))
-    bb.putLong(uuid.getMostSignificantBits)
-    bb.putLong(uuid.getLeastSignificantBits)
-    bb.array
-  }
   class LedgerFactory(
       build: (
           Config[ExtraConfig],

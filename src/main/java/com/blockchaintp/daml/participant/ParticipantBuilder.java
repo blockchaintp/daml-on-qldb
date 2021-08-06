@@ -13,17 +13,23 @@
  */
 package com.blockchaintp.daml.participant;
 
+import java.util.UUID;
 import java.util.function.UnaryOperator;
 
 import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.address.LedgerAddress;
+import com.blockchaintp.daml.stores.layers.CoercingTxLog;
+import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.daml.stores.service.TransactionLogReader;
 import com.blockchaintp.exception.BuilderException;
-import com.daml.ledger.participant.state.kvutils.DamlKvutils;
-import com.daml.ledger.participant.state.kvutils.api.LedgerRecord;
+import com.blockchaintp.utility.UuidConverter;
+import com.daml.ledger.participant.state.kvutils.Raw;
 import com.daml.ledger.participant.state.v1.Offset;
+import com.daml.ledger.participant.state.v1.Offset$;
 import com.daml.ledger.resources.ResourceContext;
 import com.daml.lf.engine.Engine;
+import com.google.common.primitives.Longs;
+import com.google.protobuf.ByteString;
 
 /**
  *
@@ -36,7 +42,7 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
   private final String ledgerId;
   private final Engine engine;
   private final ResourceContext context;
-  private TransactionLogReader<Offset, DamlKvutils.DamlLogEntryId, LedgerRecord> txLog;
+  private TransactionLogReader<Offset, Raw.LogEntryId, Raw.Envelope> txLog;
   private LedgerSubmitter<I, A> submitter;
   private final CommitPayloadBuilder commitPayloadBuilder;
 
@@ -63,9 +69,13 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
    * @param reader
    * @return The configured builder.
    */
-  public ParticipantBuilder<I, A> withTransactionLogReader(
-      final TransactionLogReader<Offset, DamlKvutils.DamlLogEntryId, LedgerRecord> reader) {
-    this.txLog = reader;
+  public ParticipantBuilder<I, A> withTransactionLogReader(final TransactionLog<UUID, ByteString, Long> reader) {
+    this.txLog = CoercingTxLog.readerFrom(
+        (UUID k) -> Raw.LogEntryId$.MODULE$.apply(ByteString.copyFrom(UuidConverter.asBytes(k))),
+        (ByteString v) -> Raw.Envelope$.MODULE$.apply(v),
+        (Long i) -> Offset$.MODULE$.fromByteArray(Longs.toByteArray(i)),
+        (Raw.LogEntryId k) -> UuidConverter.asUuid(k.bytes().toByteArray()), (Raw.Envelope v) -> v.bytes(),
+        (Offset i) -> Longs.fromByteArray(i.toByteArray()), reader);
 
     return this;
   }

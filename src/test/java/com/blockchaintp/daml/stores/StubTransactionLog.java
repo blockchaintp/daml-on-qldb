@@ -17,6 +17,9 @@ import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.google.protobuf.ByteString;
 import io.reactivex.rxjava3.core.Observable;
+import io.vavr.Tuple;
+import io.vavr.Tuple2;
+import io.vavr.Tuple3;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,12 +29,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class StubTransactionLog implements TransactionLog<UUID, ByteString, Long> {
+  private long offset = 0L;
   public final Map<UUID, ByteString> inprogress = new HashMap<>();
-  public final List<Map.Entry<UUID, ByteString>> complete = new ArrayList<>();
-  public final List<Map.Entry<UUID, ByteString>> aborted = new ArrayList<>();
+  public final List<Tuple3<Long, UUID, ByteString>> complete = new ArrayList<>();
+  public final List<Tuple2<UUID, ByteString>> aborted = new ArrayList<>();
 
   @Override
-  public Observable<Map.Entry<UUID, ByteString>> from(final Optional<Long> offset) {
+  public Observable<Tuple3<Long, UUID, ByteString>> from(final Optional<Long> offset) {
     return Observable.fromIterable(complete);
   }
 
@@ -50,13 +54,16 @@ public class StubTransactionLog implements TransactionLog<UUID, ByteString, Long
 
   @Override
   public Long commit(final UUID txId) throws StoreWriteException {
-    complete.add(Map.entry(txId, inprogress.remove(txId)));
-    return Long.valueOf(complete.size() - 1);
+    complete.add(Tuple.of(offset, txId, inprogress.remove(txId)));
+    var ret = offset;
+    offset = offset + 1L;
+
+    return offset;
   }
 
   @Override
   public void abort(final UUID txId) throws StoreWriteException {
-    aborted.add(Map.entry(txId, inprogress.remove(txId)));
+    aborted.add(Tuple.of(txId, inprogress.remove(txId)));
   }
 
 }

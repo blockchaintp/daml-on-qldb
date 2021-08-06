@@ -15,6 +15,7 @@ package com.blockchaintp.daml.participant;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
@@ -23,18 +24,26 @@ import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.address.LedgerAddress;
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
+import com.blockchaintp.daml.stores.layers.CoercingStore;
+import com.blockchaintp.daml.stores.layers.CoercingTxLog;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
+import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.daml.stores.service.TransactionLogWriter;
 import com.blockchaintp.daml.stores.service.Value;
+import com.blockchaintp.utility.UuidConverter;
 import com.daml.ledger.participant.state.kvutils.DamlKvutils;
 import com.daml.ledger.participant.state.kvutils.KeyValueCommitting;
 import com.daml.ledger.participant.state.v1.Configuration;
 import com.daml.ledger.participant.state.v1.Offset;
+import com.daml.ledger.participant.state.v1.Offset$;
 import com.daml.lf.data.Time;
 import com.daml.logging.LoggingContext;
+import com.google.common.primitives.Longs;
+import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
+import io.vavr.API;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
@@ -51,6 +60,7 @@ import scala.jdk.javaapi.OptionConverters$;
  */
 public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerAddress>
     implements LedgerSubmitter<A, B> {
+  private static final int UUID_LENGTH_IN_BYTES = 16;
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(InProcLedgerSubmitter.class);
   private final KeyValueCommitting committing;
   private final TransactionLogWriter<DamlKvutils.DamlLogEntryId, DamlKvutils.DamlLogEntry, Offset> writer;
@@ -64,7 +74,7 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
 
   /**
    * @param theCommitting
-   * @param theWriter
+   * @param theTxLog
    * @param theStateStore
    * @param theContext
    * @param theParticipantId
@@ -72,13 +82,21 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
    * @param theLoggingContext
    */
   public InProcLedgerSubmitter(final KeyValueCommitting theCommitting,
-      final TransactionLogWriter<DamlKvutils.DamlLogEntryId, DamlKvutils.DamlLogEntry, Offset> theWriter,
-      final Store<DamlKvutils.DamlStateKey, DamlKvutils.DamlStateValue> theStateStore,
+      final TransactionLog<UUID, ByteString, Long> theTxLog, final Store<ByteString, ByteString> theStateStore,
       final ExecutionContext theContext, final String theParticipantId, final Configuration theConfiguration,
       final LoggingContext theLoggingContext) {
     committing = theCommitting;
-    writer = theWriter;
-    stateStore = theStateStore;
+    writer = CoercingTxLog.writerFrom(
+        (UUID k) -> DamlKvutils.DamlLogEntryId.newBuilder().setEntryId(ByteString.copyFrom(UuidConverter.asBytes(k)))
+            .build(),
+        API.unchecked((ByteString v) -> DamlKvutils.DamlLogEntry.parseFrom(v)),
+        (Long i) -> Offset$.MODULE$.fromByteArray(Longs.toByteArray(i)),
+        (DamlKvutils.DamlLogEntryId k) -> UuidConverter.asUuid(k.getEntryId().toByteArray()),
+        (DamlKvutils.DamlLogEntry v) -> v.toByteString(), (Offset i) -> Longs.fromByteArray(i.toByteArray()), theTxLog);
+    stateStore = CoercingStore.from(API.unchecked((ByteString k) -> DamlKvutils.DamlStateKey.parseFrom(k)),
+        API.unchecked((ByteString v) -> DamlKvutils.DamlStateValue.parseFrom(v)),
+        (DamlKvutils.DamlStateKey k) -> k.toByteString(), (DamlKvutils.DamlStateValue v) -> v.toByteString(),
+        theStateStore);
     context = theContext;
     participantId = theParticipantId;
     configuration = theConfiguration;

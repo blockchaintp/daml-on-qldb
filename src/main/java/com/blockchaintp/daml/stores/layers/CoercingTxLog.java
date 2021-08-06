@@ -13,14 +13,17 @@
  */
 package com.blockchaintp.daml.stores.layers;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.TransactionLog;
+import com.blockchaintp.daml.stores.service.TransactionLogReader;
+import com.blockchaintp.daml.stores.service.TransactionLogWriter;
 
 import io.reactivex.rxjava3.core.Observable;
+import io.vavr.Tuple;
+import io.vavr.Tuple3;
 
 /**
  * A transaction log with coercing bijections.
@@ -65,13 +68,67 @@ public final class CoercingTxLog<K1, K2, V1, V2, I1, I2> implements TransactionL
    * @param <II2>
    * @return a wrapped, coercing transaction log.
    */
-  public static <KK1, KK2, VV1, VV2, II1, II2> CoercingTxLog<KK1, KK2, VV1, VV2, II1, II2> from(
+  public static <KK1, KK2, VV1, VV2, II1, II2> TransactionLog<KK1, VV1, II1> from(
       final Function<KK2, KK1> keyCoercionFrom, final Function<VV2, VV1> valueCoercionFrom,
       final Function<II2, II1> seqCoercionFrom, final Function<KK1, KK2> keyCoercionTo,
       final Function<VV1, VV2> valueCoercionTo, final Function<II1, II2> seqCoercionTo,
       final TransactionLog<KK2, VV2, II2> inner) {
-    return new CoercingTxLog<KK1, KK2, VV1, VV2, II1, II2>(keyCoercionFrom, valueCoercionFrom, seqCoercionFrom,
-        keyCoercionTo, valueCoercionTo, seqCoercionTo, inner);
+    return new CoercingTxLog<>(keyCoercionFrom, valueCoercionFrom, seqCoercionFrom, keyCoercionTo, valueCoercionTo,
+        seqCoercionTo, inner);
+  }
+
+  /**
+   * Convenience method for building a coercing transaction log.
+   *
+   * @param keyCoercionFrom
+   * @param valueCoercionFrom
+   * @param seqCoercionFrom
+   * @param keyCoercionTo
+   * @param valueCoercionTo
+   * @param seqCoercionTo
+   * @param inner
+   * @param <KK1>
+   * @param <KK2>
+   * @param <VV1>
+   * @param <VV2>
+   * @param <II1>
+   * @param <II2>
+   * @return a wrapped, coercing transaction log.
+   */
+  public static <KK1, KK2, VV1, VV2, II1, II2> TransactionLogReader<II1, KK1, VV1> readerFrom(
+      final Function<KK2, KK1> keyCoercionFrom, final Function<VV2, VV1> valueCoercionFrom,
+      final Function<II2, II1> seqCoercionFrom, final Function<KK1, KK2> keyCoercionTo,
+      final Function<VV1, VV2> valueCoercionTo, final Function<II1, II2> seqCoercionTo,
+      final TransactionLog<KK2, VV2, II2> inner) {
+    return from(keyCoercionFrom, valueCoercionFrom, seqCoercionFrom, keyCoercionTo, valueCoercionTo, seqCoercionTo,
+        inner);
+  }
+
+  /**
+   * Convenience method for building a coercing transaction log.
+   *
+   * @param keyCoercionFrom
+   * @param valueCoercionFrom
+   * @param seqCoercionFrom
+   * @param keyCoercionTo
+   * @param valueCoercionTo
+   * @param seqCoercionTo
+   * @param inner
+   * @param <KK1>
+   * @param <KK2>
+   * @param <VV1>
+   * @param <VV2>
+   * @param <II1>
+   * @param <II2>
+   * @return a wrapped, coercing transaction log.
+   */
+  public static <KK1, KK2, VV1, VV2, II1, II2> TransactionLogWriter<KK1, VV1, II1> writerFrom(
+      final Function<KK2, KK1> keyCoercionFrom, final Function<VV2, VV1> valueCoercionFrom,
+      final Function<II2, II1> seqCoercionFrom, final Function<KK1, KK2> keyCoercionTo,
+      final Function<VV1, VV2> valueCoercionTo, final Function<II1, II2> seqCoercionTo,
+      final TransactionLog<KK2, VV2, II2> inner) {
+    return from(keyCoercionFrom, valueCoercionFrom, seqCoercionFrom, keyCoercionTo, valueCoercionTo, seqCoercionTo,
+        inner);
   }
 
   /**
@@ -99,9 +156,9 @@ public final class CoercingTxLog<K1, K2, V1, V2, I1, I2> implements TransactionL
   }
 
   @Override
-  public Observable<Map.Entry<K1, V1>> from(final Optional<I1> offset) {
+  public Observable<Tuple3<I1, K1, V1>> from(final Optional<I1> offset) {
     return inner.from(offset.map(seqCoercionTo::apply))
-        .map(r -> Map.entry(keyCoercionFrom.apply(r.getKey()), valueCoercionFrom.apply(r.getValue())));
+        .map(r -> Tuple.of(seqCoercionFrom.apply(r._1), keyCoercionFrom.apply(r._2), valueCoercionFrom.apply(r._3)));
   }
 
   @Override

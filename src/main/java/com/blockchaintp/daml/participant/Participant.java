@@ -19,7 +19,6 @@ import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.address.LedgerAddress;
 import com.blockchaintp.daml.stores.service.TransactionLogReader;
 import com.daml.ledger.api.health.HealthStatus;
-import com.daml.ledger.participant.state.kvutils.DamlKvutils;
 import com.daml.ledger.participant.state.kvutils.Raw;
 import com.daml.ledger.participant.state.kvutils.api.CommitMetadata;
 import com.daml.ledger.participant.state.kvutils.api.LedgerReader;
@@ -48,7 +47,7 @@ import scala.jdk.javaapi.OptionConverters;
  */
 public final class Participant<I extends Identifier, A extends LedgerAddress> implements LedgerReader, LedgerWriter {
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(Participant.class);
-  private final TransactionLogReader<Offset, DamlKvutils.DamlLogEntryId, LedgerRecord> txLog;
+  private final TransactionLogReader<Offset, Raw.LogEntryId, Raw.Envelope> txLog;
   private final CommitPayloadBuilder<I> commitPayloadBuilder;
   private final LedgerSubmitter<I, A> submitter;
   private final String ledgerId;
@@ -80,7 +79,7 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
    * @param theParticipantId
    * @param theContext
    */
-  public Participant(final TransactionLogReader<Offset, DamlKvutils.DamlLogEntryId, LedgerRecord> theTxLog,
+  public Participant(final TransactionLogReader<Offset, Raw.LogEntryId, Raw.Envelope> theTxLog,
       final CommitPayloadBuilder<I> theCommitPayloadBuilder, final LedgerSubmitter<I, A> theSubmitter,
       final String theLedgerId, final String theParticipantId, final ExecutionContext theContext) {
     txLog = theTxLog;
@@ -98,8 +97,8 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
 
   @Override
   public Source<LedgerRecord, NotUsed> events(final Option<Offset> startExclusive) {
-    return Source.fromPublisher(txLog.from(OptionConverters.toJava(startExclusive)).map(rx -> rx.getValue())
-        .toFlowable(BackpressureStrategy.BUFFER));
+    return Source.fromPublisher(txLog.from(OptionConverters.toJava(startExclusive))
+        .map(rx -> LedgerRecord.apply(rx._1, rx._2, rx._3)).toFlowable(BackpressureStrategy.BUFFER));
   }
 
   @Override

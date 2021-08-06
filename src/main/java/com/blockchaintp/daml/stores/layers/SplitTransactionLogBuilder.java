@@ -71,7 +71,7 @@ public class SplitTransactionLogBuilder {
    *
    * @return the split store
    */
-  public final SplitTransactionLog build() {
+  public final TransactionLog<UUID, ByteString, Long> build() {
     return new SplitTransactionLog(txLog, blobs, hashFn);
   }
 }

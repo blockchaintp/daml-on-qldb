@@ -69,33 +69,22 @@ class CoercingTest {
   void txlog_coercion() throws StoreWriteException, StoreReadException {
     var stub = new StubTransactionLog();
     var coerced = CoercingTxLog.from(
-      (UUID k) -> DamlKvutils.DamlLogEntryId.newBuilder().setEntryId(
-        ByteString.copyFrom( asBytes(k))).build(),
-      API.unchecked((ByteString v) -> DamlKvutils.DamlLogEntry.parseFrom(v)),
-      (Long i) -> Offset$.MODULE$.fromByteArray(Longs.toByteArray(i)),
-      (DamlKvutils.DamlLogEntryId k) -> asUuid(k.getEntryId().toByteArray()),
-      (DamlKvutils.DamlLogEntry v) -> v.toByteString(),
-      (Offset i) -> Longs.fromByteArray(i.toByteArray()),
-      stub);
+        (UUID k) -> DamlKvutils.DamlLogEntryId.newBuilder().setEntryId(ByteString.copyFrom(asBytes(k))).build(),
+        API.unchecked((ByteString v) -> DamlKvutils.DamlLogEntry.parseFrom(v)),
+        (Long i) -> Offset$.MODULE$.fromByteArray(Longs.toByteArray(i)),
+        (DamlKvutils.DamlLogEntryId k) -> asUuid(k.getEntryId().toByteArray()),
+        (DamlKvutils.DamlLogEntry v) -> v.toByteString(), (Offset i) -> Longs.fromByteArray(i.toByteArray()), stub);
 
     var id = coerced.begin();
     var data = DamlKvutils.DamlLogEntry.newBuilder().build();
     coerced.sendEvent(id, data);
     coerced.commit(id);
 
-    var entry = coerced.from(Optional.of(Offset$.MODULE$.fromByteArray(Longs.toByteArray(0))))
-      .blockingFirst();
+    var entry = coerced.from(Optional.of(Offset$.MODULE$.fromByteArray(Longs.toByteArray(0)))).blockingFirst();
 
-    Assertions.assertArrayEquals(
-      id.toByteArray(),
-      entry.getKey().toByteArray()
-    );
+    Assertions.assertArrayEquals(id.toByteArray(), entry._2.toByteArray());
 
-    Assertions.assertArrayEquals(
-      data.toByteArray(),
-      entry.getValue().toByteArray()
-    );
-
+    Assertions.assertArrayEquals(data.toByteArray(), entry._3.toByteArray());
   }
 
 }
