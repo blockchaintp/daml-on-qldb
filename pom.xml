@@ -137,6 +137,11 @@
       <!-- Logging -->
       <dependency>
         <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-log4j12</artifactId>
+        <version>2.0.0-alpha2</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
         <version>2.0.0-alpha2</version>
       </dependency>
@@ -165,16 +170,11 @@
         <version>2.13.0-rc1</version>
       </dependency>
       <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-slf4j18-impl</artifactId>
-        <version>2.14.1</version>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-jdk14</artifactId>
+        <version>2.0.0-alpha0</version>
+        <scope>runtime</scope>
       </dependency>
-      <dependency>
-          <groupId>org.apache.logging.log4j</groupId>
-          <artifactId>log4j-layout-template-json</artifactId>
-          <version>2.14.1</version>
-      </dependency>
-
       <!-- Resilience -->
       <dependency>
         <groupId>io.github.resilience4j</groupId>
@@ -264,6 +264,10 @@
     <!-- SLF4J Bindings should only be included in "main" projects and test scope -->
     <dependency>
       <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
     <dependency>
@@ -274,31 +278,20 @@
       <!-- Needed implicitly for log4j2 YAML configuration -->
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-core</artifactId>
-      <scope>test</scope>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <!-- Needed implicitly for log4j2 YAML configuration -->
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-      <scope>test</scope>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <!-- Needed implicitly for log4j2 YAML configuration -->
       <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-yaml</artifactId>
-      <scope>test</scope>
+      <scope>runtime</scope>
     </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-slf4j18-impl</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-layout-template-json</artifactId>
-        <scope>test</scope>
-    </dependency>
-
 
     <!-- Rx -->
     <dependency>

@@ -35,11 +35,11 @@ services:
     ports:
       - "9000:9000"
     entrypoint: "bash -c \"\
-      /opt/daml-on-qldb/entrypoint.sh --port 9000 \
-        --createaws true
-        --region AWS_REGION
+      /opt/daml-on-qldb/entrypoint.sh \
+        --createaws true \
+        --region AWS_REGION \
         --ledger $$LEDGER_NAME \
-        --participant-id test-participant \
+        --participant participant-id=test-participant,port=9000 \
         `ls /opt/daml-on-qldb/dar/*.dar`\""
     volumes:
       - /dev/urandom:/dev/random
