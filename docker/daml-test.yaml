@@ -37,7 +37,8 @@ services:
     entrypoint: "bash -xc \"\
       env;
       /opt/daml-on-qldb/entrypoint.sh --port 9000 \
-        --jdbc-url jdbc:postgresql://postgres/postgres?user=postgres \
+        --createaws true \
+        --region $$AWS_REGION \
         --ledger $$LEDGER_NAME \
         --participant-id test-participant \
         `ls /opt/daml-on-qldb/dar/*.dar`\""

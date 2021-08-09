@@ -24,6 +24,8 @@ import com.blockchaintp.daml.stores.layers.SplitStore
 import com.blockchaintp.daml.stores.layers.SplitTransactionLog
 import com.blockchaintp.daml.stores.qldb.QldbStore
 import com.blockchaintp.daml.stores.qldb.QldbTransactionLog
+import com.blockchaintp.daml.stores.resources.QldbResources
+import com.blockchaintp.daml.stores.resources.S3StoreResources
 import com.blockchaintp.daml.stores.s3.S3Store
 import com.daml.jwt.JwksVerifier
 import com.daml.jwt.RSA256Verifier
@@ -43,6 +45,7 @@ import com.google.protobuf.ByteString
 import scopt.OptionParser
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
 import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.services.qldb.QldbClient
 import software.amazon.awssdk.services.qldbsession.QldbSessionClient
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.qldb.QldbDriver
@@ -56,9 +59,33 @@ object Main extends App {
   val runner = new Runner(
     "Qldb Ledger",
     new LedgerFactory((config: Config[ExtraConfig], builder: ParticipantBuilder[QldbIdentifier, QldbAddress]) => {
+
       val clientBuilder = S3AsyncClient.builder
         .region(Region.of(config.extra.region))
         .credentialsProvider(DefaultCredentialsProvider.builder.build)
+
+      val sessionBuilder = QldbSessionClient.builder
+        .region(Region.of(config.extra.region))
+        .credentialsProvider(DefaultCredentialsProvider.builder.build())
+
+      val ionSystem = IonSystemBuilder.standard.build
+      val driver =
+        QldbDriver.builder.ledger(config.ledgerId).sessionClientBuilder(sessionBuilder).ionSystem(ionSystem).build()
+
+      if (config.extra.createAws) {
+        val log_blob_resource        = new S3StoreResources(clientBuilder.build, config.ledgerId, "tx_log_blobs")
+        val daml_state_blob_resource = new S3StoreResources(clientBuilder.build, config.ledgerId, "daml_state_blobs")
+        val qldbClient = QldbClient.builder
+          .credentialsProvider(DefaultCredentialsProvider.create)
+          .region(Region.of(config.extra.region))
+          .build
+
+        val qldb_resource = new QldbResources(qldbClient, config.ledgerId);
+
+        log_blob_resource.ensureResources()
+        daml_state_blob_resource.ensureResources()
+        qldb_resource.ensureResources()
+      }
 
       val txBlobStore = S3Store
         .forClient(clientBuilder)
@@ -73,14 +100,6 @@ object Main extends App {
         .forTable("daml_state_blobs")
         .retrying(3)
         .build();
-
-      val sessionBuilder = QldbSessionClient.builder
-        .region(Region.of(config.extra.region))
-        .credentialsProvider(DefaultCredentialsProvider.builder.build())
-
-      val ionSystem = IonSystemBuilder.standard.build
-      val driver =
-        QldbDriver.builder.ledger(config.ledgerId).sessionClientBuilder(sessionBuilder).ionSystem(ionSystem).build()
 
       val stateQldbStore = QldbStore
         .forDriver(driver)
