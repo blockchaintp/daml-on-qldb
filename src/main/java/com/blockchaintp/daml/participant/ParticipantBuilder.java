@@ -43,8 +43,8 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
   private final Engine engine;
   private final ResourceContext context;
   private TransactionLogReader<Offset, Raw.LogEntryId, Raw.Envelope> txLog;
-  private LedgerSubmitter<I, A> submitter;
   private final CommitPayloadBuilder commitPayloadBuilder;
+  private InProcLedgerSubmitterBuilder submitterBuilder;
 
   /**
    * Construct a participant builder for the given identifiers.
@@ -83,11 +83,16 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
   /**
    * Add a ledger submitter to the participant.
    *
-   * @param theSubmitter
+   * @param theSubmitterBuilder
    * @return The configured builder.
    */
-  public ParticipantBuilder<I, A> withLedgerSubmitter(final LedgerSubmitter<I, A> theSubmitter) {
-    this.submitter = theSubmitter;
+  public ParticipantBuilder<I, A> withInProcLedgerSubmitterBuilder(
+      final UnaryOperator<InProcLedgerSubmitterBuilder<I, A>> theSubmitterBuilder) {
+    if (submitterBuilder == null) {
+      submitterBuilder = new InProcLedgerSubmitterBuilder<>();
+    }
+
+    submitterBuilder = theSubmitterBuilder.apply(submitterBuilder);
 
     return this;
   }
@@ -114,11 +119,12 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
     if (txLog == null) {
       throw new BuilderException("Participant requires a transaction log");
     }
-    if (submitter == null) {
-      throw new BuilderException("Participant requires a configured submitter");
+    if (submitterBuilder == null) {
+      throw new BuilderException("Participant requires a configured submitter builder");
     }
 
-    return new Participant<I, A>(txLog, commitPayloadBuilder, submitter, ledgerId, participantId,
-        context.executionContext());
+    return new Participant<I, A>(txLog, commitPayloadBuilder,
+        submitterBuilder.withParticipantId(participantId).withExecutionContext(context.executionContext()).build(),
+        ledgerId, participantId, context.executionContext());
   }
 }

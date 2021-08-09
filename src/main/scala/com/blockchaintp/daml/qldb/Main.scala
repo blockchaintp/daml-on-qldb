@@ -16,6 +16,7 @@ package com.blockchaintp.daml.qldb
 import com.amazon.ion.system.IonSystemBuilder
 import com.blockchaintp.daml.address.QldbAddress
 import com.blockchaintp.daml.address.QldbIdentifier
+import com.blockchaintp.daml.participant.InProcLedgerSubmitter
 import com.blockchaintp.daml.participant.ParticipantBuilder
 import com.blockchaintp.daml.runtime.BuilderLedgerFactory
 import com.blockchaintp.daml.stores.layers.CoercingStore
@@ -59,14 +60,14 @@ object Main extends App {
         .region(Region.of(config.extra.region))
         .credentialsProvider(DefaultCredentialsProvider.builder.build)
 
-      var txBlobStore = S3Store
+      val txBlobStore = S3Store
         .forClient(clientBuilder)
         .forStore(config.ledgerId)
         .forTable("tx_log_blobs")
         .retrying(3)
         .build();
 
-      var stateBlobStore = S3Store
+      val stateBlobStore = S3Store
         .forClient(clientBuilder)
         .forStore(config.ledgerId)
         .forTable("daml_state_blobs")
@@ -81,37 +82,34 @@ object Main extends App {
       val driver =
         QldbDriver.builder.ledger(config.ledgerId).sessionClientBuilder(sessionBuilder).ionSystem(ionSystem).build()
 
-      var stateQldbStore = QldbStore
+      val stateQldbStore = QldbStore
         .forDriver(driver)
         .retrying(3)
         .tableName("daml_state")
         .build();
 
-      var stateStore = {
-        CoercingStore.from(
-          (daml: ByteString) => DamlStateKey.parseFrom(daml),
-          (daml: ByteString) => DamlStateValue.parseFrom(daml),
-          (daml: DamlStateKey) => daml.toByteString(),
-          (daml: DamlStateValue) => daml.toByteString(),
-          SplitStore
-            .fromStores(stateQldbStore, stateBlobStore)
-            .verified(true)
-            .withS3Index(true)
-            .build()
-        )
-      }
+      val stateStore = SplitStore
+        .fromStores(stateQldbStore, stateBlobStore)
+        .verified(true)
+        .withS3Index(true)
+        .build()
 
       val qldbTransactionLog = QldbTransactionLog
         .forDriver(driver)
         .tablePrefix("default")
         .build();
 
-      var txLog = SplitTransactionLog
+      val txLog = SplitTransactionLog
         .from(qldbTransactionLog, txBlobStore)
         .build();
 
       builder
         .withTransactionLogReader(txLog)
+        .withInProcLedgerSubmitterBuilder(builder =>
+          builder
+            .withStateStore(stateStore)
+            .withTransactionLogWriter(txLog)
+        )
         .configureCommitPayloadBuilder(p => p.withNoFragmentation())
     })
   ).owner(args)

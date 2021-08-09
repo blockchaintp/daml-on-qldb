@@ -73,6 +73,16 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
   private final ConcurrentHashMap<SubmissionReference, SubmissionStatus> status;
 
   /**
+   *
+   * @param <I>
+   * @param <A>
+   * @return An appropriate InProcLedgerSubmitterBuilder.
+   */
+  public static <I extends Identifier, A extends LedgerAddress> InProcLedgerSubmitterBuilder<I, A> builder() {
+    return new InProcLedgerSubmitterBuilder();
+  }
+
+  /**
    * @param theCommitting
    * @param theTxLog
    * @param theStateStore

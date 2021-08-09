@@ -25,22 +25,37 @@ import com.daml.ledger.resources.ResourceContext
 import com.daml.ledger.resources.ResourceOwner
 import com.daml.lf.engine.Engine
 import com.daml.logging.LoggingContext
+import com.daml.metrics.Metrics
+import com.daml.platform.configuration.LedgerConfiguration
 import com.daml.resources
 
 class ParticipantOwner[ExtraConfig, Id <: Identifier, Address <: LedgerAddress](
-    var engine: Engine,
-    var logCtx: LoggingContext,
-    var ledgerId: LedgerId,
-    var participantId: ParticipantId,
-    var config: Config[ExtraConfig],
-    var build: (Config[ExtraConfig], ParticipantBuilder[Id, Address]) => ParticipantBuilder[Id, Address]
+    val ledgerConfig: LedgerConfiguration,
+    val engine: Engine,
+    val metrics: Metrics,
+    val logCtx: LoggingContext,
+    val ledgerId: LedgerId,
+    val participantId: ParticipantId,
+    val config: Config[ExtraConfig],
+    val build: (Config[ExtraConfig], ParticipantBuilder[Id, Address]) => ParticipantBuilder[Id, Address]
 ) extends ResourceOwner[Participant[Id, Address]] {
 
   override def acquire()(implicit
       context: ResourceContext
   ): resources.Resource[ResourceContext, Participant[Id, Address]] = {
     Resource.successful(
-      build(config, new ParticipantBuilder[Id, Address](engine, ledgerId, participantId, context)).build()
+      build(
+        config,
+        new ParticipantBuilder[Id, Address](engine, ledgerId, participantId, context)
+          .withInProcLedgerSubmitterBuilder(builder =>
+            builder
+              .withEngine(engine)
+              .withMetrics(metrics)
+              .withLoggingContext(logCtx)
+              .withExecutionContext(context.executionContext)
+              .withConfiguration(ledgerConfig.initialConfiguration)
+          )
+      ).build()
     )
   }
 }

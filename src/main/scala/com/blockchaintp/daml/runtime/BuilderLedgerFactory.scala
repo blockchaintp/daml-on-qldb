@@ -25,6 +25,7 @@ import com.daml.ledger.participant.state.kvutils.app.ParticipantConfig
 import com.daml.ledger.resources.ResourceOwner
 import com.daml.lf.engine.Engine
 import com.daml.logging.LoggingContext
+import com.daml.metrics.Metrics
 
 abstract class BuilderLedgerFactory[
     Id <: Identifier,
@@ -42,17 +43,19 @@ abstract class BuilderLedgerFactory[
       materializer: Materializer,
       logCtx: LoggingContext
   ): ResourceOwner[KeyValueParticipantState] = {
+    val metrics = createMetrics(participantConfig, config)
     for {
-      readerWriter <- owner(config, participantConfig, engine, build)
+      readerWriter <- owner(config, metrics, participantConfig, engine, build)
     } yield new KeyValueParticipantState(
       readerWriter,
       readerWriter,
-      createMetrics(participantConfig, config)
+      metrics
     )
   }
 
   def owner(
       config: Config[ExtraConfig],
+      metrics: Metrics,
       participantConfig: ParticipantConfig,
       engine: Engine,
       build: (Config[ExtraConfig], ParticipantBuilder[Id, Address]) => ParticipantBuilder[Id, Address]
@@ -61,7 +64,9 @@ abstract class BuilderLedgerFactory[
       logCtx: LoggingContext
   ): ResourceOwner[KeyValueLedger] = {
     new ParticipantOwner(
+      ledgerConfig(config),
       engine,
+      metrics,
       logCtx,
       config.ledgerId,
       participantConfig.participantId,
