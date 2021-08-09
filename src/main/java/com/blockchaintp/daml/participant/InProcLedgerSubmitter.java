@@ -134,37 +134,42 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
    */
   private void work() {
     while (true) {
-      var next = queue.poll();
+      try {
+        var next = queue.take();
 
-      status.put(next._1, SubmissionStatus.PARTIALLY_SUBMITTED);
+        status.put(next._1, SubmissionStatus.PARTIALLY_SUBMITTED);
 
-      var inputKeys = next._2.getReads().stream().map(Identifier::toKey).map(Key::of).collect(Collectors.toList());
+        var inputKeys = next._2.getReads().stream().map(Identifier::toKey).map(Key::of).collect(Collectors.toList());
 
-      var sparseInputs = inputKeys.stream().collect(Collectors.toMap(k -> k.toNative(),
+        var sparseInputs = inputKeys.stream().collect(Collectors.toMap(k -> k.toNative(),
           k -> OptionConverters$.MODULE$.toScala(Optional.<DamlKvutils.DamlStateValue>empty())));
 
-      try {
-        stateStore.get(inputKeys).entrySet().forEach(kv -> sparseInputs.put(kv.getKey().toNative(),
+        try {
+          stateStore.get(inputKeys).entrySet().forEach(kv -> sparseInputs.put(kv.getKey().toNative(),
             OptionConverters$.MODULE$.toScala(Optional.of(kv.getValue().toNative()))));
 
-        var entryId = writer.begin();
+          var entryId = writer.begin();
 
-        var rx = committing.processSubmission(entryId, getCurrentRecordTime(), configuration,
+          var rx = committing.processSubmission(entryId, getCurrentRecordTime(), configuration,
             DamlKvutils.DamlSubmission.parseFrom(next._2.getOperation().getTransaction().getSubmission()),
             participantId, mapToScalaImmutableMap(sparseInputs), loggingContext);
 
-        var outputMap = scalaMapToMap(rx._2);
+          var outputMap = scalaMapToMap(rx._2);
 
-        stateStore.put(outputMap.entrySet().stream().map(kv -> Map.entry(Key.of(kv.getKey()), Value.of(kv.getValue())))
+          stateStore.put(outputMap.entrySet().stream().map(kv -> Map.entry(Key.of(kv.getKey()), Value.of(kv.getValue())))
             .collect(Collectors.toList()));
 
-        writer.sendEvent(entryId, rx._1);
-        writer.commit(entryId);
+          writer.sendEvent(entryId, rx._1);
+          writer.commit(entryId);
 
-        status.put(next._1, SubmissionStatus.SUBMITTED);
+          status.put(next._1, SubmissionStatus.SUBMITTED);
 
-      } catch (StoreWriteException | StoreReadException | InvalidProtocolBufferException e) {
-        LOG.error("Could not submit payload {} due to {}", () -> next._1, () -> e);
+        } catch (StoreWriteException | StoreReadException | InvalidProtocolBufferException e) {
+          LOG.error("Could not submit payload {} due to {}", next._1, e);
+        }
+      } catch (InterruptedException e) {
+        LOG.error("Thread interrupted {}", e);
+        return;
       }
     }
   }
