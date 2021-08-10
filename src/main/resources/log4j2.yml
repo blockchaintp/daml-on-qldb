@@ -29,4 +29,4 @@ Configuration:
     Root:
       level: debug
       AppenderRef:
-        - ref: JSON_CONSOLE
+        - ref: CONSOLE

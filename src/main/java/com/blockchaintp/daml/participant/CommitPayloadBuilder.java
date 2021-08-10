@@ -25,7 +25,6 @@ import com.blockchaintp.daml.protobuf.DamlTransaction;
 import com.blockchaintp.exception.BuilderException;
 import com.daml.ledger.participant.state.kvutils.Raw;
 import com.daml.ledger.participant.state.kvutils.api.CommitMetadata;
-import com.google.protobuf.ByteString;
 
 /**
  *
@@ -41,11 +40,10 @@ public final class CommitPayloadBuilder<A extends Identifier> {
     /**
      *
      * @param theEnvelope
-     * @param theLogEntryId
      * @param theCorrelationId
      * @return One or more daml operations to be committed.
      */
-    List<DamlOperation> fragment(Raw.Envelope theEnvelope, ByteString theLogEntryId, String theCorrelationId);
+    List<DamlOperation> fragment(Raw.Envelope theEnvelope, String theCorrelationId);
   }
 
   /**
@@ -64,9 +62,9 @@ public final class CommitPayloadBuilder<A extends Identifier> {
     }
 
     @Override
-    public List<DamlOperation> fragment(final Raw.Envelope theEnvelope, final ByteString theLogEntryId,
-        final String theCorrelationId) {
-      final var tx = DamlTransaction.newBuilder().setSubmission(theEnvelope.bytes()).setLogEntryId(theLogEntryId)
+    public List<DamlOperation> fragment(final Raw.Envelope theEnvelope,
+                                        final String theCorrelationId) {
+      final var tx = DamlTransaction.newBuilder().setSubmission(theEnvelope.bytes())
           .build();
       return Arrays.asList(DamlOperation.newBuilder().setCorrelationId(theCorrelationId)
           .setSubmittingParticipant(participantId).setTransaction(tx).build());
@@ -136,7 +134,7 @@ public final class CommitPayloadBuilder<A extends Identifier> {
     if (outputAddressReader == null) {
       throw new BuilderException("No configured output address reader");
     }
-    return fragmentationStrategy.fragment(theEnvelope, null, correlationId).stream()
+    return fragmentationStrategy.fragment(theEnvelope, correlationId).stream()
         .map(op -> new CommitPayload<A>(op, metadata, inputAddressReader, outputAddressReader))
         .collect(Collectors.toList());
   }

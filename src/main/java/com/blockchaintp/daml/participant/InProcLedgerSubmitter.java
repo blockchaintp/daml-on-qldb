@@ -171,6 +171,7 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
           OptionConverters$.MODULE$.toScala(Optional.of(kv.getValue().toNative()))));
 
       var entryId = writer.begin();
+      next._2.getOperation().getTransaction().toBuilder().setLogEntryId(entryId.getEntryId()).build();
 
       var rx = committing.processSubmission(entryId, getCurrentRecordTime(), configuration,
           DamlKvutils.DamlSubmission.parseFrom(next._2.getOperation().getTransaction().getSubmission()), participantId,

@@ -13,6 +13,7 @@
  */
 package com.blockchaintp.daml.qldb
 
+import ch.qos.logback.classic.Level
 import com.amazon.ion.system.IonSystemBuilder
 import com.blockchaintp.daml.address.QldbAddress
 import com.blockchaintp.daml.address.QldbIdentifier
@@ -27,6 +28,8 @@ import com.blockchaintp.daml.stores.qldb.QldbTransactionLog
 import com.blockchaintp.daml.stores.resources.QldbResources
 import com.blockchaintp.daml.stores.resources.S3StoreResources
 import com.blockchaintp.daml.stores.s3.S3Store
+import com.blockchaintp.utility.LogUtils
+import com.daml.cliopts.GlobalLogLevel
 import com.daml.jwt.JwksVerifier
 import com.daml.jwt.RSA256Verifier
 import com.daml.ledger.api.auth.AuthService
@@ -62,9 +65,12 @@ import scala.util.Try
 object Main extends App {
 
   val runner = new Runner(
-    "Qldb Ledger",
+    "daml-on-qldb",
     new LedgerFactory((config: Config[ExtraConfig], builder: ParticipantBuilder[QldbIdentifier, QldbAddress]) => {
+      config.extra.logLevel.foreach(level => GlobalLogLevel.set("daml-on-qldb")(Level.toLevel(level,Level.INFO)))
+      config.extra.logLevel.foreach(level => GlobalLogLevel.set("com.daml")(Level.toLevel(level,Level.TRACE)))
 
+      LogUtils.setRootLogLevel(config.extra.logLevel)
       val clientBuilder = S3AsyncClient.builder
         .region(Region.of(config.extra.region))
         .credentialsProvider(DefaultCredentialsProvider.builder.build)
