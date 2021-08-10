@@ -14,11 +14,21 @@
 package com.blockchaintp.daml.address;
 
 import com.daml.ledger.participant.state.kvutils.DamlKvutils;
+import com.google.protobuf.ByteString;
 
 /**
  *
  */
 public final class QldbIdentifier implements Identifier {
+  private ByteString data;
+
+  /**
+   *
+   * @param theData
+   */
+  public QldbIdentifier(final ByteString theData) {
+    data = theData;
+  }
 
   @Override
   public DamlKvutils.DamlStateKey toKey() {

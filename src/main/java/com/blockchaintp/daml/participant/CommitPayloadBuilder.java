@@ -22,6 +22,7 @@ import java.util.stream.Stream;
 import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.protobuf.DamlOperation;
 import com.blockchaintp.daml.protobuf.DamlTransaction;
+import com.blockchaintp.exception.BuilderException;
 import com.daml.ledger.participant.state.kvutils.Raw;
 import com.daml.ledger.participant.state.kvutils.api.CommitMetadata;
 import com.google.protobuf.ByteString;
@@ -128,7 +129,13 @@ public final class CommitPayloadBuilder<A extends Identifier> {
    * @return Payloads to commit.
    */
   public List<CommitPayload<A>> build(final Raw.Envelope theEnvelope, final CommitMetadata metadata,
-      final String correlationId) {
+      final String correlationId) throws BuilderException {
+    if (inputAddressReader == null) {
+      throw new BuilderException("No configured input address reader");
+    }
+    if (outputAddressReader == null) {
+      throw new BuilderException("No configured output address reader");
+    }
     return fragmentationStrategy.fragment(theEnvelope, null, correlationId).stream()
         .map(op -> new CommitPayload<A>(op, metadata, inputAddressReader, outputAddressReader))
         .collect(Collectors.toList());

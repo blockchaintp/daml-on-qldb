@@ -34,11 +34,13 @@ import com.daml.ledger.api.auth.AuthServiceJWT
 import com.daml.ledger.api.auth.AuthServiceWildcard
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlStateKey
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlStateValue
+import com.daml.ledger.participant.state.kvutils.api.CommitMetadata
 import com.daml.ledger.participant.state.kvutils.app.Config
 import com.daml.ledger.participant.state.kvutils.app.Runner
 import com.daml.ledger.participant.state.v1.Configuration
 import com.daml.ledger.participant.state.v1.TimeModel
 import com.daml.ledger.resources.ResourceContext
+import com.daml.ledger.validator.DefaultStateKeySerializationStrategy
 import com.daml.platform.configuration.LedgerConfiguration
 import com.daml.resources.ProgramResource
 import com.google.protobuf.ByteString
@@ -50,8 +52,10 @@ import software.amazon.awssdk.services.qldbsession.QldbSessionClient
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.qldb.QldbDriver
 
+import scala.jdk.CollectionConverters._
 import java.nio.file.Paths
 import java.time.Duration
+import scala.jdk.FunctionConverters.enrichAsJavaFunction
 import scala.util.Try
 
 object Main extends App {
@@ -126,6 +130,19 @@ object Main extends App {
         .from(qldbTransactionLog, txBlobStore)
         .build();
 
+      val inputAddressReader = (meta: CommitMetadata) =>
+        meta
+          .inputKeys(DefaultStateKeySerializationStrategy)
+          .map(r => new QldbIdentifier(r.bytes))
+          .asJavaCollection
+          .stream();
+
+      val outputAddressReader = (meta: CommitMetadata) =>
+        meta
+          .inputKeys(DefaultStateKeySerializationStrategy)
+          .map(r => new QldbIdentifier(r.bytes))
+          .asJavaCollection
+          .stream();
       builder
         .withTransactionLogReader(txLog)
         .withInProcLedgerSubmitterBuilder(builder =>
@@ -133,7 +150,11 @@ object Main extends App {
             .withStateStore(stateStore)
             .withTransactionLogWriter(txLog)
         )
-        .configureCommitPayloadBuilder(p => p.withNoFragmentation())
+        .configureCommitPayloadBuilder(p =>
+          p.withInputAddressReader(inputAddressReader.asJava)
+            .withOutputAddressReader(outputAddressReader.asJava)
+            .withNoFragmentation()
+        )
     })
   ).owner(args)
   new ProgramResource(runner).run(ResourceContext.apply)

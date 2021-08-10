@@ -76,8 +76,8 @@ class CacheTest {
     cache.put(Key.of("primed"), Value.of("primed"));
     stubStore.put(Key.of("readthrough"), Value.of("readthrough"));
 
-    Assertions.assertIterableEquals(Arrays.asList(Value.of("primed"), Value.of("readthrough")),
-        cachedStore.get(Arrays.asList(Key.of("primed"), Key.of("readthrough"))).values());
+    Assertions.assertIterableEquals(Arrays.asList(Value.of("readthrough"), Value.of("primed")),
+        cachedStore.get(Arrays.asList(Key.of("readthrough"), Key.of("primed"))).values());
   }
 
   @Test
