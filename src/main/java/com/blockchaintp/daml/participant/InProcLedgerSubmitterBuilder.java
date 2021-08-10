@@ -135,7 +135,7 @@ public final class InProcLedgerSubmitterBuilder<I extends Identifier, A extends 
   public InProcLedgerSubmitter<I, A> build() {
     var committing = new KeyValueCommitting(engine, metrics);
 
-    return new InProcLedgerSubmitter<I, A>(committing, txLog, stateStore, executionContext, participantId,
-        configuration, loggingContext);
+    return new InProcLedgerSubmitter<>(committing, txLog, stateStore, executionContext, participantId, configuration,
+        loggingContext);
   }
 }

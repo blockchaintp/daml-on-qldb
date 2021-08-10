@@ -34,6 +34,7 @@ import com.daml.ledger.api.auth.AuthServiceJWT
 import com.daml.ledger.api.auth.AuthServiceWildcard
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlStateKey
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlStateValue
+import com.daml.ledger.participant.state.kvutils.Raw.StateKey
 import com.daml.ledger.participant.state.kvutils.api.CommitMetadata
 import com.daml.ledger.participant.state.kvutils.app.Config
 import com.daml.ledger.participant.state.kvutils.app.Runner
@@ -133,14 +134,14 @@ object Main extends App {
       val inputAddressReader = (meta: CommitMetadata) =>
         meta
           .inputKeys(DefaultStateKeySerializationStrategy)
-          .map(r => new QldbIdentifier(r.bytes))
+          .map(r => new QldbIdentifier(DefaultStateKeySerializationStrategy.deserializeStateKey(r)))
           .asJavaCollection
           .stream();
 
       val outputAddressReader = (meta: CommitMetadata) =>
         meta
           .inputKeys(DefaultStateKeySerializationStrategy)
-          .map(r => new QldbIdentifier(r.bytes))
+          .map(r => new QldbIdentifier(DefaultStateKeySerializationStrategy.deserializeStateKey(r)))
           .asJavaCollection
           .stream();
       builder

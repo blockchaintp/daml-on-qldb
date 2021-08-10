@@ -27,7 +27,6 @@ import com.daml.ledger.participant.state.kvutils.Raw;
 import com.daml.ledger.participant.state.v1.Offset;
 import com.daml.ledger.participant.state.v1.Offset$;
 import com.daml.ledger.resources.ResourceContext;
-import com.daml.lf.engine.Engine;
 import com.google.common.primitives.Longs;
 import com.google.protobuf.ByteString;
 
@@ -48,13 +47,11 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
   /**
    * Construct a participant builder for the given identifiers.
    *
-   * @param theEngine
    * @param theLedgerId
    * @param theParticipantId
    * @param theContext
    */
-  public ParticipantBuilder(final Engine theEngine, final String theLedgerId, final String theParticipantId,
-      final ResourceContext theContext) {
+  public ParticipantBuilder(final String theLedgerId, final String theParticipantId, final ResourceContext theContext) {
     participantId = theParticipantId;
     ledgerId = theLedgerId;
     context = theContext;
@@ -121,7 +118,7 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
       throw new BuilderException("Participant requires a configured submitter builder");
     }
 
-    return new Participant(txLog, commitPayloadBuilder,
+    return new Participant<>(txLog, commitPayloadBuilder,
         submitterBuilder.withParticipantId(participantId).withExecutionContext(context.executionContext()).build(),
         ledgerId, participantId, context.executionContext());
   }

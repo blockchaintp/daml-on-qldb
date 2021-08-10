@@ -14,24 +14,23 @@
 package com.blockchaintp.daml.address;
 
 import com.daml.ledger.participant.state.kvutils.DamlKvutils;
-import com.google.protobuf.ByteString;
 
 /**
  *
  */
 public final class QldbAddress implements LedgerAddress {
-  private ByteString data;
+  private DamlKvutils.DamlStateKey data;
 
   /**
    *
    * @param theData
    */
-  public QldbAddress(final ByteString theData) {
+  public QldbAddress(final DamlKvutils.DamlStateKey theData) {
     data = theData;
   }
 
   @Override
   public DamlKvutils.DamlStateKey toKey() {
-    return null;
+    return data;
   }
 }

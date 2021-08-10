@@ -68,6 +68,6 @@ public class QldbTransactionException extends StoreException {
    * @return An appropriate exception.
    */
   public static QldbTransactionException notAStruct(final IonValue value) {
-    return new QldbTransactionException(String.format("Ion structure exopected but got {}", value));
+    return new QldbTransactionException(String.format("Ion structure expected but got %s", value.toPrettyString()));
   }
 }

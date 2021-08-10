@@ -46,7 +46,7 @@ class ParticipantOwner[ExtraConfig, Id <: Identifier, Address <: LedgerAddress](
     Resource.successful(
       build(
         config,
-        new ParticipantBuilder[Id, Address](engine, ledgerId, participantId, context)
+        new ParticipantBuilder[Id, Address](ledgerId, participantId, context)
           .withInProcLedgerSubmitterBuilder(builder =>
             builder
               .withEngine(engine)

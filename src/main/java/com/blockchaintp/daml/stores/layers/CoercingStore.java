@@ -61,7 +61,7 @@ public class CoercingStore<K1, K2, V1, V2> implements Store<K1, V1> {
   public static <K3, K4, V3, V4> Store<K3, V3> from(final Function<K4, K3> keyCoercionFrom,
       final Function<V4, V3> valueCoercionFrom, final Function<K3, K4> keyCoercionTo,
       final Function<V3, V4> valueCoercionTo, final Store<K4, V4> inner) {
-    return new CoercingStore<K3, K4, V3, V4>(keyCoercionFrom, keyCoercionTo, valueCoercionFrom, valueCoercionTo, inner);
+    return new CoercingStore<>(keyCoercionFrom, keyCoercionTo, valueCoercionFrom, valueCoercionTo, inner);
   }
 
   /**

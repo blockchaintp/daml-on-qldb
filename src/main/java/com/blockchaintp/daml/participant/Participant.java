@@ -68,7 +68,7 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   public static <I2 extends Identifier, A2 extends LedgerAddress> ParticipantBuilder<I2, A2> builder(
       final Engine theEngine, final String theParticipantId, final String theLedgerId,
       final ResourceContext theContext) {
-    return new ParticipantBuilder<I2, A2>(theEngine, theParticipantId, theLedgerId, theContext);
+    return new ParticipantBuilder<>(theParticipantId, theLedgerId, theContext);
   }
 
   /**
@@ -117,11 +117,11 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
 
     return Future.apply(() -> {
       try {
-        var ref = commitPayloadBuilder.build(envelope, metadata, correlationId).stream().map(submitter::submitPayload)
+        commitPayloadBuilder.build(envelope, metadata, correlationId).stream().map(submitter::submitPayload)
             .collect(Collectors.toList());
         return SubmissionResult.Acknowledged$.MODULE$;
       } catch (final Exception e) {
-        LOG.warn("Interrupted while submitting transaction", e);
+        LOG.warn("Interrupted while submitting transaction {}", e);
         Thread.currentThread().interrupt();
         return new SubmissionResult.InternalError("Interrupted while submitting transaction");
       }

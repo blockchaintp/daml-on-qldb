@@ -29,9 +29,4 @@ Configuration:
     Root:
       level: debug
       AppenderRef:
-        - ref: CONSOLE
-    Logger:
-      - name: com.daml.resources.ProgramResource
-        level: debug
-        AppenderRef:
-          - ref: CONSOLE
+        - ref: JSON_CONSOLE

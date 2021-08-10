@@ -13,6 +13,7 @@
  */
 package com.blockchaintp.daml.participant;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -51,6 +52,7 @@ import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
+import scala.Option;
 import scala.concurrent.ExecutionContext;
 import scala.jdk.javaapi.CollectionConverters$;
 import scala.jdk.javaapi.OptionConverters$;
@@ -132,7 +134,7 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
    * Do the work of submitting this to our underlying txlog and processing the input and output
    * states.
    */
-  private void work() {
+  public void work() {
     while (true) {
       try {
         var next = queue.take();
@@ -144,33 +146,48 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
         var sparseInputs = inputKeys.stream().collect(Collectors.toMap(Opaque::toNative,
             k -> OptionConverters$.MODULE$.toScala(Optional.<DamlKvutils.DamlStateValue>empty())));
 
-        try {
-          stateStore.get(inputKeys).entrySet().forEach(kv -> sparseInputs.put(kv.getKey().toNative(),
-              OptionConverters$.MODULE$.toScala(Optional.of(kv.getValue().toNative()))));
-
-          var entryId = writer.begin();
-
-          var rx = committing.processSubmission(entryId, getCurrentRecordTime(), configuration,
-              DamlKvutils.DamlSubmission.parseFrom(next._2.getOperation().getTransaction().getSubmission()),
-              participantId, mapToScalaImmutableMap(sparseInputs), loggingContext);
-
-          var outputMap = scalaMapToMap(rx._2);
-
-          stateStore.put(outputMap.entrySet().stream()
-              .map(kv -> Map.entry(Key.of(kv.getKey()), Value.of(kv.getValue()))).collect(Collectors.toList()));
-
-          writer.sendEvent(entryId, rx._1);
-          writer.commit(entryId);
-
-          status.put(next._1, SubmissionStatus.SUBMITTED);
-
-        } catch (StoreWriteException | StoreReadException | InvalidProtocolBufferException e) {
-          LOG.error("Could not submit payload {} due to {}", next._1, e);
-        }
+        submitTransaction(next, inputKeys, sparseInputs);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         LOG.error("Thread interrupted", e);
+
+        return;
       }
+    }
+  }
+
+  /**
+   * Do the work of getting data, updating final state and logging the transaction.
+   *
+   * @param next
+   * @param inputKeys
+   * @param sparseInputs
+   */
+  private void submitTransaction(final Tuple2<SubmissionReference, CommitPayload<A>> next,
+      final List<Key<DamlKvutils.DamlStateKey>> inputKeys,
+      final Map<DamlKvutils.DamlStateKey, Option<DamlKvutils.DamlStateValue>> sparseInputs) {
+    try {
+      stateStore.get(inputKeys).entrySet().forEach(kv -> sparseInputs.put(kv.getKey().toNative(),
+          OptionConverters$.MODULE$.toScala(Optional.of(kv.getValue().toNative()))));
+
+      var entryId = writer.begin();
+
+      var rx = committing.processSubmission(entryId, getCurrentRecordTime(), configuration,
+          DamlKvutils.DamlSubmission.parseFrom(next._2.getOperation().getTransaction().getSubmission()), participantId,
+          mapToScalaImmutableMap(sparseInputs), loggingContext);
+
+      var outputMap = scalaMapToMap(rx._2);
+
+      stateStore.put(outputMap.entrySet().stream().map(kv -> Map.entry(Key.of(kv.getKey()), Value.of(kv.getValue())))
+          .collect(Collectors.toList()));
+
+      writer.sendEvent(entryId, rx._1);
+      writer.commit(entryId);
+
+      status.put(next._1, SubmissionStatus.SUBMITTED);
+
+    } catch (StoreWriteException | StoreReadException | InvalidProtocolBufferException e) {
+      LOG.error("Could not submit payload {} due to {}", next._1, e);
     }
   }
 
@@ -197,4 +214,5 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
   public CommitPayload<B> translatePayload(final CommitPayload<A> cp) {
     return null;
   }
+
 }
