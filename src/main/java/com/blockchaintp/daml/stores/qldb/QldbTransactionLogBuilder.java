@@ -26,7 +26,7 @@ public final class QldbTransactionLogBuilder {
   private static final int PAGE_SIZE = 20;
   private final QldbDriver driver;
   private String table;
-  private IonSystem ion = IonSystemBuilder.standard().build();
+  private final IonSystem ion = IonSystemBuilder.standard().build();
 
   /**
    *

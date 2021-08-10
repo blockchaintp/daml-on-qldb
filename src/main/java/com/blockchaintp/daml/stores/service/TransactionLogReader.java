@@ -35,5 +35,5 @@ public interface TransactionLogReader<I, K, V> {
    *          - use None to start at the last commit
    * @return A stream of comitted log entires.
    */
-  Observable<Tuple3<I, K, V>> from(Optional<I> offset);
+  Observable<Tuple3<I, K, V>> from(@SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<I> offset);
 }

@@ -67,8 +67,8 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
   private final QldbDriver driver;
   private final IonSystem ion;
   private QldbTxSeq seqSource;
-  private long pollInterval;
-  private long pageSize;
+  private final long pollInterval;
+  private final long pageSize;
 
   /**
    *
@@ -218,7 +218,7 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
   private Tuple2<Long, Map.Entry<UUID, ByteString>> fromResult(final IonValue result) throws QldbTransactionException {
     var s = (IonStruct) result;
     if (s == null) {
-      throw QldbTransactionException.invalidSchema(s);
+      throw QldbTransactionException.notAStruct(result);
     }
 
     var idBytes = (IonBlob) s.get(ID_FIELD);
@@ -256,6 +256,7 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
         }));
   }
 
+  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private QldbTxSeq getQldbTxSeq(final Optional<Long> offset) {
     QldbTxSeq readSeq;
     if (offset.isEmpty()) {

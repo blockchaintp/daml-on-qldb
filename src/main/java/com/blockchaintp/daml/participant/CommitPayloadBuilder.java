@@ -22,7 +22,6 @@ import java.util.stream.Stream;
 import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.protobuf.DamlOperation;
 import com.blockchaintp.daml.protobuf.DamlTransaction;
-import com.blockchaintp.exception.BuilderException;
 import com.daml.ledger.participant.state.kvutils.Raw;
 import com.daml.ledger.participant.state.kvutils.api.CommitMetadata;
 import com.google.protobuf.ByteString;
@@ -51,7 +50,7 @@ public final class CommitPayloadBuilder<A extends Identifier> {
   /**
    *
    */
-  public final class NoFragmentation implements FragmentationStrategy {
+  public static final class NoFragmentation implements FragmentationStrategy {
     private final String participantId;
 
     /**
@@ -92,7 +91,7 @@ public final class CommitPayloadBuilder<A extends Identifier> {
    * @param theAddressReader
    * @return A configured builder.
    */
-  public CommitPayloadBuilder withInputAddressReader(final Function<CommitMetadata, Stream<A>> theAddressReader) {
+  public CommitPayloadBuilder<A> withInputAddressReader(final Function<CommitMetadata, Stream<A>> theAddressReader) {
     this.inputAddressReader = theAddressReader;
 
     return this;
@@ -103,7 +102,7 @@ public final class CommitPayloadBuilder<A extends Identifier> {
    * @param theAddressReader
    * @return A configured builder.
    */
-  public CommitPayloadBuilder withOutputAddressReader(final Function<CommitMetadata, Stream<A>> theAddressReader) {
+  public CommitPayloadBuilder<A> withOutputAddressReader(final Function<CommitMetadata, Stream<A>> theAddressReader) {
     this.outputAddressReader = theAddressReader;
 
     return this;
@@ -130,12 +129,6 @@ public final class CommitPayloadBuilder<A extends Identifier> {
    */
   public List<CommitPayload<A>> build(final Raw.Envelope theEnvelope, final CommitMetadata metadata,
       final String correlationId) {
-    if (fragmentationStrategy == null) {
-      throw new BuilderException("Commit payload builders need a fragmentation strategy");
-    }
-    if (fragmentationStrategy == null) {
-      throw new BuilderException("Commit payload builders need a fragmentation strategy");
-    }
     return fragmentationStrategy.fragment(theEnvelope, null, correlationId).stream()
         .map(op -> new CommitPayload<A>(op, metadata, inputAddressReader, outputAddressReader))
         .collect(Collectors.toList());

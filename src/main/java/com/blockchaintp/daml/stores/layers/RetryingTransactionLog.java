@@ -13,6 +13,7 @@
  */
 package com.blockchaintp.daml.stores.layers;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
@@ -44,10 +45,10 @@ public final class RetryingTransactionLog<K, V, I> implements TransactionLog<K, 
         .maxAttempts(config.getMaxRetries()).retryOnException(StoreWriteException.class::isInstance).build());
 
     writeRetry.getEventPublisher().onRetry(r -> LOG.info("Retrying {} attempt {} due to {}", r::getName,
-        r::getNumberOfRetryAttempts, () -> r.getLastThrowable().getMessage()));
+        r::getNumberOfRetryAttempts, () -> Objects.requireNonNull(r.getLastThrowable()).getMessage()));
 
     writeRetry.getEventPublisher().onError(r -> LOG.error("Retrying {} aborted after {} attempts due to {}", r::getName,
-        r::getNumberOfRetryAttempts, () -> r.getLastThrowable().getMessage()));
+        r::getNumberOfRetryAttempts, () -> Objects.requireNonNull(r.getLastThrowable()).getMessage()));
 
     return writeRetry;
   }

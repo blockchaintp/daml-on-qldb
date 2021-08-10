@@ -27,7 +27,7 @@ public final class QldbStoreException extends StoreException {
    * @param message
    *          Pertinent message text.
    */
-  protected QldbStoreException(final String message) {
+  private QldbStoreException(final String message) {
     super(message);
   }
 

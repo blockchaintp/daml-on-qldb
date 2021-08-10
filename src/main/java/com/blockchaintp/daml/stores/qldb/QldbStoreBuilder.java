@@ -81,7 +81,7 @@ public final class QldbStoreBuilder {
     var store = new QldbStore(driver, table);
 
     if (retryingConfig != null) {
-      return new QldbRetryStrategy(retryingConfig, store);
+      return new QldbRetryStrategy<>(retryingConfig, store);
     }
 
     return store;

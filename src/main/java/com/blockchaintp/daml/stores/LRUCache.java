@@ -49,6 +49,7 @@ public class LRUCache<K, V> extends LinkedHashMap<Key<K>, Value<V>> {
     return size() >= cacheSize;
   }
 
+  @SuppressWarnings("EmptyMethod")
   @Override
   public final int hashCode() {
     return super.hashCode();

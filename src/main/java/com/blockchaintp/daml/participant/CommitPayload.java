@@ -29,10 +29,9 @@ import com.daml.ledger.participant.state.kvutils.api.CommitMetadata;
  *          the type of the identifier (e.g. {@link LedgerAddress} or {@link Identifier})
  */
 public final class CommitPayload<A extends Identifier> {
-  private final CommitMetadata metadata;
-  private DamlOperation operation;
-  private Set<A> reads;
-  private Set<A> writes;
+  private final DamlOperation operation;
+  private final Set<A> reads;
+  private final Set<A> writes;
 
   /**
    *
@@ -45,7 +44,6 @@ public final class CommitPayload<A extends Identifier> {
       final Function<CommitMetadata, Stream<A>> readAddressExtractor,
       final Function<CommitMetadata, Stream<A>> writeAddressExtractor) {
     this.operation = theOperation;
-    this.metadata = theMetadata;
     this.reads = readAddressExtractor.apply(theMetadata).collect(Collectors.toSet());
     this.writes = writeAddressExtractor.apply(theMetadata).collect(Collectors.toSet());
   }
@@ -63,5 +61,13 @@ public final class CommitPayload<A extends Identifier> {
    */
   public Set<A> getReads() {
     return reads;
+  }
+
+  /**
+   *
+   * @return The set of write addresses.
+   */
+  public Set<A> getWrites() {
+    return writes;
   }
 }

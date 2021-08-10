@@ -64,7 +64,6 @@ object Main extends App {
         .region(Region.of(config.extra.region))
         .credentialsProvider(DefaultCredentialsProvider.builder.build)
 
-
       if (config.extra.createAws) {
         try {
           val log_blob_resource        = new S3StoreResources(clientBuilder.build, config.ledgerId, "tx-log-blobs")

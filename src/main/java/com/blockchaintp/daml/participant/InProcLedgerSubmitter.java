@@ -27,6 +27,7 @@ import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.layers.CoercingStore;
 import com.blockchaintp.daml.stores.layers.CoercingTxLog;
 import com.blockchaintp.daml.stores.service.Key;
+import com.blockchaintp.daml.stores.service.Opaque;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.daml.stores.service.TransactionLogWriter;
@@ -40,10 +41,12 @@ import com.daml.ledger.participant.state.v1.Offset$;
 import com.daml.lf.data.Time;
 import com.daml.logging.LoggingContext;
 import com.google.common.primitives.Longs;
+import com.google.protobuf.AbstractMessageLite;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import io.vavr.API;
+import io.vavr.CheckedFunction1;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
@@ -60,12 +63,10 @@ import scala.jdk.javaapi.OptionConverters$;
  */
 public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerAddress>
     implements LedgerSubmitter<A, B> {
-  private static final int UUID_LENGTH_IN_BYTES = 16;
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(InProcLedgerSubmitter.class);
   private final KeyValueCommitting committing;
   private final TransactionLogWriter<DamlKvutils.DamlLogEntryId, DamlKvutils.DamlLogEntry, Offset> writer;
   private final Store<DamlKvutils.DamlStateKey, DamlKvutils.DamlStateValue> stateStore;
-  private final ExecutionContext context;
   private final String participantId;
   private final Configuration configuration;
   private final LoggingContext loggingContext;
@@ -79,7 +80,7 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
    * @return An appropriate InProcLedgerSubmitterBuilder.
    */
   public static <I extends Identifier, A extends LedgerAddress> InProcLedgerSubmitterBuilder<I, A> builder() {
-    return new InProcLedgerSubmitterBuilder();
+    return new InProcLedgerSubmitterBuilder<>();
   }
 
   /**
@@ -99,32 +100,31 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
     writer = CoercingTxLog.writerFrom(
         (UUID k) -> DamlKvutils.DamlLogEntryId.newBuilder().setEntryId(ByteString.copyFrom(UuidConverter.asBytes(k)))
             .build(),
-        API.unchecked((ByteString v) -> DamlKvutils.DamlLogEntry.parseFrom(v)),
+        API.unchecked((CheckedFunction1<ByteString, DamlKvutils.DamlLogEntry>) DamlKvutils.DamlLogEntry::parseFrom),
         (Long i) -> Offset$.MODULE$.fromByteArray(Longs.toByteArray(i)),
         (DamlKvutils.DamlLogEntryId k) -> UuidConverter.asUuid(k.getEntryId().toByteArray()),
-        (DamlKvutils.DamlLogEntry v) -> v.toByteString(), (Offset i) -> Longs.fromByteArray(i.toByteArray()), theTxLog);
-    stateStore = CoercingStore.from(API.unchecked((ByteString k) -> DamlKvutils.DamlStateKey.parseFrom(k)),
-        API.unchecked((ByteString v) -> DamlKvutils.DamlStateValue.parseFrom(v)),
-        (DamlKvutils.DamlStateKey k) -> k.toByteString(), (DamlKvutils.DamlStateValue v) -> v.toByteString(),
-        theStateStore);
-    context = theContext;
+        AbstractMessageLite::toByteString, (Offset i) -> Longs.fromByteArray(i.toByteArray()), theTxLog);
+    stateStore = CoercingStore.from(
+        API.unchecked((CheckedFunction1<ByteString, DamlKvutils.DamlStateKey>) DamlKvutils.DamlStateKey::parseFrom),
+        API.unchecked((CheckedFunction1<ByteString, DamlKvutils.DamlStateValue>) DamlKvutils.DamlStateValue::parseFrom),
+        AbstractMessageLite::toByteString, AbstractMessageLite::toByteString, theStateStore);
     participantId = theParticipantId;
     configuration = theConfiguration;
     loggingContext = theLoggingContext;
     queue = new LinkedBlockingQueue<>();
     status = new ConcurrentHashMap<>();
-    context.execute(this::work);
+    theContext.execute(this::work);
   }
 
   private Time.Timestamp getCurrentRecordTime() {
     return Time.Timestamp$.MODULE$.now();
   }
 
-  private <A, B> scala.collection.immutable.Map<A, B> mapToScalaImmutableMap(final java.util.Map<A, B> m) {
+  private <A1, B1> scala.collection.immutable.Map<A1, B1> mapToScalaImmutableMap(final java.util.Map<A1, B1> m) {
     return scala.collection.immutable.Map$.MODULE$.from(CollectionConverters$.MODULE$.asScala(m));
   }
 
-  private <A, B> java.util.Map<A, B> scalaMapToMap(final scala.collection.immutable.Map<A, B> m) {
+  private <A1, B1> java.util.Map<A1, B1> scalaMapToMap(final scala.collection.immutable.Map<A1, B1> m) {
     return CollectionConverters$.MODULE$.asJava(m);
   }
 
@@ -141,23 +141,23 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
 
         var inputKeys = next._2.getReads().stream().map(Identifier::toKey).map(Key::of).collect(Collectors.toList());
 
-        var sparseInputs = inputKeys.stream().collect(Collectors.toMap(k -> k.toNative(),
-          k -> OptionConverters$.MODULE$.toScala(Optional.<DamlKvutils.DamlStateValue>empty())));
+        var sparseInputs = inputKeys.stream().collect(Collectors.toMap(Opaque::toNative,
+            k -> OptionConverters$.MODULE$.toScala(Optional.<DamlKvutils.DamlStateValue>empty())));
 
         try {
           stateStore.get(inputKeys).entrySet().forEach(kv -> sparseInputs.put(kv.getKey().toNative(),
-            OptionConverters$.MODULE$.toScala(Optional.of(kv.getValue().toNative()))));
+              OptionConverters$.MODULE$.toScala(Optional.of(kv.getValue().toNative()))));
 
           var entryId = writer.begin();
 
           var rx = committing.processSubmission(entryId, getCurrentRecordTime(), configuration,
-            DamlKvutils.DamlSubmission.parseFrom(next._2.getOperation().getTransaction().getSubmission()),
-            participantId, mapToScalaImmutableMap(sparseInputs), loggingContext);
+              DamlKvutils.DamlSubmission.parseFrom(next._2.getOperation().getTransaction().getSubmission()),
+              participantId, mapToScalaImmutableMap(sparseInputs), loggingContext);
 
           var outputMap = scalaMapToMap(rx._2);
 
-          stateStore.put(outputMap.entrySet().stream().map(kv -> Map.entry(Key.of(kv.getKey()), Value.of(kv.getValue())))
-            .collect(Collectors.toList()));
+          stateStore.put(outputMap.entrySet().stream()
+              .map(kv -> Map.entry(Key.of(kv.getKey()), Value.of(kv.getValue()))).collect(Collectors.toList()));
 
           writer.sendEvent(entryId, rx._1);
           writer.commit(entryId);
@@ -168,8 +168,8 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
           LOG.error("Could not submit payload {} due to {}", next._1, e);
         }
       } catch (InterruptedException e) {
-        LOG.error("Thread interrupted {}", e);
-        return;
+        Thread.currentThread().interrupt();
+        LOG.error("Thread interrupted", e);
       }
     }
   }
@@ -182,7 +182,6 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       LOG.warn("Committer thread has been interrupted!");
-      throw new RuntimeException(e);
     }
     status.put(ref, SubmissionStatus.ENQUEUED);
 

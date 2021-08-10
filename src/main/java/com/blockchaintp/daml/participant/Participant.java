@@ -52,7 +52,7 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   private final LedgerSubmitter<I, A> submitter;
   private final String ledgerId;
   private final String participantId;
-  private final ExecutionContext context;
+  private ExecutionContext context;
 
   /**
    * Convenience method for creating a builder.
@@ -125,6 +125,6 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
         Thread.currentThread().interrupt();
         return new SubmissionResult.InternalError("Interrupted while submitting transaction");
       }
-    }, ExecutionContext.global());
+    }, context);
   }
 }

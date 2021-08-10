@@ -28,8 +28,8 @@ import com.google.protobuf.ByteString;
  */
 public class SplitTransactionLogBuilder {
   private UnaryOperator<byte[]> hashFn;
-  private TransactionLog<UUID, ByteString, Long> txLog;
-  private Store<String, byte[]> blobs;
+  private final TransactionLog<UUID, ByteString, Long> txLog;
+  private final Store<String, byte[]> blobs;
 
   /**
    *

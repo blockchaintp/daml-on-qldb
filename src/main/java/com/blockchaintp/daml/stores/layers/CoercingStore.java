@@ -52,17 +52,16 @@ public class CoercingStore<K1, K2, V1, V2> implements Store<K1, V1> {
    * @param keyCoercionTo
    * @param valueCoercionTo
    * @param inner
-   * @param <KK1>
-   * @param <KK2>
-   * @param <VV1>
-   * @param <VV2>
+   * @param <K3>
+   * @param <K4>
+   * @param <V3>
+   * @param <V4>
    * @return a wrapped store
    */
-  public static <KK1, KK2, VV1, VV2> Store<KK1, VV1> from(final Function<KK2, KK1> keyCoercionFrom,
-      final Function<VV2, VV1> valueCoercionFrom, final Function<KK1, KK2> keyCoercionTo,
-      final Function<VV1, VV2> valueCoercionTo, final Store<KK2, VV2> inner) {
-    return new CoercingStore<KK1, KK2, VV1, VV2>(keyCoercionFrom, keyCoercionTo, valueCoercionFrom, valueCoercionTo,
-        inner);
+  public static <K3, K4, V3, V4> Store<K3, V3> from(final Function<K4, K3> keyCoercionFrom,
+      final Function<V4, V3> valueCoercionFrom, final Function<K3, K4> keyCoercionTo,
+      final Function<V3, V4> valueCoercionTo, final Store<K4, V4> inner) {
+    return new CoercingStore<K3, K4, V3, V4>(keyCoercionFrom, keyCoercionTo, valueCoercionFrom, valueCoercionTo, inner);
   }
 
   /**

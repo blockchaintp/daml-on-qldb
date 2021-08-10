@@ -60,4 +60,14 @@ public class QldbTransactionException extends StoreException {
   public static QldbTransactionException noMetadata(final String query) {
     return new QldbTransactionException(String.format("Metadata query '%s' returned no results", query));
   }
+
+  /**
+   * An ion structure was exopected.
+   *
+   * @param value
+   * @return An appropriate exception.
+   */
+  public static QldbTransactionException notAStruct(final IonValue value) {
+    return new QldbTransactionException(String.format("Ion structure exopected but got {}", value));
+  }
 }

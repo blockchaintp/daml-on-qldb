@@ -40,11 +40,10 @@ import com.google.protobuf.ByteString;
 public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddress> {
   private final String participantId;
   private final String ledgerId;
-  private final Engine engine;
   private final ResourceContext context;
   private TransactionLogReader<Offset, Raw.LogEntryId, Raw.Envelope> txLog;
-  private final CommitPayloadBuilder commitPayloadBuilder;
-  private InProcLedgerSubmitterBuilder submitterBuilder;
+  private final CommitPayloadBuilder<I> commitPayloadBuilder;
+  private InProcLedgerSubmitterBuilder<I, A> submitterBuilder;
 
   /**
    * Construct a participant builder for the given identifiers.
@@ -56,11 +55,10 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
    */
   public ParticipantBuilder(final Engine theEngine, final String theLedgerId, final String theParticipantId,
       final ResourceContext theContext) {
-    engine = theEngine;
     participantId = theParticipantId;
     ledgerId = theLedgerId;
     context = theContext;
-    commitPayloadBuilder = new CommitPayloadBuilder(participantId);
+    commitPayloadBuilder = new CommitPayloadBuilder<>(participantId);
   }
 
   /**
@@ -72,9 +70,8 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
   public ParticipantBuilder<I, A> withTransactionLogReader(final TransactionLog<UUID, ByteString, Long> reader) {
     this.txLog = CoercingTxLog.readerFrom(
         (UUID k) -> Raw.LogEntryId$.MODULE$.apply(ByteString.copyFrom(UuidConverter.asBytes(k))),
-        (ByteString v) -> Raw.Envelope$.MODULE$.apply(v),
-        (Long i) -> Offset$.MODULE$.fromByteArray(Longs.toByteArray(i)),
-        (Raw.LogEntryId k) -> UuidConverter.asUuid(k.bytes().toByteArray()), (Raw.Envelope v) -> v.bytes(),
+        Raw.Envelope$.MODULE$::apply, (Long i) -> Offset$.MODULE$.fromByteArray(Longs.toByteArray(i)),
+        (Raw.LogEntryId k) -> UuidConverter.asUuid(k.bytes().toByteArray()), Raw.Envelope::bytes,
         (Offset i) -> Longs.fromByteArray(i.toByteArray()), reader);
 
     return this;
@@ -103,7 +100,8 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
    * @param configure
    * @return The configured builder.
    */
-  public ParticipantBuilder<I, A> configureCommitPayloadBuilder(final UnaryOperator<CommitPayloadBuilder> configure) {
+  public ParticipantBuilder<I, A> configureCommitPayloadBuilder(
+      final UnaryOperator<CommitPayloadBuilder<I>> configure) {
     configure.apply(commitPayloadBuilder);
 
     return this;
@@ -123,7 +121,7 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
       throw new BuilderException("Participant requires a configured submitter builder");
     }
 
-    return new Participant<I, A>(txLog, commitPayloadBuilder,
+    return new Participant(txLog, commitPayloadBuilder,
         submitterBuilder.withParticipantId(participantId).withExecutionContext(context.executionContext()).build(),
         ledgerId, participantId, context.executionContext());
   }
