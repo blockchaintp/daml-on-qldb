@@ -19,7 +19,9 @@ package: $(MARKERS)/package_mvn $(MARKERS)/package_docker
 
 # TODO: Integration tests are not yet ready
 # test: $(MARKERS)/test_mvn $(MARKERS)/test_daml
-test: $(MARKERS)/test_mvn
+test: $(MARKERS)/test_mvn ${}
+
+test_daml: $(MARKERS)/test_daml ${}
 
 analyze: analyze_fossa analyze_sonar_mvn
 

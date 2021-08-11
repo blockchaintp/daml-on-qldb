@@ -13,6 +13,10 @@
  */
 package com.blockchaintp.daml.stores.qldb;
 
+import com.blockchaintp.daml.stores.layers.RetryingConfig;
+import com.blockchaintp.daml.stores.service.Store;
+import com.google.protobuf.ByteString;
+
 import software.amazon.qldb.QldbDriver;
 
 /**
@@ -22,6 +26,7 @@ public final class QldbStoreBuilder {
 
   private final QldbDriver driver;
   private String table;
+  private RetryingConfig retryingConfig;
 
   private QldbStoreBuilder(final QldbDriver qldbDriver) {
     this.driver = qldbDriver;
@@ -51,14 +56,34 @@ public final class QldbStoreBuilder {
   }
 
   /**
+   * Specify the number of retries to use for the stores built.
+   *
+   * @param maxRetries
+   *          the maximum number of retries.
+   * @return the builder
+   */
+  public QldbStoreBuilder retrying(final int maxRetries) {
+    this.retryingConfig = new RetryingConfig();
+    this.retryingConfig.setMaxRetries(maxRetries);
+
+    return this;
+  }
+
+  /**
    * Construct a QLDBStore instance.
    *
    * @return the instance
    */
-  public QldbStore build() {
+  public Store<ByteString, ByteString> build() {
     if (table == null) {
       throw new QldbStoreBuilderException("No table name specified in builder");
     }
-    return new QldbStore(driver, table);
+    var store = new QldbStore(driver, table);
+
+    if (retryingConfig != null) {
+      return new QldbRetryStrategy<>(retryingConfig, store);
+    }
+
+    return store;
   }
 }

@@ -20,6 +20,7 @@ import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.resources.QldbResources;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Opaque;
+import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.Value;
 import com.google.protobuf.ByteString;
 import org.junit.jupiter.api.AfterEach;
@@ -44,7 +45,7 @@ import java.util.stream.Collectors;
 
 class QldbStoreIntegrationTest {
   private static final int ITERATIONS = 40;
-  private QldbStore store;
+  private Store<ByteString, ByteString> store;
   private IonSystem ionSystem;
   private QldbResources resources;
 

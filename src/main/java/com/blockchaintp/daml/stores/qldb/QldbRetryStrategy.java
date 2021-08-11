@@ -16,6 +16,7 @@ package com.blockchaintp.daml.stores.qldb;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
@@ -44,8 +45,6 @@ import software.amazon.awssdk.services.qldbsession.model.CapacityExceededExcepti
 public class QldbRetryStrategy<K, V> extends RetryingStore<K, V> implements Store<K, V> {
   private static final int DEFAULT_MAX_DOCUMENTS = 40;
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QldbRetryStrategy.class);
-  private final Retry putRetry;
-  private final int qldbMaxDocuments = DEFAULT_MAX_DOCUMENTS;
 
   /**
    * Constructor.
@@ -58,15 +57,15 @@ public class QldbRetryStrategy<K, V> extends RetryingStore<K, V> implements Stor
   public QldbRetryStrategy(final RetryingConfig config, final Store<K, V> store) {
     super(config, store);
 
-    this.putRetry = Retry.of(String.format("%s#put-qldb-batch", store.getClass().getCanonicalName()),
+    Retry putRetry = Retry.of(String.format("%s#put-qldb-batch", store.getClass().getCanonicalName()),
         RetryConfig.custom().maxAttempts(config.getMaxRetries())
             .retryOnException(QldbRetryStrategy::specificallyHandleCapacityExceptions).build());
 
     putRetry.getEventPublisher().onRetry(r -> LOG.info("Retrying {} attempt {} due to {}", r::getName,
-        r::getNumberOfRetryAttempts, () -> r.getLastThrowable().getMessage()));
+        r::getNumberOfRetryAttempts, () -> Objects.requireNonNull(r.getLastThrowable()).getMessage()));
 
     putRetry.getEventPublisher().onError(r -> LOG.error("Retrying {} aborted after {} attempts due to {}", r::getName,
-        r::getNumberOfRetryAttempts, () -> r.getLastThrowable().getMessage()));
+        r::getNumberOfRetryAttempts, () -> Objects.requireNonNull(r.getLastThrowable()).getMessage()));
   }
 
   private static boolean specificallyHandleCapacityExceptions(final Throwable e) {
@@ -124,6 +123,6 @@ public class QldbRetryStrategy<K, V> extends RetryingStore<K, V> implements Stor
    */
   @Override
   public void put(final List<Map.Entry<Key<K>, Value<V>>> listOfPairs) throws StoreWriteException {
-    putImpl(this.qldbMaxDocuments, listOfPairs);
+    putImpl(DEFAULT_MAX_DOCUMENTS, listOfPairs);
   }
 }

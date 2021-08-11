@@ -13,7 +13,6 @@
  */
 package com.blockchaintp.daml.stores.layers;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
@@ -29,6 +28,8 @@ import com.blockchaintp.daml.stores.service.Value;
 import com.google.protobuf.ByteString;
 
 import io.reactivex.rxjava3.core.Observable;
+import io.vavr.Tuple;
+import io.vavr.Tuple3;
 
 /**
  * TransactionLog composing a transaction log and an S3 store to keep large values outside of the
@@ -38,6 +39,18 @@ public final class SplitTransactionLog implements TransactionLog<UUID, ByteStrin
   private final TransactionLog<UUID, ByteString, Long> txLog;
   private final Store<String, byte[]> blobs;
   private final UnaryOperator<byte[]> hashFn;
+
+  /**
+   * Convenience method for split transaction log builder access.
+   *
+   * @param theTxLog
+   * @param blobs
+   * @return A partially configured builder.
+   */
+  public static SplitTransactionLogBuilder from(final TransactionLog<UUID, ByteString, Long> theTxLog,
+      final Store<String, byte[]> blobs) {
+    return new SplitTransactionLogBuilder(theTxLog, blobs);
+  }
 
   /**
    * Create a split transaction log.
@@ -54,14 +67,14 @@ public final class SplitTransactionLog implements TransactionLog<UUID, ByteStrin
   }
 
   @Override
-  public Observable<Map.Entry<UUID, ByteString>> from(final Optional<Long> offset) {
+  public Observable<Tuple3<Long, UUID, ByteString>> from(final Optional<Long> offset) {
     return txLog.from(offset).map(r -> {
-      var s3Key = Key.of(DatatypeConverter.printHexBinary(r.getValue().toByteArray()));
-      var withS3data = blobs.get(s3Key).map(v -> Map.entry(r.getKey(), v.map(ByteString::copyFrom).toNative()));
+      var s3Key = Key.of(DatatypeConverter.printHexBinary(r._3.toByteArray()));
+      var withS3data = blobs.get(s3Key).map(v -> Tuple.of(r._1, r._2, v.map(ByteString::copyFrom).toNative()));
 
       /// If we are missing underlying s3 data then this is a serious problem
       if (withS3data.isEmpty()) {
-        throw new StoreReadException(SpltStoreException.missingS3Data(s3Key.toString(), r.getKey().toString()));
+        throw new StoreReadException(SpltStoreException.missingS3Data(s3Key.toString(), r._2.toString()));
       }
 
       return withS3data.get();

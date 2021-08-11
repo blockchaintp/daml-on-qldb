@@ -62,16 +62,16 @@ public class RetryingStore<K, V> implements Store<K, V> {
         RetryConfig.custom().maxAttempts(config.getMaxRetries()).retryOnException(s -> true).build());
 
     getRetry.getEventPublisher().onRetry(r -> LOG.info("Retrying {} attempt {} due to {}", r::getName,
-        r::getNumberOfRetryAttempts, r::getLastThrowable, () -> r.getLastThrowable().getMessage()));
+        r::getNumberOfRetryAttempts, r::getLastThrowable));
 
     getRetry.getEventPublisher().onError(r -> LOG.error("Retrying {} aborted after {} attempts due to {}", r::getName,
-        r::getNumberOfRetryAttempts, r::getLastThrowable, () -> r.getLastThrowable().getMessage()));
+        r::getNumberOfRetryAttempts, r::getLastThrowable));
 
     putRetry.getEventPublisher().onRetry(r -> LOG.info("Retrying {} attempt {} due to {}", r::getName,
-        r::getNumberOfRetryAttempts, () -> r.getLastThrowable().getMessage()));
+        r::getNumberOfRetryAttempts, r::getLastThrowable));
 
     putRetry.getEventPublisher().onError(r -> LOG.error("Retrying {} aborted after {} attempts due to {}", r::getName,
-        r::getNumberOfRetryAttempts, () -> r.getLastThrowable().getMessage()));
+        r::getNumberOfRetryAttempts, r::getLastThrowable));
   }
 
   /**

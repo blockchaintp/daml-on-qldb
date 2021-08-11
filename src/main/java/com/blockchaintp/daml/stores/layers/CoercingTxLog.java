@@ -13,14 +13,17 @@
  */
 package com.blockchaintp.daml.stores.layers;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.TransactionLog;
+import com.blockchaintp.daml.stores.service.TransactionLogReader;
+import com.blockchaintp.daml.stores.service.TransactionLogWriter;
 
 import io.reactivex.rxjava3.core.Observable;
+import io.vavr.Tuple;
+import io.vavr.Tuple3;
 
 /**
  * A transaction log with coercing bijections.
@@ -48,6 +51,86 @@ public final class CoercingTxLog<K1, K2, V1, V2, I1, I2> implements TransactionL
   private final TransactionLog<K2, V2, I2> inner;
 
   /**
+   * Convenience method for building a coercing transaction log.
+   *
+   * @param keyCoercionFrom
+   * @param valueCoercionFrom
+   * @param seqCoercionFrom
+   * @param keyCoercionTo
+   * @param valueCoercionTo
+   * @param seqCoercionTo
+   * @param inner
+   * @param <K3>
+   * @param <K4>
+   * @param <V3>
+   * @param <V4>
+   * @param <I3>
+   * @param <I4>
+   * @return a wrapped, coercing transaction log.
+   */
+  public static <K3, K4, V3, V4, I3, I4> TransactionLog<K3, V3, I3> from(final Function<K4, K3> keyCoercionFrom,
+      final Function<V4, V3> valueCoercionFrom, final Function<I4, I3> seqCoercionFrom,
+      final Function<K3, K4> keyCoercionTo, final Function<V3, V4> valueCoercionTo,
+      final Function<I3, I4> seqCoercionTo, final TransactionLog<K4, V4, I4> inner) {
+    return new CoercingTxLog<>(keyCoercionFrom, valueCoercionFrom, seqCoercionFrom, keyCoercionTo, valueCoercionTo,
+        seqCoercionTo, inner);
+  }
+
+  /**
+   * Convenience method for building a coercing transaction log.
+   *
+   * @param keyCoercionFrom
+   * @param valueCoercionFrom
+   * @param seqCoercionFrom
+   * @param keyCoercionTo
+   * @param valueCoercionTo
+   * @param seqCoercionTo
+   * @param inner
+   * @param <K3>
+   * @param <K4>
+   * @param <V3>
+   * @param <V4>
+   * @param <I3>
+   * @param <I4>
+   * @return a wrapped, coercing transaction log.
+   */
+  public static <K3, K4, V3, V4, I3, I4> TransactionLogReader<I3, K3, V3> readerFrom(
+      final Function<K4, K3> keyCoercionFrom, final Function<V4, V3> valueCoercionFrom,
+      final Function<I4, I3> seqCoercionFrom, final Function<K3, K4> keyCoercionTo,
+      final Function<V3, V4> valueCoercionTo, final Function<I3, I4> seqCoercionTo,
+      final TransactionLog<K4, V4, I4> inner) {
+    return from(keyCoercionFrom, valueCoercionFrom, seqCoercionFrom, keyCoercionTo, valueCoercionTo, seqCoercionTo,
+        inner);
+  }
+
+  /**
+   * Convenience method for building a coercing transaction log.
+   *
+   * @param keyCoercionFrom
+   * @param valueCoercionFrom
+   * @param seqCoercionFrom
+   * @param keyCoercionTo
+   * @param valueCoercionTo
+   * @param seqCoercionTo
+   * @param inner
+   * @param <K3>
+   * @param <K4>
+   * @param <V3>
+   * @param <V4>
+   * @param <I3>
+   * @param <I4>
+   * @return a wrapped, coercing transaction log.
+   */
+  public static <K3, K4, V3, V4, I3, I4> TransactionLogWriter<K3, V3, I3> writerFrom(
+      final Function<K4, K3> keyCoercionFrom, final Function<V4, V3> valueCoercionFrom,
+      final Function<I4, I3> seqCoercionFrom, final Function<K3, K4> keyCoercionTo,
+      final Function<V3, V4> valueCoercionTo, final Function<I3, I4> seqCoercionTo,
+      final TransactionLog<K4, V4, I4> inner) {
+    return from(keyCoercionFrom, valueCoercionFrom, seqCoercionFrom, keyCoercionTo, valueCoercionTo, seqCoercionTo,
+        inner);
+  }
+
+  /**
    * Wraps a transaction log with bijections to convert type parameters.
    *
    * @param theKeyCoercionFrom
@@ -72,9 +155,9 @@ public final class CoercingTxLog<K1, K2, V1, V2, I1, I2> implements TransactionL
   }
 
   @Override
-  public Observable<Map.Entry<K1, V1>> from(final Optional<I1> offset) {
-    return inner.from(offset.map(seqCoercionTo::apply))
-        .map(r -> Map.entry(keyCoercionFrom.apply(r.getKey()), valueCoercionFrom.apply(r.getValue())));
+  public Observable<Tuple3<I1, K1, V1>> from(final Optional<I1> offset) {
+    return inner.from(offset.map(seqCoercionTo))
+        .map(r -> Tuple.of(seqCoercionFrom.apply(r._1), keyCoercionFrom.apply(r._2), valueCoercionFrom.apply(r._3)));
   }
 
   @Override

@@ -17,6 +17,7 @@ import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.Key;
 import com.google.protobuf.ByteString;
+import io.vavr.Tuple;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -50,6 +51,6 @@ class SplitTransactionLogTest {
     splitLog.commit(uid);
 
     Assertions.assertIterableEquals(splitLog.from(Optional.of(0L)).blockingIterable(),
-        Arrays.asList(Map.entry(uid, ByteString.copyFromUtf8("test"))));
+        Arrays.asList(Tuple.of(0L, uid, ByteString.copyFromUtf8("test"))));
   }
 }

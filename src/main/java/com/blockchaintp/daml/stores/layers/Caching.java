@@ -98,8 +98,8 @@ public class Caching<K, V> implements Store<K, V> {
         innerCache.putAll(readThrough);
       }
 
-      hits.forEach(map::put);
-      readThrough.forEach(map::put);
+      map.putAll(hits);
+      map.putAll(readThrough);
 
       return map;
 

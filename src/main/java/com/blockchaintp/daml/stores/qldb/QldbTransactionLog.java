@@ -13,7 +13,6 @@
  */
 package com.blockchaintp.daml.stores.qldb;
 
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Map;
@@ -32,6 +31,7 @@ import com.amazon.ion.IonSystem;
 import com.amazon.ion.IonValue;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.TransactionLog;
+import com.blockchaintp.utility.UuidConverter;
 import com.google.protobuf.ByteString;
 
 import static software.amazon.awssdk.services.qldbsession.model.QldbSessionException.create;
@@ -39,6 +39,7 @@ import io.reactivex.rxjava3.core.Observable;
 import io.vavr.API;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
+import io.vavr.Tuple3;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import software.amazon.awssdk.services.qldb.model.QldbException;
@@ -60,15 +61,14 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
   private static final String SEQ_FIELD = "s";
   private static final String DOCID_FIELD = "d";
   private static final String DATA_FIELD = "v";
-  private static final int UUID_LENGTH_IN_BYTES = 16;
   private final RequiresTables tables;
   private final String txLogTable;
   private final String seqTable;
   private final QldbDriver driver;
   private final IonSystem ion;
   private QldbTxSeq seqSource;
-  private long pollInterval;
-  private long pageSize;
+  private final long pollInterval;
+  private final long pageSize;
 
   /**
    *
@@ -101,27 +101,13 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
     this.pageSize = thePageSize;
   }
 
-  private static UUID asUuid(final byte[] bytes) {
-    var bb = ByteBuffer.wrap(bytes);
-    var firstLong = bb.getLong();
-    var secondLong = bb.getLong();
-    return new UUID(firstLong, secondLong);
-  }
-
-  private static byte[] asBytes(final UUID uuid) {
-    var bb = ByteBuffer.wrap(new byte[UUID_LENGTH_IN_BYTES]);
-    bb.putLong(uuid.getMostSignificantBits());
-    bb.putLong(uuid.getLeastSignificantBits());
-    return bb.array();
-  }
-
   @Override
   public UUID begin() throws StoreWriteException {
     tables.checkTables();
     var uuid = UUID.randomUUID();
     LOG.info("Begin transaction {}", () -> uuid);
     try {
-      var uuidBytes = asBytes(uuid);
+      var uuidBytes = UuidConverter.asBytes(uuid);
 
       driver.execute(tx -> {
         var struct = ion.newEmptyStruct();
@@ -139,7 +125,7 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
     tables.checkTables();
     LOG.info("Send transaction event {}", () -> id);
     try {
-      var uuidBytes = asBytes(id);
+      var uuidBytes = UuidConverter.asBytes(id);
 
       driver.execute(tx -> {
         var struct = ion.newEmptyStruct();
@@ -187,7 +173,7 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
     try {
       ensureSequence();
 
-      var uuidBytes = asBytes(txId);
+      var uuidBytes = UuidConverter.asBytes(txId);
 
       driver.execute((ExecutorNoReturn) tx -> API.unchecked(() -> {
         var query = String.format("select metadata.id from _ql_committed_%s as o where o.data.%s = ?", txLogTable,
@@ -226,13 +212,13 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
 
     driver.execute(
         (ExecutorNoReturn) tx -> tx.execute(String.format("delete from %s as o where o.%s = ?", txLogTable, ID_FIELD),
-            ion.newBlob(asBytes(txId))));
+            ion.newBlob(UuidConverter.asBytes(txId))));
   }
 
   private Tuple2<Long, Map.Entry<UUID, ByteString>> fromResult(final IonValue result) throws QldbTransactionException {
     var s = (IonStruct) result;
     if (s == null) {
-      throw QldbTransactionException.invalidSchema(s);
+      throw QldbTransactionException.notAStruct(result);
     }
 
     var idBytes = (IonBlob) s.get(ID_FIELD);
@@ -243,11 +229,12 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
       throw QldbTransactionException.invalidSchema(s);
     }
 
-    return Tuple.of(seq.longValue(), Map.entry(asUuid(idBytes.getBytes()), ByteString.copyFrom(data.getBytes())));
+    return Tuple.of(seq.longValue(),
+        Map.entry(UuidConverter.asUuid(idBytes.getBytes()), ByteString.copyFrom(data.getBytes())));
   }
 
   @Override
-  public Observable<Map.Entry<UUID, ByteString>> from(final Optional<Long> offset) {
+  public Observable<Tuple3<Long, UUID, ByteString>> from(final Optional<Long> offset) {
     tables.checkTables();
 
     final var readSeq = getQldbTxSeq(offset);
@@ -260,7 +247,8 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
           var r = tx.execute(query);
 
           var rx = StreamSupport.stream(r.spliterator(), false).map(x -> API.unchecked(() -> fromResult(x)).get())
-              .sorted(Comparator.comparingLong(x -> x._1)).map(x -> x._2).collect(Collectors.toList());
+              .sorted(Comparator.comparingLong(x -> x._1)).map(x -> Tuple.of(x._1, x._2.getKey(), x._2.getValue()))
+              .collect(Collectors.toList());
 
           readSeq.takeRange(rx.size());
 
@@ -268,6 +256,7 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
         }));
   }
 
+  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private QldbTxSeq getQldbTxSeq(final Optional<Long> offset) {
     QldbTxSeq readSeq;
     if (offset.isEmpty()) {

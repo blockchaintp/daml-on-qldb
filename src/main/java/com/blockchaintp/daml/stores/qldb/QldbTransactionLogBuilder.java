@@ -26,7 +26,7 @@ public final class QldbTransactionLogBuilder {
   private static final int PAGE_SIZE = 20;
   private final QldbDriver driver;
   private String table;
-  private IonSystem ion = IonSystemBuilder.standard().build();
+  private final IonSystem ion = IonSystemBuilder.standard().build();
 
   /**
    *
@@ -50,12 +50,12 @@ public final class QldbTransactionLogBuilder {
   /**
    * Use the given table name.
    *
-   * @param tableName
-   *          the table name
+   * @param tablePrefix
+   *          the prefix for table names
    * @return the builder
    */
-  public QldbTransactionLogBuilder tablePrefix(final String tableName) {
-    this.table = tableName;
+  public QldbTransactionLogBuilder tablePrefix(final String tablePrefix) {
+    this.table = tablePrefix;
     return this;
   }
 

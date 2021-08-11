@@ -112,7 +112,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
     }
     var hash = ((IonStruct) struct).get(ID_FIELD);
 
-    if (hash == null || !(hash instanceof IonBlob)) {
+    if (!(hash instanceof IonBlob)) {
       throw new StoreReadException(QldbStoreException.invalidSchema(struct));
     }
     return (IonBlob) hash;
@@ -124,7 +124,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
     }
     var hash = ((IonStruct) struct).get(HASH_FIELD);
 
-    if (hash == null || !(hash instanceof IonBlob)) {
+    if (!(hash instanceof IonBlob)) {
       throw new StoreReadException(QldbStoreException.invalidSchema(struct));
     }
     return (IonBlob) hash;
@@ -227,7 +227,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
           .map(k -> API.unchecked(() -> Key.of(ByteString.copyFrom(getIdFromRecord(k).getBytes()))).get())
           .collect(Collectors.toSet());
 
-      var valueMap = listOfPairs.stream().collect(Collectors.toMap(k -> k.getKey(), v -> v.getValue()));
+      var valueMap = listOfPairs.stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
       var keysToInsert = Sets.difference(keys, existingKeys);
       var keysToUpdate = Sets.difference(existingKeys, keysToInsert);

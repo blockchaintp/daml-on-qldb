@@ -11,31 +11,26 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.blockchaintp.daml.stores.s3;
+package com.blockchaintp.daml.address;
+
+import com.daml.ledger.participant.state.kvutils.DamlKvutils;
 
 /**
- * RuntimeExceptions relating to the construction of S3Store objects.
+ *
  */
-public class S3StoreBuilderException extends RuntimeException {
-  /**
-   * Exception with message and cause.
-   *
-   * @param message
-   *          the message
-   * @param cause
-   *          the originating exception
-   */
-  public S3StoreBuilderException(final String message, final Throwable cause) {
-    super(message, cause);
-  }
+public final class QldbIdentifier implements Identifier {
+  private DamlKvutils.DamlStateKey data;
 
   /**
-   * Exception with message.
    *
-   * @param message
-   *          the message
+   * @param theData
    */
-  public S3StoreBuilderException(final String message) {
-    super(message);
+  public QldbIdentifier(final DamlKvutils.DamlStateKey theData) {
+    data = theData;
+  }
+
+  @Override
+  public DamlKvutils.DamlStateKey toKey() {
+    return data;
   }
 }
