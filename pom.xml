@@ -344,7 +344,12 @@
       <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-ion</artifactId>
     </dependency>
-
+    <!-- Annotations -->
+    <dependency>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
+      <version>21.0.1</version>
+    </dependency>
     <!-- Protobuf -->
     <dependency>
       <groupId>com.google.protobuf</groupId>
@@ -436,7 +441,25 @@
     </testResources>
     <pluginManagement>
       <plugins>
-
+        <plugin>
+          <groupId>se.eris</groupId>
+          <artifactId>notnull-instrumenter-maven-plugin</artifactId>
+          <version>1.0.0</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>instrument</goal>
+                <goal>tests-instrument</goal>
+              </goals>
+            </execution>
+          </executions>
+          <configuration>
+            <implicit>true</implicit>
+            <nullable>
+              <param>org.jetbrains.annotations.Nullable</param>
+            </nullable>
+          </configuration>
+        </plugin>
         <plugin>
           <groupId>com.diffplug.spotless</groupId>
           <artifactId>spotless-maven-plugin</artifactId>
