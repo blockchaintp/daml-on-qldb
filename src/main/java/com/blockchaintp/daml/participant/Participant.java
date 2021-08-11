@@ -27,7 +27,6 @@ import com.daml.ledger.participant.state.kvutils.api.LedgerWriter;
 import com.daml.ledger.participant.state.v1.Offset;
 import com.daml.ledger.participant.state.v1.SubmissionResult;
 import com.daml.ledger.resources.ResourceContext;
-import com.daml.lf.engine.Engine;
 import com.daml.telemetry.TelemetryContext;
 
 import akka.NotUsed;
@@ -57,7 +56,6 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   /**
    * Convenience method for creating a builder.
    *
-   * @param theEngine
    * @param theParticipantId
    * @param theLedgerId
    * @param theContext
@@ -66,8 +64,7 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
    * @return A partially configured participant builder.
    */
   public static <I2 extends Identifier, A2 extends LedgerAddress> ParticipantBuilder<I2, A2> builder(
-      final Engine theEngine, final String theParticipantId, final String theLedgerId,
-      final ResourceContext theContext) {
+      final String theParticipantId, final String theLedgerId, final ResourceContext theContext) {
     return new ParticipantBuilder<>(theParticipantId, theLedgerId, theContext);
   }
 
@@ -117,7 +114,7 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
 
     return Future.apply(() -> {
       try {
-        commitPayloadBuilder.build(envelope, metadata, correlationId).stream().map(submitter::submitPayload)
+        var rx = commitPayloadBuilder.build(envelope, metadata, correlationId).stream().map(submitter::submitPayload)
             .collect(Collectors.toList());
         return SubmissionResult.Acknowledged$.MODULE$;
       } catch (final Exception e) {

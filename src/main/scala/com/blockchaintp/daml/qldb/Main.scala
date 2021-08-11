@@ -67,8 +67,8 @@ object Main extends App {
   val runner = new Runner(
     "daml-on-qldb",
     new LedgerFactory((config: Config[ExtraConfig], builder: ParticipantBuilder[QldbIdentifier, QldbAddress]) => {
-      config.extra.logLevel.foreach(level => GlobalLogLevel.set("daml-on-qldb")(Level.toLevel(level,Level.INFO)))
-      config.extra.logLevel.foreach(level => GlobalLogLevel.set("com.daml")(Level.toLevel(level,Level.TRACE)))
+      config.extra.logLevel.foreach(level => GlobalLogLevel.set("daml-on-qldb")(Level.toLevel(level, Level.INFO)))
+      config.extra.logLevel.foreach(level => GlobalLogLevel.set("com.daml")(Level.toLevel(level, Level.TRACE)))
 
       LogUtils.setRootLogLevel(config.extra.logLevel)
       val clientBuilder = S3AsyncClient.builder

@@ -62,10 +62,8 @@ public final class CommitPayloadBuilder<A extends Identifier> {
     }
 
     @Override
-    public List<DamlOperation> fragment(final Raw.Envelope theEnvelope,
-                                        final String theCorrelationId) {
-      final var tx = DamlTransaction.newBuilder().setSubmission(theEnvelope.bytes())
-          .build();
+    public List<DamlOperation> fragment(final Raw.Envelope theEnvelope, final String theCorrelationId) {
+      final var tx = DamlTransaction.newBuilder().setSubmission(theEnvelope.bytes()).build();
       return Arrays.asList(DamlOperation.newBuilder().setCorrelationId(theCorrelationId)
           .setSubmittingParticipant(participantId).setTransaction(tx).build());
     }

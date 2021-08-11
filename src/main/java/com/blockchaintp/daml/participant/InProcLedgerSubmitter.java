@@ -135,7 +135,8 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
    * states.
    */
   public void work() {
-    while (true) {
+    var run = true;
+    while (run) {
       try {
         var next = queue.take();
 
@@ -151,7 +152,7 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
         Thread.currentThread().interrupt();
         LOG.error("Thread interrupted", e);
 
-        return;
+        run = false;
       }
     }
   }
