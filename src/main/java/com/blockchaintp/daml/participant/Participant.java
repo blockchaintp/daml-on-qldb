@@ -114,8 +114,9 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
 
     return Future.apply(() -> {
       try {
-        var rx = commitPayloadBuilder.build(envelope, metadata, correlationId).stream().map(submitter::submitPayload)
-            .collect(Collectors.toList());
+        var references = commitPayloadBuilder.build(envelope, metadata, correlationId).stream()
+            .map(submitter::submitPayload).collect(Collectors.toList());
+        LOG.trace("Received {} submission references", references.size());
         return SubmissionResult.Acknowledged$.MODULE$;
       } catch (final Exception e) {
         LOG.warn("Interrupted while submitting transaction {}", e);
