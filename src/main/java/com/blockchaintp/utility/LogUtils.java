@@ -27,63 +27,60 @@ public final class LogUtils {
   private static final int INFO_LOG = 1;
   private static final int DEBUG_LOG = 2;
   private static final int TRACE_LOG = 3;
-  private static final int TRACE = 3;
 
   /**
+   * Set the root log level to the specified level. If the levelName is invalid or unknown, the level
+   * will not be changed.
    *
    * @param levelName
    */
   public static void setRootLogLevel(final String levelName) {
-    Level level = Level.valueOf(levelName.toUpperCase());
-    LOG.info("Requested log level {}", new Object[] { levelName });
-    if (level == null) {
-      LOG.info("Invalid log level {}, root log level still set to the default value {}",
-          new Object[] { levelName, LogManager.getRootLogger().getLevel().name() });
-    } else {
-      setRootLogLevel(level);
-    }
+    setLogLevel(LogManager.getRootLogger().getName(), levelName);
   }
 
   /**
+   * Set the log level for the level corresponding to the flag number.
    *
    * @param levelCount
+   *          number of levels to set
    */
-  @SuppressWarnings("checkstyle:MagicNumber")
   public static void setRootLogLevel(final int levelCount) {
     int vCount;
-    if (levelCount > TRACE) {
-      vCount = TRACE;
+    if (levelCount > TRACE_LOG) {
+      vCount = TRACE_LOG;
     } else {
       vCount = levelCount;
     }
 
     switch (vCount) {
-    case 0:
+    case INFO_LOG:
+      setRootLogLevel(Level.INFO);
+      break;
+    case DEBUG_LOG:
+      setRootLogLevel(Level.DEBUG);
+      break;
+    case TRACE_LOG:
+      setRootLogLevel(Level.TRACE);
+      break;
+    case WARN_LOG:
     default:
       setRootLogLevel(Level.WARN);
       break;
-    case 1:
-      setRootLogLevel(Level.INFO);
-      break;
-    case 2:
-      setRootLogLevel(Level.DEBUG);
-      break;
-    case TRACE:
-      setRootLogLevel(Level.TRACE);
     }
 
   }
 
   /**
+   * Set the root log level to the given level.
    *
    * @param level
    */
   public static void setRootLogLevel(final Level level) {
-    Configurator.setRootLevel(level);
-    LOG.info("Root log level set to {}", new Object[] { level });
+    setLogLevel(LogManager.getRootLogger(), level);
   }
 
   /**
+   * Set the logger for the given class to be the given level.
    *
    * @param clazz
    * @param levelName
@@ -93,29 +90,64 @@ public final class LogUtils {
   }
 
   /**
+   * Set the logger of the given name to the given level. If the level name is unknown, then the level
+   * will be unchanged.
    *
    * @param loggerName
    * @param levelName
    */
   public static void setLogLevel(final String loggerName, final String levelName) {
     LogManager.getLogger(LogUtils.class);
-    Level level = Level.getLevel(levelName.toUpperCase());
-    if (level == null) {
-      LOG.info("Invalid log level {}, logger {} log level still set to the default value",
-          new Object[] { levelName, LogManager.getLogger(loggerName).getLevel().name() });
+    var logger = LogManager.getLogger(loggerName);
+    var defaultLevel = logger.getLevel();
+    var level = levelForName(levelName, defaultLevel);
+    setLogLevel(logger, level);
+  }
+
+  /**
+   * Set the log level for the given logger and level.
+   *
+   * @param logger
+   *          the logger
+   * @param level
+   *          the level
+   */
+  public static void setLogLevel(final Logger logger, final Level level) {
+    var defaultLevel = logger.getLevel();
+    var levelName = level.name();
+    var loggerDisplayName = logger.getName();
+    if (loggerDisplayName.equals(LogManager.ROOT_LOGGER_NAME)) {
+      loggerDisplayName = "ROOT";
+    }
+    if (level.equals(defaultLevel)) {
+      LOG.trace("Logger {} already at level {}", loggerDisplayName, levelName);
     } else {
-      setLogLevel(loggerName, level);
+      Configurator.setLevel(logger.getName(), level);
+      LOG.info("Logger {} log level set to {}", loggerDisplayName, levelName);
     }
   }
 
   /**
+   * Set the given logger to the given level.
    *
    * @param loggerName
    * @param level
    */
   public static void setLogLevel(final String loggerName, final Level level) {
-    Configurator.setLevel(loggerName, level);
-    LOG.info("Logger {} log level set to {}", new Object[] { loggerName, level });
+    setLogLevel(LogManager.getLogger(loggerName), level);
+  }
+
+  /**
+   * Fetches the level for the given level name defaulting to the given defaultLevel if there are any
+   * issues.
+   */
+  private static Level levelForName(final String levelName, final Level defaultLevel) {
+    try {
+      return Level.valueOf(levelName.toUpperCase());
+    } catch (NullPointerException | IllegalArgumentException e) {
+      LOG.warn("Invalid log level {}", levelName);
+      return defaultLevel;
+    }
   }
 
   private LogUtils() {
