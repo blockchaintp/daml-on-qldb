@@ -65,7 +65,7 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
    */
   public static <I2 extends Identifier, A2 extends LedgerAddress> ParticipantBuilder<I2, A2> builder(
       final String theParticipantId, final String theLedgerId, final ResourceContext theContext) {
-    return new ParticipantBuilder<>(theParticipantId, theLedgerId, theContext);
+    return new ParticipantBuilder(theParticipantId, theLedgerId, theContext);
   }
 
   /**

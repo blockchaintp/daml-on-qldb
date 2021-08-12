@@ -19,7 +19,6 @@ import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.address.LedgerAddress;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.TransactionLog;
-import com.daml.ledger.participant.state.kvutils.KeyValueCommitting;
 import com.daml.ledger.participant.state.v1.Configuration;
 import com.daml.lf.engine.Engine;
 import com.daml.logging.LoggingContext;
@@ -133,9 +132,7 @@ public final class InProcLedgerSubmitterBuilder<I extends Identifier, A extends 
    * @return A configured ledger sumbitter.
    */
   public InProcLedgerSubmitter<I, A> build() {
-    var committing = new KeyValueCommitting(engine, metrics);
-
-    return new InProcLedgerSubmitter<>(committing, txLog, stateStore, executionContext, participantId, configuration,
+    return new InProcLedgerSubmitter<I, A>(engine, metrics, txLog, stateStore, participantId, configuration,
         loggingContext);
   }
 }
