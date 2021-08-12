@@ -17,6 +17,7 @@ import com.blockchaintp.daml.stores.LRUCache;
 import com.blockchaintp.daml.stores.StubStore;
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
+import com.blockchaintp.daml.stores.layers.CachingStore;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Value;
 import org.junit.jupiter.api.Assertions;
@@ -40,7 +41,7 @@ class CacheTest {
   void scalar_get_reads_through() throws StoreWriteException, StoreReadException {
 
     var stubStore = new StubStore<String, String>();
-    var cachedStore = new com.blockchaintp.daml.stores.layers.Caching<>(cache, stubStore);
+    var cachedStore = new CachingStore<>(cache, stubStore);
 
     cache.put(Key.of("cache"), Value.of("cache"));
     Assertions.assertEquals(Value.of("cache"), cache.get(Key.of("cache")));
@@ -59,7 +60,7 @@ class CacheTest {
   @Test
   void scalar_put_adds_to_cache() throws StoreWriteException, StoreReadException {
     var stubStore = new StubStore<String, String>();
-    var cachedStore = new com.blockchaintp.daml.stores.layers.Caching<>(cache, stubStore);
+    var cachedStore = new CachingStore<>(cache, stubStore);
 
     cachedStore.put(Key.of("writethrough"), Value.of("writethrough"));
 
@@ -71,7 +72,7 @@ class CacheTest {
   @Test
   void batch_get_only_reads_through_missed_items() throws StoreReadException, StoreWriteException {
     var stubStore = new StubStore<String, String>();
-    var cachedStore = new com.blockchaintp.daml.stores.layers.Caching<>(cache, stubStore);
+    var cachedStore = new CachingStore<>(cache, stubStore);
 
     cache.put(Key.of("primed"), Value.of("primed"));
     stubStore.put(Key.of("readthrough"), Value.of("readthrough"));
@@ -83,7 +84,7 @@ class CacheTest {
   @Test
   void batch_put_adds_to_cache() throws StoreWriteException, StoreReadException {
     var stubStore = new StubStore<String, String>();
-    var cachedStore = new com.blockchaintp.daml.stores.layers.Caching<>(cache, stubStore);
+    var cachedStore = new CachingStore<>(cache, stubStore);
 
     cachedStore.put(Arrays.asList(Map.entry(Key.of("writethrough1"), Value.of("writethrough1")),
         Map.entry(Key.of("writethrough2"), Value.of("writethrough2"))));

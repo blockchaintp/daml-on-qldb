@@ -43,9 +43,6 @@ public interface StoreReader<K, V> {
    */
   Optional<Value<V>> get(Key<K> key) throws StoreReadException;
 
-  // TODO seems to me this should return a map of Options, checking the map for
-  // presence of keys can be tedious and repetitive
-
   /**
    * Return a list of values corresponding to the provided list of Keys.
    *

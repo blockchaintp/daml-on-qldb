@@ -22,13 +22,11 @@ import com.blockchaintp.daml.stores.service.Value;
 import com.daml.ledger.participant.state.kvutils.DamlKvutils;
 import com.daml.ledger.participant.state.v1.Offset;
 import com.daml.ledger.participant.state.v1.Offset$;
-import com.daml.lf.transaction.ContractKeyUniquenessMode;
 import com.google.common.primitives.Longs;
 import com.google.protobuf.ByteString;
 import io.vavr.API;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import scalaz.Coyoneda;
 
 import java.nio.ByteBuffer;
 import java.util.Optional;
@@ -39,9 +37,12 @@ class CoercingTest {
   void store_coercion() throws StoreWriteException, StoreReadException {
     var stub = new StubStore<ByteString, ByteString>();
 
-    var coerced = CoercingStore.from(API.unchecked((ByteString k) -> DamlKvutils.DamlStateKey.parseFrom(k)),
-        API.unchecked((ByteString v) -> DamlKvutils.DamlStateValue.parseFrom(v)),
-        (DamlKvutils.DamlStateKey k) -> k.toByteString(), (DamlKvutils.DamlStateValue v) -> v.toByteString(), stub);
+    var coerced = CoercingStore.from(
+        Bijection.of((DamlKvutils.DamlStateKey k) -> k.toByteString(),
+            API.unchecked((ByteString k) -> DamlKvutils.DamlStateKey.parseFrom(k))),
+        Bijection.of((DamlKvutils.DamlStateValue v) -> v.toByteString(),
+            API.unchecked((ByteString v) -> DamlKvutils.DamlStateValue.parseFrom(v))),
+        stub);
 
     var k = DamlKvutils.DamlStateKey.newBuilder().setParty("bob").build();
     var v = DamlKvutils.DamlStateValue.newBuilder().build();
@@ -68,19 +69,23 @@ class CoercingTest {
   @Test
   void txlog_coercion() throws StoreWriteException, StoreReadException {
     var stub = new StubTransactionLog();
-    var coerced = CoercingTxLog.from(
-        (UUID k) -> DamlKvutils.DamlLogEntryId.newBuilder().setEntryId(ByteString.copyFrom(asBytes(k))).build(),
-        API.unchecked((ByteString v) -> DamlKvutils.DamlLogEntry.parseFrom(v)),
-        (Long i) -> Offset$.MODULE$.fromByteArray(Longs.toByteArray(i)),
-        (DamlKvutils.DamlLogEntryId k) -> asUuid(k.getEntryId().toByteArray()),
-        (DamlKvutils.DamlLogEntry v) -> v.toByteString(), (Offset i) -> Longs.fromByteArray(i.toByteArray()), stub);
+    var coerced = CoercingTxLog
+        .from(
+            Bijection.of((DamlKvutils.DamlLogEntryId k) -> asUuid(k.getEntryId().toByteArray()),
+                (UUID k) -> DamlKvutils.DamlLogEntryId.newBuilder().setEntryId(ByteString.copyFrom(asBytes(k)))
+                    .build()),
+            Bijection.of((DamlKvutils.DamlLogEntry v) -> v.toByteString(),
+                API.unchecked((ByteString v) -> DamlKvutils.DamlLogEntry.parseFrom(v))),
+            Bijection.of((Offset i) -> Longs.fromByteArray(i.toByteArray()),
+                (Long i) -> Offset$.MODULE$.fromByteArray(Longs.toByteArray(i))),
+            stub);
 
     var id = coerced.begin();
     var data = DamlKvutils.DamlLogEntry.newBuilder().build();
     coerced.sendEvent(id, data);
     coerced.commit(id);
 
-    var entry = coerced.from(Optional.of(Offset$.MODULE$.fromByteArray(Longs.toByteArray(0)))).blockingFirst();
+    var entry = coerced.from(Offset$.MODULE$.fromByteArray(Longs.toByteArray(-1L)), Optional.empty()).findFirst().get();
 
     Assertions.assertArrayEquals(id.toByteArray(), entry._2.toByteArray());
 

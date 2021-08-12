@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%replace(, context: %marker){', context: $', ''}%n</pattern>
+    </encoder>
+  </appender>
+
+  <!-- Disable noisy DB logging at the start of sandbox -->
+  <logger name="com.daml.platform" level="INFO" />
+
+  <!-- raising the command tracker logging level -->
+  <logger name="com.daml.platform.apiserver.services.tracking.TrackerMap" level="WARN" />
+
+  <!--
+  explicitly enabling the info logging for sandbox main and ledger api server
+  for the usual startup info logging (which port, dar files, etc...)
+  -->
+  <logger name="com.daml" level="DEBUG">
+    <appender-ref ref="STDOUT"/>
+  </logger>
+  <logger name="org.apache" level="INFO" />
+  <logger name="software.amazon" level="ERROR" />
+
+  <root level="INFO">
+    <appender-ref ref="STDOUT"/>
+  </root>
+</configuration>

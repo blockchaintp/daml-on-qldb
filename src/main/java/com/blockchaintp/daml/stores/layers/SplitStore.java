@@ -14,10 +14,12 @@
 package com.blockchaintp.daml.stores.layers;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -28,6 +30,8 @@ import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.StoreReader;
 import com.blockchaintp.daml.stores.service.Value;
 import com.google.protobuf.ByteString;
+
+import io.vavr.Tuple;
 
 /**
  * A Store that keeps its values in a blob store which is keyed by the hash of the value. That
@@ -78,35 +82,34 @@ public final class SplitStore implements Store<ByteString, ByteString> {
 
   @Override
   public void put(final Key<ByteString> key, final Value<ByteString> value) throws StoreWriteException {
-    var bytes = value.toNative().toByteArray();
-    var hash = hashFn.apply(bytes);
-
-    var hexKey = DatatypeConverter.printHexBinary(hash);
-
-    if (writeS3Index) {
-      writeIndexedBlob(key, bytes, hash, hexKey);
-    } else {
-      writeBlob(bytes, hexKey);
-    }
-
-    refStore.put(key, Value.of(ByteString.copyFrom(hash)));
-  }
-
-  private void writeBlob(final byte[] bytes, final String hexKey) throws StoreWriteException {
-    blobs.put(Key.of(hexKey), Value.of(bytes));
-  }
-
-  private void writeIndexedBlob(final Key<ByteString> key, final byte[] bytes, final byte[] hash, final String hexKey)
-      throws StoreWriteException {
-    blobs.put(Arrays.asList(Map.entry(Key.of(hexKey), Value.of(bytes)),
-        Map.entry(Key.of(String.format("index/%s", key.toNative().toStringUtf8())), Value.of(hash))));
+    put(List.of(Map.entry(key, value)));
   }
 
   @Override
   public void put(final List<Map.Entry<Key<ByteString>, Value<ByteString>>> listOfPairs) throws StoreWriteException {
-    for (var kv : listOfPairs) {
-      this.put(kv.getKey(), kv.getValue());
+    var hashes = listOfPairs.stream()
+        .collect(Collectors.toMap(Map.Entry::getKey, kv -> Tuple.of(kv.getValue().toNative().toByteArray(),
+            hashFn.apply(kv.getValue().toNative().toByteArray()), kv.getValue())));
+
+    if (writeS3Index) {
+      blobs.put(hashes.values().stream()
+          .map(theValueTuple3 -> Arrays.asList(
+              Map.entry(Key.of(DatatypeConverter.printHexBinary(theValueTuple3._2)),
+                  theValueTuple3._3.map(ByteString::toByteArray)),
+              Map.entry(Key.of(String.format("index/%s", DatatypeConverter.printHexBinary(theValueTuple3._1))),
+                  Value.of(theValueTuple3._2))))
+          .flatMap(Collection::stream).collect(Collectors.toList()));
+    } else {
+      blobs.put(hashes.values().stream()
+          .map(theValueTuple3 -> Map.entry(Key.of(DatatypeConverter.printHexBinary(theValueTuple3._2)),
+              theValueTuple3._3.map(ByteString::toByteArray)))
+          .collect(Collectors.toList()));
     }
+
+    refStore.put(
+        hashes.entrySet().stream().map(kv -> Map.entry(kv.getKey(), Value.of(ByteString.copyFrom(kv.getValue()._2))))
+            .collect(Collectors.toList()));
+
   }
 
   @Override

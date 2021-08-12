@@ -28,7 +28,7 @@ final case class ExtraConfig(
 
 object ExtraConfig {
 
-  val default =
+  val default: ExtraConfig =
     ExtraConfig(
       createAws = false, keystore = "/etc/daml/keystore", maxOpsPerBatch = "1000".toInt,
       maxOutStandingBatches = "2".toInt, logLevel = "info", authType = "none", secret = "", jwksUrl = "",

@@ -13,7 +13,6 @@
  */
 package com.blockchaintp.daml.qldb
 
-import ch.qos.logback.classic.Level
 import com.amazon.ion.system.IonSystemBuilder
 import com.blockchaintp.daml.address.QldbAddress
 import com.blockchaintp.daml.address.QldbIdentifier
@@ -28,7 +27,7 @@ import com.blockchaintp.daml.stores.qldb.QldbTransactionLog
 import com.blockchaintp.daml.stores.resources.QldbResources
 import com.blockchaintp.daml.stores.resources.S3StoreResources
 import com.blockchaintp.daml.stores.s3.S3Store
-import com.blockchaintp.utility.LogUtils
+import com.blockchaintp.utility.Aws
 import com.daml.cliopts.GlobalLogLevel
 import com.daml.jwt.JwksVerifier
 import com.daml.jwt.RSA256Verifier
@@ -50,6 +49,8 @@ import com.daml.resources.ProgramResource
 import com.google.protobuf.ByteString
 import scopt.OptionParser
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
+import software.amazon.awssdk.http.async.SdkAsyncHttpClient
+import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.qldb.QldbClient
 import software.amazon.awssdk.services.qldbsession.QldbSessionClient
@@ -64,14 +65,18 @@ import scala.util.Try
 
 object Main extends App {
 
+  val NETTY_MAX_CONCURRENCY = 100
+
   val runner = new Runner(
     "daml-on-qldb",
     new LedgerFactory((config: Config[ExtraConfig], builder: ParticipantBuilder[QldbIdentifier, QldbAddress]) => {
-      config.extra.logLevel.foreach(level => GlobalLogLevel.set("daml-on-qldb")(Level.toLevel(level, Level.INFO)))
-      config.extra.logLevel.foreach(level => GlobalLogLevel.set("com.daml")(Level.toLevel(level, Level.TRACE)))
+      GlobalLogLevel.set("Root")(
+        ch.qos.logback.classic.Level.toLevel(config.extra.logLevel, ch.qos.logback.classic.Level.INFO)
+      )
 
-      LogUtils.setRootLogLevel(config.extra.logLevel)
+      val httpClient = NettyNioAsyncHttpClient.builder.maxConcurrency(NETTY_MAX_CONCURRENCY).build
       val clientBuilder = S3AsyncClient.builder
+        .httpClient(httpClient)
         .region(Region.of(config.extra.region))
         .credentialsProvider(DefaultCredentialsProvider.builder.build)
 
@@ -84,7 +89,7 @@ object Main extends App {
             .region(Region.of(config.extra.region))
             .build
 
-          val qldb_resource = new QldbResources(qldbClient, config.ledgerId);
+          val qldb_resource = new QldbResources(qldbClient, config.ledgerId)
 
           log_blob_resource.ensureResources()
           daml_state_blob_resource.ensureResources()
@@ -97,16 +102,15 @@ object Main extends App {
       val txBlobStore = S3Store
         .forClient(clientBuilder)
         .forStore(config.ledgerId)
-        .forTable("tx_log_blobs")
+        .forTable("tx-log-blobs")
         .retrying(3)
-        .build();
+        .build()
 
       val stateBlobStore = S3Store
         .forClient(clientBuilder)
         .forStore(config.ledgerId)
-        .forTable("daml_state_blobs")
-        .retrying(3)
-        .build();
+        .forTable("daml-state-blobs")
+        .build()
 
       val sessionBuilder = QldbSessionClient.builder
         .region(Region.of(config.extra.region))
@@ -114,42 +118,48 @@ object Main extends App {
 
       val ionSystem = IonSystemBuilder.standard.build
       val driver =
-        QldbDriver.builder.ledger(config.ledgerId).sessionClientBuilder(sessionBuilder).ionSystem(ionSystem).build()
+        QldbDriver.builder
+          .ledger(Aws.complyWithQldbLedgerNaming(config.ledgerId))
+          .sessionClientBuilder(sessionBuilder)
+          .ionSystem(ionSystem)
+          .build()
 
       val stateQldbStore = QldbStore
         .forDriver(driver)
         .retrying(3)
         .tableName("daml_state")
-        .build();
+        .build()
 
       val stateStore = SplitStore
         .fromStores(stateQldbStore, stateBlobStore)
-        .verified(true)
+        .withCaching(10000)
         .withS3Index(true)
+        .verified(false)
         .build()
 
       val qldbTransactionLog = QldbTransactionLog
         .forDriver(driver)
         .tablePrefix("default")
-        .build();
+        .build()
 
       val txLog = SplitTransactionLog
         .from(qldbTransactionLog, txBlobStore)
-        .build();
+        .withCache(1000)
+        .build()
 
       val inputAddressReader = (meta: CommitMetadata) =>
         meta
           .inputKeys(DefaultStateKeySerializationStrategy)
           .map(r => new QldbIdentifier(DefaultStateKeySerializationStrategy.deserializeStateKey(r)))
           .asJavaCollection
-          .stream();
+          .stream()
 
       val outputAddressReader = (meta: CommitMetadata) =>
         meta
           .inputKeys(DefaultStateKeySerializationStrategy)
           .map(r => new QldbIdentifier(DefaultStateKeySerializationStrategy.deserializeStateKey(r)))
           .asJavaCollection
-          .stream();
+          .stream()
       builder
         .withTransactionLogReader(txLog)
         .withInProcLedgerSubmitterBuilder(builder =>
@@ -173,23 +183,6 @@ class LedgerFactory(
         ParticipantBuilder[QldbIdentifier, QldbAddress]
     ) => ParticipantBuilder[QldbIdentifier, QldbAddress]
 ) extends BuilderLedgerFactory(build) {
-
-  override def ledgerConfig(config: Config[ExtraConfig]): LedgerConfiguration =
-    LedgerConfiguration(
-      initialConfiguration = Configuration(
-        // NOTE: Any changes the the config content here require that the
-        // generation be increased
-        generation = 1L,
-        timeModel = TimeModel(
-          avgTransactionLatency = Duration.ofSeconds(1L),
-          minSkew = Duration ofSeconds 80L,
-          maxSkew = Duration.ofSeconds(80L)
-        ).get,
-        maxDeduplicationTime = Duration.ofDays(1L)
-      ),
-      initialConfigurationSubmitDelay = Duration.ofSeconds(5L),
-      configurationLoadTimeout = Duration.ofSeconds(30L)
-    )
 
   override def authService(config: Config[ExtraConfig]): AuthService = {
     config.extra.authType match {
@@ -296,7 +289,7 @@ class LedgerFactory(
     parser
       .opt[String]("auth-jwt-rs256-jwks")
       .optional()
-      .validate(v => Either.cond(v.length > 0, (), "JWK server URL must be a non-empty string"))
+      .validate(v => Either.cond(v.nonEmpty, (), "JWK server URL must be a non-empty string"))
       .text(
         "Enables JWT-based authorization, where the JWT is signed by RSA256 with a public key loaded from the given JWKS URL"
       )

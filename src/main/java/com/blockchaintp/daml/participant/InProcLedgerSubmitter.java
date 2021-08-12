@@ -13,59 +13,45 @@
  */
 package com.blockchaintp.daml.participant;
 
-import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.address.LedgerAddress;
+import com.blockchaintp.daml.stores.layers.Bijection;
 import com.blockchaintp.daml.stores.layers.CoercingStore;
 import com.blockchaintp.daml.stores.layers.CoercingTxLog;
-import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.daml.stores.service.TransactionLogWriter;
-import com.blockchaintp.daml.stores.service.Value;
+import com.blockchaintp.utility.Functions;
 import com.blockchaintp.utility.UuidConverter;
+import com.daml.api.util.TimeProvider;
 import com.daml.caching.Cache;
 import com.daml.ledger.participant.state.kvutils.DamlKvutils;
 import com.daml.ledger.participant.state.kvutils.Raw;
 import com.daml.ledger.participant.state.v1.Configuration;
-import com.daml.ledger.validator.LedgerStateAccess;
-import com.daml.ledger.validator.LedgerStateOperations;
+import com.daml.ledger.participant.state.v1.SubmissionResult;
 import com.daml.ledger.validator.SubmissionValidator;
 import com.daml.ledger.validator.ValidatingCommitter;
-import com.daml.lf.data.Time;
 import com.daml.lf.engine.Engine;
 import com.daml.logging.LoggingContext;
 import com.daml.metrics.Metrics;
+import com.daml.platform.akkastreams.dispatcher.Dispatcher;
 import com.google.protobuf.ByteString;
 
-import io.vavr.CheckedFunction0;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
-import scala.Function0;
-import scala.Function1;
-import scala.Option;
-import scala.collection.Iterable;
-import scala.collection.immutable.Seq;
 import scala.concurrent.Await$;
 import scala.concurrent.ExecutionContext;
-import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
-import scala.jdk.javaapi.CollectionConverters$;
-import scala.jdk.javaapi.OptionConverters$;
-import scala.jdk.javaapi.StreamConverters;
-import scala.jdk.javaapi.StreamConverters$;
 import scala.runtime.BoxedUnit;
-import scala.util.Try;
 
 /**
  * An in process submitter relying on an ephemeral queue.
@@ -77,83 +63,13 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
     implements LedgerSubmitter<A, B> {
 
   private final ValidatingCommitter<Long> comitter;
-  private final Engine engine;
-  private final Metrics metrics;
 
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(InProcLedgerSubmitter.class);
+  private final Dispatcher<Long> dispatcher;
   private final TransactionLogWriter<Raw.LogEntryId, Raw.Envelope, Long> writer;
-  private final Store<Raw.StateKey, Raw.Envelope> stateStore;
-  private final String participantId;
-  private final Configuration configuration;
-  private final LoggingContext loggingContext;
   private final LinkedBlockingQueue<Tuple2<SubmissionReference, CommitPayload<A>>> queue;
   private final ConcurrentHashMap<SubmissionReference, SubmissionStatus> status;
   private final ExecutionContext context;
-
-  private class StateAccess implements LedgerStateAccess<Long> {
-
-    private class Operations implements LedgerStateOperations<Long> {
-
-      @Override
-      public Future<Option<Raw.Envelope>> readState(final Raw.StateKey key, final ExecutionContext executionContext) {
-        return Future.fromTry(Try.apply(
-            uncheckFn(() -> OptionConverters$.MODULE$.toScala(stateStore.get(Key.of(key)).map(v -> v.toNative())))));
-      }
-
-      @Override
-      public Future<Seq<Option<Raw.Envelope>>> readState(final Iterable<Raw.StateKey> keys,
-          final ExecutionContext executionContext) {
-        return Future.fromTry(Try.apply(uncheckFn(() -> {
-          var sparseInputs = StreamConverters$.MODULE$.asJavaParStream(keys).collect(
-              Collectors.toMap(k -> k, k -> OptionConverters$.MODULE$.toScala(Optional.<Raw.Envelope>empty())));
-
-          var rx = stateStore.get(sparseInputs.keySet().stream().map(Key::of).collect(Collectors.toList()));
-
-          rx.entrySet().forEach(kv -> sparseInputs.put(kv.getKey().toNative(),
-              OptionConverters$.MODULE$.toScala(Optional.of(kv.getValue().toNative()))));
-
-          return CollectionConverters$.MODULE$.asScala(StreamConverters$.MODULE$.asJavaParStream(keys)
-              .map(k -> OptionConverters$.MODULE$.toScala(Optional.of(rx.get(k)).map(v -> v.toNative())))
-              .collect(Collectors.toList())).toSeq();
-        })));
-      }
-
-      @Override
-      public Future<BoxedUnit> writeState(final Raw.StateKey key, final Raw.Envelope value,
-          final ExecutionContext executionContext) {
-        return Future.fromTry(Try.apply(uncheckFn(() -> {
-          stateStore.put(Key.of(key), Value.of(value));
-          return BoxedUnit.UNIT;
-        })));
-      }
-
-      @Override
-      public Future<BoxedUnit> writeState(final Iterable<scala.Tuple2<Raw.StateKey, Raw.Envelope>> keyValuePairs,
-          final ExecutionContext executionContext) {
-        return Future.fromTry(Try.apply(uncheckFn(() -> {
-          stateStore.put(StreamConverters.asJavaParStream(keyValuePairs)
-              .collect(Collectors.toMap(kv -> Key.of(kv._1), kv -> Value.of(kv._2))).entrySet().stream()
-              .collect(Collectors.toList()));
-          return BoxedUnit.UNIT;
-        })));
-      }
-
-      @Override
-      public Future<Long> appendToLog(final Raw.LogEntryId key, final Raw.Envelope value,
-          final ExecutionContext executionContext) {
-        return Future.fromTry(Try.apply(uncheckFn(() -> {
-          writer.sendEvent(key, value);
-          return writer.commit(key);
-        })));
-      }
-    }
-
-    @Override
-    public <T> Future<T> inTransaction(final Function1<LedgerStateOperations<Long>, Future<T>> body,
-        final ExecutionContext executionContext) {
-      return body.apply(new Operations());
-    }
-  }
 
   /**
    *
@@ -166,37 +82,50 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
   }
 
   /**
+   * This seems like a terrible way to go about things that are meant to be bytewise equivalent?
+   *
+   * @param id
+   * @return A daml log entry id parsed from a daml log entry id.
+   */
+  private DamlKvutils.DamlLogEntryId logEntryIdToDamlLogEntryId(final Raw.LogEntryId id) {
+    var parsed = Functions.uncheckFn(() -> DamlKvutils.DamlLogEntryId.parseFrom(id.bytes())).apply();
+
+    LOG.info("parse log id {}", () -> parsed.getEntryId().toString());
+
+    return parsed;
+  }
+
+  /**
    * @param theEngine
    * @param theMetrics
    * @param theTxLog
    * @param theStateStore
-   * @param theParticipantId
+   * @param theDispatcher
    * @param theConfiguration
    * @param theLoggingContext
    */
   @SuppressWarnings("checkstyle:ParameterNumber")
   public InProcLedgerSubmitter(final Engine theEngine, final Metrics theMetrics,
       final TransactionLog<UUID, ByteString, Long> theTxLog, final Store<ByteString, ByteString> theStateStore,
-      final String theParticipantId, final Configuration theConfiguration, final LoggingContext theLoggingContext) {
-    engine = theEngine;
-    metrics = theMetrics;
-    writer = CoercingTxLog.writerFrom(
-        (UUID k) -> Raw.LogEntryId$.MODULE$.apply(ByteString.copyFrom(UuidConverter.asBytes(k))),
-        Raw.Envelope$.MODULE$::apply, (Long i) -> i,
-        (Raw.LogEntryId k) -> UuidConverter.asUuid(k.bytes().toByteArray()), Raw.Envelope::bytes, l -> l, theTxLog);
-    stateStore = CoercingStore.from(Raw.StateKey$.MODULE$::apply, Raw.Envelope$.MODULE$::apply, Raw.StateKey::bytes,
-        Raw.Envelope::bytes, theStateStore);
-    participantId = theParticipantId;
-    configuration = theConfiguration;
-    loggingContext = theLoggingContext;
+      final Dispatcher<Long> theDispatcher, final Configuration theConfiguration,
+      final LoggingContext theLoggingContext) {
+    writer = CoercingTxLog.from(Bijection.of(UuidConverter::logEntryToUuid, UuidConverter::uuidtoLogEntry),
+        Bijection.of(Raw.Envelope::bytes, Raw.Envelope$.MODULE$::apply), Bijection.identity(), theTxLog);
+    dispatcher = theDispatcher;
     queue = new LinkedBlockingQueue<>();
     status = new ConcurrentHashMap<>();
 
-    comitter = new ValidatingCommitter<Long>(Instant::now,
-        SubmissionValidator.create(new StateAccess(),
-            uncheckFn(() -> DamlKvutils.DamlLogEntryId.newBuilder().setEntryId(writer.begin().bytes()).build()), false,
-            Cache.none(), engine, metrics),
-        x -> BoxedUnit.UNIT);
+    comitter = new ValidatingCommitter<>(TimeProvider.UTC$.MODULE$::getCurrentTime,
+        SubmissionValidator.create(
+            new StateAccess(CoercingStore.from(Bijection.of(Raw.StateKey::bytes, Raw.StateKey$.MODULE$::apply),
+                Bijection.of(Raw.Envelope::bytes, Raw.Envelope$.MODULE$::apply), theStateStore), writer),
+            () -> logEntryIdToDamlLogEntryId(Functions.uncheckFn(writer::begin).apply()), false, Cache.none(),
+            theEngine, theMetrics),
+        r -> {
+          LOG.info("Signal new head {}", () -> r + 1);
+          dispatcher.signalNewHead(r + 1);
+          return BoxedUnit.UNIT;
+        });
 
     context = scala.concurrent.ExecutionContext.fromExecutorService(Executors.newSingleThreadExecutor());
 
@@ -214,10 +143,11 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
         var res = Await$.MODULE$.result(this.comitter.commit(next._2.getCorrelationId(), next._2.getSubmission(),
             next._2.getSubmittingParticipantId(), context), Duration.Inf());
 
-        LOG.info("Result %s", res.toString());
-
-        status.put(next._1, SubmissionStatus.SUBMITTED);
-
+        if (!(res instanceof SubmissionResult.Acknowledged$)) {
+          status.put(next._1, SubmissionStatus.REJECTED);
+        } else {
+          status.put(next._1, SubmissionStatus.SUBMITTED);
+        }
       } catch (TimeoutException | InterruptedException e) {
         Thread.currentThread().interrupt();
         LOG.error("Thread interrupted", e);
@@ -225,18 +155,6 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
         run = false;
       }
     }
-  }
-
-  private Time.Timestamp getCurrentRecordTime() {
-    return Time.Timestamp$.MODULE$.now();
-  }
-
-  private <A1, B1> scala.collection.immutable.Map<A1, B1> mapToScalaImmutableMap(final java.util.Map<A1, B1> m) {
-    return scala.collection.immutable.Map$.MODULE$.from(CollectionConverters$.MODULE$.asScala(m));
-  }
-
-  private <A1, B1> java.util.Map<A1, B1> scalaMapToMap(final scala.collection.immutable.Map<A1, B1> m) {
-    return CollectionConverters$.MODULE$.asJava(m);
   }
 
   @Override
@@ -263,7 +181,4 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
     return null;
   }
 
-  private <T> Function0<T> uncheckFn(final CheckedFunction0<T> fn) {
-    return () -> fn.unchecked().apply();
-  }
 }

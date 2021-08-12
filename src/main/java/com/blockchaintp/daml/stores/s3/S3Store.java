@@ -13,6 +13,8 @@
  */
 package com.blockchaintp.daml.stores.s3;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -23,11 +25,15 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
+import javax.xml.bind.DatatypeConverter;
+
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.Value;
+import com.blockchaintp.exception.NoSHA512SupportException;
+import com.blockchaintp.utility.Aws;
 
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
@@ -47,10 +53,26 @@ import software.amazon.awssdk.services.s3.model.PutObjectResponse;
  */
 public final class S3Store implements Store<String, byte[]> {
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(S3Store.class);
+  private static final int MAX_S3_KEY_LENGTH = 1_024;
   private final String bucketName;
   private final S3AsyncClientBuilder clientBuilder;
   private final UnaryOperator<GetObjectRequest.Builder> getModifications;
   private final UnaryOperator<PutObjectRequest.Builder> putModifications;
+
+  private String hashKeyIfNeeded(final String key) {
+    if (key.length() <= MAX_S3_KEY_LENGTH) {
+      return key;
+    }
+    try {
+      var messageDigest = MessageDigest.getInstance("SHA-512");
+
+      messageDigest.update(key.getBytes());
+
+      return "hashed/" + DatatypeConverter.printHexBinary(messageDigest.digest());
+    } catch (NoSuchAlgorithmException nsae) {
+      throw new NoSHA512SupportException(nsae);
+    }
+  }
 
   /**
    * Create an S3Store.
@@ -69,7 +91,7 @@ public final class S3Store implements Store<String, byte[]> {
   public S3Store(final String storeName, final String tableName, final S3AsyncClientBuilder client,
       final UnaryOperator<GetObjectRequest.Builder> getmods, final UnaryOperator<PutObjectRequest.Builder> putmods) {
 
-    this.bucketName = "vs-" + storeName + "-table-" + tableName;
+    this.bucketName = Aws.complyWithS3BucketNaming("vs-" + storeName + "-table-" + tableName);
     this.clientBuilder = client;
     this.getModifications = getmods;
     this.putModifications = putmods;
@@ -88,7 +110,8 @@ public final class S3Store implements Store<String, byte[]> {
 
   private CompletableFuture<Optional<ResponseBytes<GetObjectResponse>>> getObject(final S3AsyncClient client,
       final String key) {
-    var get = client.getObject(getModifications.apply(GetObjectRequest.builder()).bucket(bucketName).key(key).build(),
+    var get = client.getObject(
+        getModifications.apply(GetObjectRequest.builder()).bucket(bucketName).key(hashKeyIfNeeded(key)).build(),
         AsyncResponseTransformer.toBytes());
     return get.exceptionally(e -> {
       if (e.getCause() instanceof NoSuchKeyException) {
@@ -111,15 +134,13 @@ public final class S3Store implements Store<String, byte[]> {
   public Optional<Value<byte[]>> get(final Key<String> key) throws StoreReadException {
     LOG.info("Get {} from bucket {}", key::toNative, () -> bucketName);
 
-    return guardRead(() -> {
-      var response = getObject(clientBuilder.build(), key.toNative()).join();
-
-      return response.map(x -> Value.of(x.asByteArray()));
-    });
+    return get(List.of(key)).values().stream().findFirst();
   }
 
   @Override
   public Map<Key<String>, Value<byte[]>> get(final List<Key<String>> listOfKeys) throws StoreReadException {
+    LOG.info("Get {} items from bucket {}", listOfKeys::size, () -> bucketName);
+
     var client = clientBuilder.build();
     var futures = listOfKeys.stream()
         .collect(
@@ -141,7 +162,8 @@ public final class S3Store implements Store<String, byte[]> {
 
   private CompletableFuture<PutObjectResponse> putObject(final S3AsyncClient client, final String key,
       final byte[] blob) {
-    return client.putObject(putModifications.apply(PutObjectRequest.builder()).bucket(bucketName).key(key).build(),
+    return client.putObject(
+        putModifications.apply(PutObjectRequest.builder()).bucket(bucketName).key(hashKeyIfNeeded(key)).build(),
         AsyncRequestBody.fromBytes(blob));
   }
 
@@ -161,8 +183,8 @@ public final class S3Store implements Store<String, byte[]> {
   @Override
   public void put(final List<Map.Entry<Key<String>, Value<byte[]>>> listOfPairs) throws StoreWriteException {
     var client = clientBuilder.build();
-    var futures = listOfPairs.stream().collect(
-        Collectors.toMap(Map.Entry::getKey, kv -> putObject(client, kv.getKey().toNative(), kv.getValue().toNative())));
+    var futures = listOfPairs.stream().collect(Collectors.toMap(Map.Entry::getKey,
+        kv -> putObject(client, kv.getKey().toNative(), kv.getValue().toNative()), (k1, k2) -> k1));
 
     guardWrite(() -> {
       var waitOn = new ArrayList<>(futures.values()).toArray(CompletableFuture[]::new);

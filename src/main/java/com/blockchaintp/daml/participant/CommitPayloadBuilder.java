@@ -13,7 +13,6 @@
  */
 package com.blockchaintp.daml.participant;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -48,20 +47,9 @@ public final class CommitPayloadBuilder<A extends Identifier> {
    *
    */
   public static final class NoFragmentation implements FragmentationStrategy {
-    private final String participantId;
-
-    /**
-     * Package the submission as a single transaction, do not fragment.
-     *
-     * @param theParticipantId
-     */
-    public NoFragmentation(final String theParticipantId) {
-      participantId = theParticipantId;
-    }
-
     @Override
     public List<Raw.Envelope> fragment(final Raw.Envelope theEnvelope, final String theCorrelationId) {
-      return Arrays.asList(theEnvelope);
+      return List.of(theEnvelope);
     }
   }
 
@@ -107,7 +95,7 @@ public final class CommitPayloadBuilder<A extends Identifier> {
    * @return A configured builder.
    */
   public CommitPayloadBuilder<A> withNoFragmentation() {
-    this.fragmentationStrategy = new NoFragmentation(participantId);
+    this.fragmentationStrategy = new NoFragmentation();
 
     return this;
   }

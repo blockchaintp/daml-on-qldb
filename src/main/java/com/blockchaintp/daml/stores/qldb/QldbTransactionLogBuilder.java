@@ -68,6 +68,6 @@ public final class QldbTransactionLogBuilder {
     if (table == null) {
       throw new QldbStoreBuilderException("No table name specified in builder");
     }
-    return new QldbTransactionLog(table, driver, ion, POLL_INTERVAL, PAGE_SIZE);
+    return new QldbTransactionLog(table, driver, ion);
   }
 }

@@ -17,7 +17,9 @@ import com.amazon.ion.IonSystem;
 import com.amazon.ion.system.IonSystemBuilder;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.resources.QldbResources;
+import com.blockchaintp.utility.Aws;
 import com.google.protobuf.ByteString;
+import io.vavr.Tuple3;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 class QldbTransactionLogIntegrationTest {
 
@@ -48,8 +51,8 @@ class QldbTransactionLogIntegrationTest {
 
     this.ionSystem = IonSystemBuilder.standard().build();
 
-    final var driver = QldbDriver.builder().ledger(ledger).sessionClientBuilder(sessionBuilder).ionSystem(ionSystem)
-        .build();
+    final var driver = QldbDriver.builder().ledger(Aws.complyWithQldbLedgerNaming(ledger))
+        .sessionClientBuilder(sessionBuilder).ionSystem(ionSystem).build();
 
     this.resources = new QldbResources(
         QldbClient.builder().credentialsProvider(DefaultCredentialsProvider.create()).region(Region.EU_WEST_2).build(),
@@ -84,9 +87,14 @@ class QldbTransactionLogIntegrationTest {
     txLog.sendEvent(aborted, ByteString.copyFromUtf8("aborted"));
     txLog.abort(aborted);
 
-    var stream = txLog.from(Optional.of(0L));
+    Stream<Tuple3<Long, UUID, ByteString>> stream = null;
+    try {
+      stream = txLog.from(-1L, Optional.empty());
+    } catch (com.blockchaintp.daml.stores.exception.StoreReadException theE) {
+      theE.printStackTrace();
+    }
 
-    Assertions.assertIterableEquals(ids, stream.take(30).map(x -> x._2).collect(Collectors.toList()).blockingGet());
+    Assertions.assertIterableEquals(ids, stream.limit(30).map(x -> x._2).collect(Collectors.toList()));
   }
 
 }

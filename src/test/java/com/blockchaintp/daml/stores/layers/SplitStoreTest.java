@@ -28,6 +28,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.mockito.Mockito.mock;
@@ -76,7 +78,8 @@ class SplitStoreTest {
         blobStore.get(Key.of("6F6B")).get().toNative());
 
     // blobStore Index should contain blob hash
-    Assertions.assertArrayEquals(new byte[] { 'o', 'k' }, blobStore.get(Key.of("index/DamlKey")).get().toNative());
+    Assertions.assertArrayEquals(new byte[] { 'o', 'k' },
+        blobStore.get(Key.of("index/434F4E54454E54")).get().toNative());
   }
 
   @Test
@@ -88,9 +91,9 @@ class SplitStoreTest {
 
     var txStoreResult = ByteString.copyFrom("ok", Charset.defaultCharset());
 
-    when(refStore.get(Key.of(ByteString.copyFrom("DamlKey", Charset.defaultCharset()))))
-        .thenReturn(Optional.of(Value.of(txStoreResult)));
-    when(blobStore.get(Key.of("6F6B"))).thenReturn(Optional.of(Value.of(new byte[] { 'x' })));
+    when(refStore.get(Arrays.asList(Key.of(ByteString.copyFrom("DamlKey", Charset.defaultCharset()))))).thenReturn(
+        Map.of(Key.of(Key.of(ByteString.copyFrom("DamlKey", Charset.defaultCharset()))), Value.of(txStoreResult)));
+    when(blobStore.get(Arrays.asList(Key.of("6F6B")))).thenReturn(Map.of(Key.of("6F6B"), Value.of(new byte[] { 'x' })));
 
     Optional<Value<ByteString>> blobStoreVal = verified
         .get(Key.of(ByteString.copyFrom("DamlKey", Charset.defaultCharset())));

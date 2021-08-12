@@ -13,12 +13,15 @@
  */
 package com.blockchaintp.daml.participant;
 
+import java.util.Comparator;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.address.LedgerAddress;
 import com.blockchaintp.daml.stores.service.TransactionLogReader;
 import com.daml.ledger.api.health.HealthStatus;
+import com.daml.ledger.participant.state.kvutils.OffsetBuilder;
 import com.daml.ledger.participant.state.kvutils.Raw;
 import com.daml.ledger.participant.state.kvutils.api.CommitMetadata;
 import com.daml.ledger.participant.state.kvutils.api.LedgerReader;
@@ -27,17 +30,20 @@ import com.daml.ledger.participant.state.kvutils.api.LedgerWriter;
 import com.daml.ledger.participant.state.v1.Offset;
 import com.daml.ledger.participant.state.v1.SubmissionResult;
 import com.daml.ledger.resources.ResourceContext;
+import com.daml.platform.akkastreams.dispatcher.Dispatcher;
+import com.daml.platform.akkastreams.dispatcher.SubSource.RangeSource;
 import com.daml.telemetry.TelemetryContext;
 
 import akka.NotUsed;
-import akka.stream.scaladsl.Source;
-import io.reactivex.rxjava3.core.BackpressureStrategy;
+import akka.stream.javadsl.Source;
+import io.vavr.API;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import scala.Option;
+import scala.Tuple2;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
-import scala.jdk.javaapi.OptionConverters;
+import scala.math.Ordering;
 
 /**
  *
@@ -46,12 +52,13 @@ import scala.jdk.javaapi.OptionConverters;
  */
 public final class Participant<I extends Identifier, A extends LedgerAddress> implements LedgerReader, LedgerWriter {
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(Participant.class);
-  private final TransactionLogReader<Offset, Raw.LogEntryId, Raw.Envelope> txLog;
+  private final TransactionLogReader<java.lang.Long, Raw.LogEntryId, Raw.Envelope> txLog;
   private final CommitPayloadBuilder<I> commitPayloadBuilder;
   private final LedgerSubmitter<I, A> submitter;
   private final String ledgerId;
   private final String participantId;
-  private ExecutionContext context;
+  private final Dispatcher<java.lang.Long> dispatcher;
+  private final ExecutionContext context;
 
   /**
    * Convenience method for creating a builder.
@@ -65,7 +72,7 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
    */
   public static <I2 extends Identifier, A2 extends LedgerAddress> ParticipantBuilder<I2, A2> builder(
       final String theParticipantId, final String theLedgerId, final ResourceContext theContext) {
-    return new ParticipantBuilder(theParticipantId, theLedgerId, theContext);
+    return new ParticipantBuilder<>(theParticipantId, theLedgerId, theContext);
   }
 
   /**
@@ -74,16 +81,19 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
    * @param theSubmitter
    * @param theLedgerId
    * @param theParticipantId
+   * @param theDispatcher
    * @param theContext
    */
-  public Participant(final TransactionLogReader<Offset, Raw.LogEntryId, Raw.Envelope> theTxLog,
+  public Participant(final TransactionLogReader<Long, Raw.LogEntryId, Raw.Envelope> theTxLog,
       final CommitPayloadBuilder<I> theCommitPayloadBuilder, final LedgerSubmitter<I, A> theSubmitter,
-      final String theLedgerId, final String theParticipantId, final ExecutionContext theContext) {
+      final String theLedgerId, final String theParticipantId, final Dispatcher<Long> theDispatcher,
+      final ExecutionContext theContext) {
     txLog = theTxLog;
     commitPayloadBuilder = theCommitPayloadBuilder;
     submitter = theSubmitter;
     ledgerId = theLedgerId;
     participantId = theParticipantId;
+    dispatcher = theDispatcher;
     context = theContext;
   }
 
@@ -93,9 +103,21 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   }
 
   @Override
-  public Source<LedgerRecord, NotUsed> events(final Option<Offset> startExclusive) {
-    return Source.fromPublisher(txLog.from(OptionConverters.toJava(startExclusive))
-        .map(rx -> LedgerRecord.apply(rx._1, rx._2, rx._3)).toFlowable(BackpressureStrategy.BUFFER));
+  public akka.stream.scaladsl.Source<LedgerRecord, NotUsed> events(final Option<Offset> startExclusive) {
+    LOG.info("Get from {}", () -> startExclusive);
+
+    var start = OffsetBuilder.fromLong(0L, 0, 0);
+
+    Ordering<Long> scalaLongOrdering = scala.math.Ordering
+        .comparatorToOrdering(Comparator.comparingLong(scala.Long::unbox));
+
+    var rangeSource = new RangeSource<>((s, e) -> Source
+        .fromJavaStream(() -> API.unchecked(() -> txLog.from(s, Optional.of(e))).apply()
+            .map(r -> Tuple2.apply(r._1, LedgerRecord.apply(OffsetBuilder.fromLong(r._1, 0, 0), r._2, r._3))))
+        .mapMaterializedValue(m -> NotUsed.notUsed()).asScala(), scalaLongOrdering);
+
+    var offset = OffsetBuilder.highestIndex(startExclusive.getOrElse(() -> start));
+    return dispatcher.startingAt(offset, rangeSource, Option.empty()).asJava().map(x -> x._2).asScala();
   }
 
   @Override
@@ -119,7 +141,7 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
         LOG.trace("Received {} submission references", references.size());
         return SubmissionResult.Acknowledged$.MODULE$;
       } catch (final Exception e) {
-        LOG.warn("Interrupted while submitting transaction {}", e);
+        LOG.warn("Interrupted while submitting transaction {}", () -> e);
         Thread.currentThread().interrupt();
         return new SubmissionResult.InternalError("Interrupted while submitting transaction");
       }

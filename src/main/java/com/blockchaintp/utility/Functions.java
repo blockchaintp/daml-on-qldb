@@ -11,26 +11,27 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.blockchaintp.daml.address;
+package com.blockchaintp.utility;
 
-import com.daml.ledger.participant.state.kvutils.DamlKvutils;
+import io.vavr.CheckedFunction0;
+import scala.Function0;
 
 /**
- *
+ * Function utilities.
  */
-public final class QldbAddress implements LedgerAddress {
-  private final DamlKvutils.DamlStateKey data;
+public final class Functions {
 
   /**
+   * Run this function unchecked.
    *
-   * @param theData
+   * @param fn
+   * @param <T>
+   * @return The unchecked result of this function.
    */
-  public QldbAddress(final DamlKvutils.DamlStateKey theData) {
-    data = theData;
+  public static <T> Function0<T> uncheckFn(final CheckedFunction0<T> fn) {
+    return () -> fn.unchecked().apply();
   }
 
-  @Override
-  public DamlKvutils.DamlStateKey toKey() {
-    return data;
+  private Functions() {
   }
 }

@@ -16,6 +16,12 @@ package com.blockchaintp.utility;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
+import com.daml.ledger.participant.state.kvutils.DamlKvutils;
+import com.daml.ledger.participant.state.kvutils.Raw;
+import com.google.protobuf.ByteString;
+
+import io.vavr.API;
+
 /**
  * Converting UUIDs to ana from byte arrays.
  */
@@ -23,6 +29,28 @@ public final class UuidConverter {
   private static final int UUID_LENGTH_IN_BYTES = 16;
 
   private UuidConverter() {
+  }
+
+  /**
+   *
+   * @param id
+   * @return The UUID encoded as the entry id from the log id.
+   */
+  public static UUID logEntryToUuid(final Raw.LogEntryId id) {
+    return API
+        .unchecked(
+            () -> UuidConverter.asUuid(DamlKvutils.DamlLogEntryId.parseFrom(id.bytes()).getEntryId().toByteArray()))
+        .apply();
+  }
+
+  /**
+   *
+   * @param id
+   * @return A log entry id with the encoded UUID as its entry id.
+   */
+  public static Raw.LogEntryId uuidtoLogEntry(final UUID id) {
+    return Raw.LogEntryId$.MODULE$.apply(
+        DamlKvutils.DamlLogEntryId.newBuilder().setEntryId(ByteString.copyFrom(UuidConverter.asBytes(id))).build());
   }
 
   /**

@@ -53,7 +53,6 @@ class ParticipantOwner[ExtraConfig, Id <: Identifier, Address <: LedgerAddress](
               .withEngine(engine)
               .withMetrics(metrics)
               .withLoggingContext(logCtx)
-              .withExecutionContext(context.executionContext)
               .withConfiguration(ledgerConfig.initialConfiguration)
           )
       ).build()

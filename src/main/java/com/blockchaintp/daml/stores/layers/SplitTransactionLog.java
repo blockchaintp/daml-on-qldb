@@ -13,9 +13,12 @@
  */
 package com.blockchaintp.daml.stores.layers;
 
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -25,9 +28,9 @@ import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.daml.stores.service.Value;
+import com.google.common.collect.Sets;
 import com.google.protobuf.ByteString;
 
-import io.reactivex.rxjava3.core.Observable;
 import io.vavr.Tuple;
 import io.vavr.Tuple3;
 
@@ -66,19 +69,40 @@ public final class SplitTransactionLog implements TransactionLog<UUID, ByteStrin
     this.hashFn = hasher;
   }
 
+  /**
+   * Reads through txlog keys then enriches with blob data, using bulk fetch, this may cause memory
+   * issues with large data sets and should possibly be paged.
+   *
+   * @param startExclusive
+   * @param endInclusive
+   * @return A stream of data combined from blob and ledger.
+   * @throws StoreReadException
+   */
   @Override
-  public Observable<Tuple3<Long, UUID, ByteString>> from(final Optional<Long> offset) {
-    return txLog.from(offset).map(r -> {
-      var s3Key = Key.of(DatatypeConverter.printHexBinary(r._3.toByteArray()));
-      var withS3data = blobs.get(s3Key).map(v -> Tuple.of(r._1, r._2, v.map(ByteString::copyFrom).toNative()));
+  public Stream<Tuple3<Long, UUID, ByteString>> from(final Long startExclusive,
+      @SuppressWarnings("OptionalUsedAsFieldOrParameterType") final Optional<Long> endInclusive)
+      throws StoreReadException {
 
-      /// If we are missing underlying s3 data then this is a serious problem
-      if (withS3data.isEmpty()) {
-        throw new StoreReadException(SpltStoreException.missingS3Data(s3Key.toString(), r._2.toString()));
-      }
+    var resultsByS3Key = txLog.from(startExclusive, endInclusive)
+        .collect(Collectors.toMap(r -> Key.of(DatatypeConverter.printHexBinary(r._3.toByteArray())), r -> r));
 
-      return withS3data.get();
-    });
+    var blobData = blobs.get(new ArrayList<>(resultsByS3Key.keySet()));
+
+    var diff = Sets.difference(resultsByS3Key.keySet(), blobData.keySet());
+
+    if (!diff.isEmpty()) {
+      throw new StoreReadException(SpltStoreException.missingS3Data(diff.stream()
+          .map(d -> Tuple.of(d.toNative(), resultsByS3Key.get(d)._3.toStringUtf8())).collect(Collectors.toList())));
+    }
+
+    return resultsByS3Key.entrySet().stream().map(
+        r -> Tuple.of(r.getValue()._1, r.getValue()._2, blobData.get(r.getKey()).map(ByteString::copyFrom).toNative()));
+
+  }
+
+  @Override
+  public Optional<Long> getLatestOffset() {
+    return txLog.getLatestOffset();
   }
 
   @Override
