@@ -38,7 +38,6 @@ import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
  * @param <I>
  */
 public final class CachingTransactionLog<K, V, I> implements TransactionLog<K, V, I> {
-  private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(CachingTransactionLog.class);
   private final LRUCache<I, Tuple2<K, V>> commitCache;
   private final LRUCache<K, V> eventCache;
   private final TransactionLog<K, V, I> inner;
@@ -81,7 +80,10 @@ public final class CachingTransactionLog<K, V, I> implements TransactionLog<K, V
     }
 
     return hit.stream().map(i -> Tuple.of(i._1, i._2.toNative()._1, i._2.toNative()._2))
-        .peek(v -> commitCache.put(Key.of(v._1), Value.of(Tuple.of(v._2, v._3))));
+        .map(v -> {
+          commitCache.put(Key.of(v._1), Value.of(Tuple.of(v._2, v._3)));
+          return v;
+        });
   }
 
   @Override

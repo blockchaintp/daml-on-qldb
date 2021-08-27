@@ -22,8 +22,6 @@ import software.amazon.qldb.QldbDriver;
  * A builder of QLDBStore instances.
  */
 public final class QldbTransactionLogBuilder {
-  private static final int POLL_INTERVAL = 500;
-  private static final int PAGE_SIZE = 20;
   private final QldbDriver driver;
   private String table;
   private final IonSystem ion = IonSystemBuilder.standard().build();

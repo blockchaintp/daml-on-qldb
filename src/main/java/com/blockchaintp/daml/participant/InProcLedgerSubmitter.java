@@ -22,6 +22,7 @@ import java.util.concurrent.TimeoutException;
 
 import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.address.LedgerAddress;
+import com.blockchaintp.daml.stores.LRUCache;
 import com.blockchaintp.daml.stores.layers.Bijection;
 import com.blockchaintp.daml.stores.layers.CoercingStore;
 import com.blockchaintp.daml.stores.layers.CoercingTxLog;
@@ -31,7 +32,6 @@ import com.blockchaintp.daml.stores.service.TransactionLogWriter;
 import com.blockchaintp.utility.Functions;
 import com.blockchaintp.utility.UuidConverter;
 import com.daml.api.util.TimeProvider;
-import com.daml.caching.Cache;
 import com.daml.ledger.participant.state.kvutils.DamlKvutils;
 import com.daml.ledger.participant.state.kvutils.Raw;
 import com.daml.ledger.participant.state.v1.Configuration;
@@ -62,6 +62,7 @@ import scala.runtime.BoxedUnit;
 public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerAddress>
     implements LedgerSubmitter<A, B> {
 
+  private static final int STATE_CACHE_SIZE = 1000;
   private final ValidatingCommitter<Long> comitter;
 
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(InProcLedgerSubmitter.class);
@@ -119,8 +120,8 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
         SubmissionValidator.create(
             new StateAccess(CoercingStore.from(Bijection.of(Raw.StateKey::bytes, Raw.StateKey$.MODULE$::apply),
                 Bijection.of(Raw.Envelope::bytes, Raw.Envelope$.MODULE$::apply), theStateStore), writer),
-            () -> logEntryIdToDamlLogEntryId(Functions.uncheckFn(writer::begin).apply()), false, Cache.none(),
-            theEngine, theMetrics),
+            () -> logEntryIdToDamlLogEntryId(Functions.uncheckFn(writer::begin).apply()), false,
+            new StateCache<>(new LRUCache<>(STATE_CACHE_SIZE)), theEngine, theMetrics),
         r -> {
           LOG.info("Signal new head {}", () -> r + 1);
           dispatcher.signalNewHead(r + 1);
