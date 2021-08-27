@@ -19,7 +19,7 @@ import com.daml.ledger.participant.state.kvutils.DamlKvutils;
  *
  */
 public final class QldbIdentifier implements Identifier {
-  private DamlKvutils.DamlStateKey data;
+  private final DamlKvutils.DamlStateKey data;
 
   /**
    *

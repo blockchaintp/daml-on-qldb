@@ -15,6 +15,8 @@ package com.blockchaintp.daml.stores.resources;
 
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.blockchaintp.utility.Aws;
+
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import software.amazon.awssdk.core.exception.SdkException;
@@ -45,7 +47,7 @@ public class QldbResources implements RequiresAWSResources {
    */
   public QldbResources(final QldbClient qldbClient, final String ledgerName) {
     this.infrastructureClient = qldbClient;
-    this.ledger = ledgerName;
+    this.ledger = Aws.complyWithQldbLedgerNaming(ledgerName);
   }
 
   private boolean ledgerState(final LedgerState state) {

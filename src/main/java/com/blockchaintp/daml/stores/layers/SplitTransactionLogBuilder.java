@@ -15,9 +15,13 @@ package com.blockchaintp.daml.stores.layers;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
+import java.util.stream.LongStream;
+import java.util.stream.StreamSupport;
 
+import com.blockchaintp.daml.stores.LRUCache;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.exception.NoSHA512SupportException;
@@ -30,6 +34,8 @@ public class SplitTransactionLogBuilder {
   private UnaryOperator<byte[]> hashFn;
   private final TransactionLog<UUID, ByteString, Long> txLog;
   private final Store<String, byte[]> blobs;
+  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+  private Optional<Integer> cacheSize = Optional.empty();
 
   /**
    *
@@ -58,10 +64,22 @@ public class SplitTransactionLogBuilder {
    *
    * @param hasherFn
    *          the hash function
-   * @return the builder
+   * @return A configured builder
    */
   public final SplitTransactionLogBuilder withHasher(final UnaryOperator<byte[]> hasherFn) {
     this.hashFn = hasherFn;
+
+    return this;
+  }
+
+  /**
+   * Cache the last n comitted or read transactions.
+   *
+   * @param theCacheSize
+   * @return A configured builder.
+   */
+  public final SplitTransactionLogBuilder withCache(final int theCacheSize) {
+    this.cacheSize = Optional.of(theCacheSize);
 
     return this;
   }
@@ -72,6 +90,14 @@ public class SplitTransactionLogBuilder {
    * @return the split store
    */
   public final TransactionLog<UUID, ByteString, Long> build() {
-    return new SplitTransactionLog(txLog, blobs, hashFn);
+
+    var split = new SplitTransactionLog(txLog, blobs, hashFn);
+
+    if (cacheSize.isPresent()) {
+      return new CachingTransactionLog<>(new LRUCache<>(cacheSize.get()), new LRUCache<>(cacheSize.get()), split,
+          (s, e) -> StreamSupport.stream(LongStream.range(s, e.orElse(s + 1)).spliterator(), false));
+    }
+
+    return split;
   }
 }

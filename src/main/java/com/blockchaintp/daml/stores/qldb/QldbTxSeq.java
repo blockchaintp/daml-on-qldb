@@ -20,7 +20,7 @@ import java.util.stream.LongStream;
 import com.blockchaintp.daml.stores.service.SeqSource;
 
 /**
- * A long sequence, initialisable from a QLDB tx log sequence table or an explicit point.
+ * A long sequence, init from a QLDB tx log sequence table or an explicit point.
  */
 public final class QldbTxSeq implements SeqSource<Long> {
   /**
@@ -39,14 +39,13 @@ public final class QldbTxSeq implements SeqSource<Long> {
 
   @Override
   public Long peekNext() {
-    return current;
+    return current + 1;
   }
 
   @Override
   public Long takeNext() {
-    var then = current;
     current = current + 1;
-    return then;
+    return current;
   }
 
   @Override

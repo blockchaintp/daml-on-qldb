@@ -36,7 +36,7 @@ import com.google.common.collect.Sets;
  * @param <V>
  *          the type of value
  */
-public class Caching<K, V> implements Store<K, V> {
+public class CachingStore<K, V> implements Store<K, V> {
 
   private final Store<K, V> store;
   private final LRUCache<K, V> innerCache;
@@ -49,7 +49,7 @@ public class Caching<K, V> implements Store<K, V> {
    * @param wrappedStore
    *          the store to cache
    */
-  public Caching(final LRUCache<K, V> cache, final Store<K, V> wrappedStore) {
+  public CachingStore(final LRUCache<K, V> cache, final Store<K, V> wrappedStore) {
     this.store = wrappedStore;
     innerCache = cache;
   }

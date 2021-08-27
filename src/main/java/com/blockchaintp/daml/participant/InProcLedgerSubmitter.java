@@ -13,49 +13,45 @@
  */
 package com.blockchaintp.daml.participant;
 
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.stream.Collectors;
+import java.util.concurrent.TimeoutException;
 
 import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.address.LedgerAddress;
-import com.blockchaintp.daml.stores.exception.StoreReadException;
-import com.blockchaintp.daml.stores.exception.StoreWriteException;
+import com.blockchaintp.daml.stores.LRUCache;
+import com.blockchaintp.daml.stores.layers.Bijection;
 import com.blockchaintp.daml.stores.layers.CoercingStore;
 import com.blockchaintp.daml.stores.layers.CoercingTxLog;
-import com.blockchaintp.daml.stores.service.Key;
-import com.blockchaintp.daml.stores.service.Opaque;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.daml.stores.service.TransactionLogWriter;
-import com.blockchaintp.daml.stores.service.Value;
+import com.blockchaintp.utility.Functions;
 import com.blockchaintp.utility.UuidConverter;
+import com.daml.api.util.TimeProvider;
 import com.daml.ledger.participant.state.kvutils.DamlKvutils;
-import com.daml.ledger.participant.state.kvutils.KeyValueCommitting;
+import com.daml.ledger.participant.state.kvutils.Raw;
 import com.daml.ledger.participant.state.v1.Configuration;
-import com.daml.ledger.participant.state.v1.Offset;
-import com.daml.ledger.participant.state.v1.Offset$;
-import com.daml.lf.data.Time;
+import com.daml.ledger.participant.state.v1.SubmissionResult;
+import com.daml.ledger.validator.SubmissionValidator;
+import com.daml.ledger.validator.ValidatingCommitter;
+import com.daml.lf.engine.Engine;
 import com.daml.logging.LoggingContext;
-import com.google.common.primitives.Longs;
-import com.google.protobuf.AbstractMessageLite;
+import com.daml.metrics.Metrics;
+import com.daml.platform.akkastreams.dispatcher.Dispatcher;
 import com.google.protobuf.ByteString;
-import com.google.protobuf.InvalidProtocolBufferException;
 
-import io.vavr.API;
-import io.vavr.CheckedFunction1;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
-import scala.Option;
+import scala.concurrent.Await$;
 import scala.concurrent.ExecutionContext;
-import scala.jdk.javaapi.CollectionConverters$;
-import scala.jdk.javaapi.OptionConverters$;
+import scala.concurrent.duration.Duration;
+import scala.runtime.BoxedUnit;
 
 /**
  * An in process submitter relying on an ephemeral queue.
@@ -65,15 +61,16 @@ import scala.jdk.javaapi.OptionConverters$;
  */
 public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerAddress>
     implements LedgerSubmitter<A, B> {
+
+  private static final int STATE_CACHE_SIZE = 1000;
+  private final ValidatingCommitter<Long> comitter;
+
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(InProcLedgerSubmitter.class);
-  private final KeyValueCommitting committing;
-  private final TransactionLogWriter<DamlKvutils.DamlLogEntryId, DamlKvutils.DamlLogEntry, Offset> writer;
-  private final Store<DamlKvutils.DamlStateKey, DamlKvutils.DamlStateValue> stateStore;
-  private final String participantId;
-  private final Configuration configuration;
-  private final LoggingContext loggingContext;
+  private final Dispatcher<Long> dispatcher;
+  private final TransactionLogWriter<Raw.LogEntryId, Raw.Envelope, Long> writer;
   private final LinkedBlockingQueue<Tuple2<SubmissionReference, CommitPayload<A>>> queue;
   private final ConcurrentHashMap<SubmissionReference, SubmissionStatus> status;
+  private final ExecutionContext context;
 
   /**
    *
@@ -86,55 +83,57 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
   }
 
   /**
-   * @param theCommitting
-   * @param theTxLog
-   * @param theStateStore
-   * @param theContext
-   * @param theParticipantId
-   * @param theConfiguration
-   * @param theLoggingContext
+   * This seems like a terrible way to go about things that are meant to be bytewise equivalent?
+   *
+   * @param id
+   * @return A daml log entry id parsed from a daml log entry id.
    */
-  public InProcLedgerSubmitter(final KeyValueCommitting theCommitting,
-      final TransactionLog<UUID, ByteString, Long> theTxLog, final Store<ByteString, ByteString> theStateStore,
-      final ExecutionContext theContext, final String theParticipantId, final Configuration theConfiguration,
-      final LoggingContext theLoggingContext) {
-    committing = theCommitting;
-    writer = CoercingTxLog.writerFrom(
-        (UUID k) -> DamlKvutils.DamlLogEntryId.newBuilder().setEntryId(ByteString.copyFrom(UuidConverter.asBytes(k)))
-            .build(),
-        API.unchecked((CheckedFunction1<ByteString, DamlKvutils.DamlLogEntry>) DamlKvutils.DamlLogEntry::parseFrom),
-        (Long i) -> Offset$.MODULE$.fromByteArray(Longs.toByteArray(i)),
-        (DamlKvutils.DamlLogEntryId k) -> UuidConverter.asUuid(k.getEntryId().toByteArray()),
-        AbstractMessageLite::toByteString, (Offset i) -> Longs.fromByteArray(i.toByteArray()), theTxLog);
-    stateStore = CoercingStore.from(
-        API.unchecked((CheckedFunction1<ByteString, DamlKvutils.DamlStateKey>) DamlKvutils.DamlStateKey::parseFrom),
-        API.unchecked((CheckedFunction1<ByteString, DamlKvutils.DamlStateValue>) DamlKvutils.DamlStateValue::parseFrom),
-        AbstractMessageLite::toByteString, AbstractMessageLite::toByteString, theStateStore);
-    participantId = theParticipantId;
-    configuration = theConfiguration;
-    loggingContext = theLoggingContext;
-    queue = new LinkedBlockingQueue<>();
-    status = new ConcurrentHashMap<>();
-    theContext.execute(this::work);
-  }
+  private DamlKvutils.DamlLogEntryId logEntryIdToDamlLogEntryId(final Raw.LogEntryId id) {
+    var parsed = Functions.uncheckFn(() -> DamlKvutils.DamlLogEntryId.parseFrom(id.bytes())).apply();
 
-  private Time.Timestamp getCurrentRecordTime() {
-    return Time.Timestamp$.MODULE$.now();
-  }
+    LOG.info("parse log id {}", () -> parsed.getEntryId().toString());
 
-  private <A1, B1> scala.collection.immutable.Map<A1, B1> mapToScalaImmutableMap(final java.util.Map<A1, B1> m) {
-    return scala.collection.immutable.Map$.MODULE$.from(CollectionConverters$.MODULE$.asScala(m));
-  }
-
-  private <A1, B1> java.util.Map<A1, B1> scalaMapToMap(final scala.collection.immutable.Map<A1, B1> m) {
-    return CollectionConverters$.MODULE$.asJava(m);
+    return parsed;
   }
 
   /**
-   * Do the work of submitting this to our underlying txlog and processing the input and output
-   * states.
+   * @param theEngine
+   * @param theMetrics
+   * @param theTxLog
+   * @param theStateStore
+   * @param theDispatcher
+   * @param theConfiguration
+   * @param theLoggingContext
    */
-  public void work() {
+  @SuppressWarnings("checkstyle:ParameterNumber")
+  public InProcLedgerSubmitter(final Engine theEngine, final Metrics theMetrics,
+      final TransactionLog<UUID, ByteString, Long> theTxLog, final Store<ByteString, ByteString> theStateStore,
+      final Dispatcher<Long> theDispatcher, final Configuration theConfiguration,
+      final LoggingContext theLoggingContext) {
+    writer = CoercingTxLog.from(Bijection.of(UuidConverter::logEntryToUuid, UuidConverter::uuidtoLogEntry),
+        Bijection.of(Raw.Envelope::bytes, Raw.Envelope$.MODULE$::apply), Bijection.identity(), theTxLog);
+    dispatcher = theDispatcher;
+    queue = new LinkedBlockingQueue<>();
+    status = new ConcurrentHashMap<>();
+
+    comitter = new ValidatingCommitter<>(TimeProvider.UTC$.MODULE$::getCurrentTime,
+        SubmissionValidator.create(
+            new StateAccess(CoercingStore.from(Bijection.of(Raw.StateKey::bytes, Raw.StateKey$.MODULE$::apply),
+                Bijection.of(Raw.Envelope::bytes, Raw.Envelope$.MODULE$::apply), theStateStore), writer),
+            () -> logEntryIdToDamlLogEntryId(Functions.uncheckFn(writer::begin).apply()), false,
+            new StateCache<>(new LRUCache<>(STATE_CACHE_SIZE)), theEngine, theMetrics),
+        r -> {
+          LOG.info("Signal new head {}", () -> r + 1);
+          dispatcher.signalNewHead(r + 1);
+          return BoxedUnit.UNIT;
+        });
+
+    context = scala.concurrent.ExecutionContext.fromExecutorService(Executors.newSingleThreadExecutor());
+
+    scala.concurrent.ExecutionContext.fromExecutorService(Executors.newSingleThreadExecutor()).execute(this::work);
+  }
+
+  private void work() {
     var run = true;
     while (run) {
       try {
@@ -142,54 +141,20 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
 
         status.put(next._1, SubmissionStatus.PARTIALLY_SUBMITTED);
 
-        var inputKeys = next._2.getReads().stream().map(Identifier::toKey).map(Key::of).collect(Collectors.toList());
+        var res = Await$.MODULE$.result(this.comitter.commit(next._2.getCorrelationId(), next._2.getSubmission(),
+            next._2.getSubmittingParticipantId(), context), Duration.Inf());
 
-        var sparseInputs = inputKeys.stream().collect(Collectors.toMap(Opaque::toNative,
-            k -> OptionConverters$.MODULE$.toScala(Optional.<DamlKvutils.DamlStateValue>empty())));
-
-        submitTransaction(next, inputKeys, sparseInputs);
-      } catch (InterruptedException e) {
+        if (!(res instanceof SubmissionResult.Acknowledged$)) {
+          status.put(next._1, SubmissionStatus.REJECTED);
+        } else {
+          status.put(next._1, SubmissionStatus.SUBMITTED);
+        }
+      } catch (TimeoutException | InterruptedException e) {
         Thread.currentThread().interrupt();
         LOG.error("Thread interrupted", e);
 
         run = false;
       }
-    }
-  }
-
-  /**
-   * Do the work of getting data, updating final state and logging the transaction.
-   *
-   * @param next
-   * @param inputKeys
-   * @param sparseInputs
-   */
-  private void submitTransaction(final Tuple2<SubmissionReference, CommitPayload<A>> next,
-      final List<Key<DamlKvutils.DamlStateKey>> inputKeys,
-      final Map<DamlKvutils.DamlStateKey, Option<DamlKvutils.DamlStateValue>> sparseInputs) {
-    try {
-      stateStore.get(inputKeys).entrySet().forEach(kv -> sparseInputs.put(kv.getKey().toNative(),
-          OptionConverters$.MODULE$.toScala(Optional.of(kv.getValue().toNative()))));
-
-      var entryId = writer.begin();
-      next._2.getOperation().getTransaction().toBuilder().setLogEntryId(entryId.getEntryId()).build();
-
-      var rx = committing.processSubmission(entryId, getCurrentRecordTime(), configuration,
-          DamlKvutils.DamlSubmission.parseFrom(next._2.getOperation().getTransaction().getSubmission()), participantId,
-          mapToScalaImmutableMap(sparseInputs), loggingContext);
-
-      var outputMap = scalaMapToMap(rx._2);
-
-      stateStore.put(outputMap.entrySet().stream().map(kv -> Map.entry(Key.of(kv.getKey()), Value.of(kv.getValue())))
-          .collect(Collectors.toList()));
-
-      writer.sendEvent(entryId, rx._1);
-      writer.commit(entryId);
-
-      status.put(next._1, SubmissionStatus.SUBMITTED);
-
-    } catch (StoreWriteException | StoreReadException | InvalidProtocolBufferException e) {
-      LOG.error("Could not submit payload {} due to {}", next._1, e);
     }
   }
 

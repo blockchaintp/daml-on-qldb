@@ -13,15 +13,12 @@
  */
 package com.blockchaintp.daml.participant;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.blockchaintp.daml.address.Identifier;
-import com.blockchaintp.daml.protobuf.DamlOperation;
-import com.blockchaintp.daml.protobuf.DamlTransaction;
 import com.blockchaintp.exception.BuilderException;
 import com.daml.ledger.participant.state.kvutils.Raw;
 import com.daml.ledger.participant.state.kvutils.api.CommitMetadata;
@@ -43,29 +40,16 @@ public final class CommitPayloadBuilder<A extends Identifier> {
      * @param theCorrelationId
      * @return One or more daml operations to be committed.
      */
-    List<DamlOperation> fragment(Raw.Envelope theEnvelope, String theCorrelationId);
+    List<Raw.Envelope> fragment(Raw.Envelope theEnvelope, String theCorrelationId);
   }
 
   /**
    *
    */
   public static final class NoFragmentation implements FragmentationStrategy {
-    private final String participantId;
-
-    /**
-     * Package the submission as a single transaction, do not fragment.
-     *
-     * @param theParticipantId
-     */
-    public NoFragmentation(final String theParticipantId) {
-      participantId = theParticipantId;
-    }
-
     @Override
-    public List<DamlOperation> fragment(final Raw.Envelope theEnvelope, final String theCorrelationId) {
-      final var tx = DamlTransaction.newBuilder().setSubmission(theEnvelope.bytes()).build();
-      return Arrays.asList(DamlOperation.newBuilder().setCorrelationId(theCorrelationId)
-          .setSubmittingParticipant(participantId).setTransaction(tx).build());
+    public List<Raw.Envelope> fragment(final Raw.Envelope theEnvelope, final String theCorrelationId) {
+      return List.of(theEnvelope);
     }
   }
 
@@ -111,7 +95,7 @@ public final class CommitPayloadBuilder<A extends Identifier> {
    * @return A configured builder.
    */
   public CommitPayloadBuilder<A> withNoFragmentation() {
-    this.fragmentationStrategy = new NoFragmentation(participantId);
+    this.fragmentationStrategy = new NoFragmentation();
 
     return this;
   }
@@ -132,8 +116,8 @@ public final class CommitPayloadBuilder<A extends Identifier> {
     if (outputAddressReader == null) {
       throw new BuilderException("No configured output address reader");
     }
-    return fragmentationStrategy.fragment(theEnvelope, correlationId).stream()
-        .map(op -> new CommitPayload<A>(op, metadata, inputAddressReader, outputAddressReader))
+    return fragmentationStrategy.fragment(theEnvelope, correlationId).stream().map(
+        op -> new CommitPayload<A>(op, correlationId, participantId, metadata, inputAddressReader, outputAddressReader))
         .collect(Collectors.toList());
   }
 

@@ -22,6 +22,7 @@ import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Opaque;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.Value;
+import com.blockchaintp.utility.Aws;
 import com.google.protobuf.ByteString;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -58,8 +59,8 @@ class QldbStoreIntegrationTest {
 
     this.ionSystem = IonSystemBuilder.standard().build();
 
-    final var driver = QldbDriver.builder().ledger(ledger).sessionClientBuilder(sessionBuilder).ionSystem(ionSystem)
-        .build();
+    final var driver = QldbDriver.builder().ledger(Aws.complyWithQldbLedgerNaming(ledger))
+        .sessionClientBuilder(sessionBuilder).ionSystem(ionSystem).build();
 
     this.resources = new QldbResources(
         QldbClient.builder().credentialsProvider(DefaultCredentialsProvider.create()).region(Region.EU_WEST_2).build(),

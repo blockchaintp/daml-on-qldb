@@ -14,8 +14,10 @@
 package com.blockchaintp.daml.stores.service;
 
 import java.util.Optional;
+import java.util.stream.Stream;
 
-import io.reactivex.rxjava3.core.Observable;
+import com.blockchaintp.daml.stores.exception.StoreReadException;
+
 import io.vavr.Tuple3;
 
 /**
@@ -31,9 +33,16 @@ public interface TransactionLogReader<I, K, V> {
   /**
    * Stream committed log entries starting at offset.
    *
-   * @param offset
-   *          - use None to start at the last commit
+   * @param startExclusive
+   * @param endInclusive
    * @return A stream of comitted log entires.
    */
-  Observable<Tuple3<I, K, V>> from(@SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<I> offset);
+  Stream<Tuple3<I, K, V>> from(I startExclusive,
+      @SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<I> endInclusive) throws StoreReadException;
+
+  /**
+   *
+   * @return The offset of the last written entry.
+   */
+  Optional<I> getLatestOffset();
 }

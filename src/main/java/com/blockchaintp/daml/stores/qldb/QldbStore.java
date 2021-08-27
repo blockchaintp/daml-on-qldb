@@ -13,7 +13,6 @@
  */
 package com.blockchaintp.daml.stores.qldb;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -69,7 +68,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
     this.driver = qldbDriver;
     this.table = tableName;
     this.ion = IonSystemBuilder.standard().build();
-    this.tables = new RequiresTables(Arrays.asList(Tuple.of(table, ID_FIELD)), qldbDriver);
+    this.tables = new RequiresTables(List.of(Tuple.of(table, ID_FIELD)), qldbDriver);
   }
 
   /**
@@ -88,11 +87,11 @@ public final class QldbStore implements Store<ByteString, ByteString> {
   public Optional<Value<ByteString>> get(final Key<ByteString> key) throws StoreReadException {
     this.tables.checkTables();
 
-    LOG.info("get id={} in table={}", () -> key.toNative().toStringUtf8(), () -> table);
+    LOG.info("get id='{}' in table={}", () -> key.toNative().toStringUtf8(), () -> table);
 
     try {
       final var r = driver.execute((Executor<Result>) ex -> ex
-          .execute(String.format("select o.h from %s AS o where o.%s = ?", table, ID_FIELD), makeStorableKey(key)));
+          .execute(String.format("select o.h from %s AS o where o.%s = ?", table, ID_FIELD), makeStoreableKey(key)));
 
       if (!r.isEmpty()) {
         var struct = (IonStruct) r.iterator().next();
@@ -142,7 +141,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
 
     try {
       final var r = driver.execute((Executor<Result>) ex -> ex.execute(query,
-          listOfKeys.stream().map(this::makeStorableKey).toArray(IonValue[]::new)));
+          listOfKeys.stream().map(this::makeStoreableKey).toArray(IonValue[]::new)));
 
       /// Pull id out of the struct to use for our result map
       return Stream.ofAll(r).toJavaMap(
@@ -153,7 +152,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
     }
   }
 
-  private IonValue makeStorableKey(final Key<ByteString> key) {
+  private IonValue makeStoreableKey(final Key<ByteString> key) {
     return ion.newBlob(key.toNative().toByteArray());
   }
 
@@ -163,7 +162,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
 
   private IonStruct makeRecord(final Key<ByteString> key, final Value<ByteString> value) {
     var struct = ion.newEmptyStruct();
-    struct.add(ID_FIELD, makeStorableKey(key));
+    struct.add(ID_FIELD, makeStoreableKey(key));
     struct.add(HASH_FIELD, makeStorableValue(value));
 
     return struct;
@@ -181,7 +180,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
 
     driver.execute(tx -> {
       var exists = tx.execute(String.format("select o.%s from %s as o where o.%s = ?", ID_FIELD, table, ID_FIELD),
-          makeStorableKey(key));
+          makeStoreableKey(key));
 
       if (exists.isEmpty()) {
         LOG.debug("Not present, inserting");
@@ -191,7 +190,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
       } else {
         LOG.debug("Present, updating");
         tx.execute(String.format("update %s as o set o = ? where o.%s = ?", table, ID_FIELD), makeRecord(key, value),
-            makeStorableKey(key));
+            makeStoreableKey(key));
       }
     });
   }
@@ -219,7 +218,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
           .stream(txn.execute(
               String.format("select o.%s from %s as o where o.%s in ( %s )", ID_FIELD, table, ID_FIELD,
                   keys.stream().map(k -> "?").collect(Collectors.joining(","))),
-              keys.stream().map(this::makeStorableKey).collect(Collectors.toList())).spliterator(), false)
+              keys.stream().map(this::makeStoreableKey).collect(Collectors.toList())).spliterator(), false)
           .collect(Collectors.toSet());
 
       // results are tuples of {id,value}
@@ -240,7 +239,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
           keysToInsert.stream().map(k -> makeRecord(k, valueMap.get(k))).collect(Collectors.toList()));
 
       final var updateQuery = String.format("update %s as o set o.%s = ? where o.%s = ?", table, HASH_FIELD, ID_FIELD);
-      keysToUpdate.forEach(k -> txn.execute(updateQuery, makeStorableValue(valueMap.get(k)), makeStorableKey(k)));
+      keysToUpdate.forEach(k -> txn.execute(updateQuery, makeStorableValue(valueMap.get(k)), makeStoreableKey(k)));
 
     });
   }

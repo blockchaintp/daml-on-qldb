@@ -14,14 +14,12 @@
 package com.blockchaintp.daml.stores.layers;
 
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.stream.Stream;
 
+import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.TransactionLog;
-import com.blockchaintp.daml.stores.service.TransactionLogReader;
-import com.blockchaintp.daml.stores.service.TransactionLogWriter;
 
-import io.reactivex.rxjava3.core.Observable;
 import io.vavr.Tuple;
 import io.vavr.Tuple3;
 
@@ -42,23 +40,17 @@ import io.vavr.Tuple3;
  *          The source sequence type.
  */
 public final class CoercingTxLog<K1, K2, V1, V2, I1, I2> implements TransactionLog<K1, V1, I1> {
-  private final Function<K2, K1> keyCoercionFrom;
-  private final Function<V2, V1> valueCoercionFrom;
-  private final Function<I2, I1> seqCoercionFrom;
-  private final Function<K1, K2> keyCoercionTo;
-  private final Function<V1, V2> valueCoercionTo;
-  private final Function<I1, I2> seqCoercionTo;
+  private final Bijection<K1, K2> keyCoercion;
+  private final Bijection<V1, V2> valueCoercion;
+  private final Bijection<I1, I2> seqCoercion;
   private final TransactionLog<K2, V2, I2> inner;
 
   /**
    * Convenience method for building a coercing transaction log.
    *
-   * @param keyCoercionFrom
-   * @param valueCoercionFrom
-   * @param seqCoercionFrom
-   * @param keyCoercionTo
-   * @param valueCoercionTo
-   * @param seqCoercionTo
+   * @param theKeyCoercion
+   * @param theValueCoercion
+   * @param theSeqCoercion
    * @param inner
    * @param <K3>
    * @param <K4>
@@ -68,115 +60,58 @@ public final class CoercingTxLog<K1, K2, V1, V2, I1, I2> implements TransactionL
    * @param <I4>
    * @return a wrapped, coercing transaction log.
    */
-  public static <K3, K4, V3, V4, I3, I4> TransactionLog<K3, V3, I3> from(final Function<K4, K3> keyCoercionFrom,
-      final Function<V4, V3> valueCoercionFrom, final Function<I4, I3> seqCoercionFrom,
-      final Function<K3, K4> keyCoercionTo, final Function<V3, V4> valueCoercionTo,
-      final Function<I3, I4> seqCoercionTo, final TransactionLog<K4, V4, I4> inner) {
-    return new CoercingTxLog<>(keyCoercionFrom, valueCoercionFrom, seqCoercionFrom, keyCoercionTo, valueCoercionTo,
-        seqCoercionTo, inner);
-  }
-
-  /**
-   * Convenience method for building a coercing transaction log.
-   *
-   * @param keyCoercionFrom
-   * @param valueCoercionFrom
-   * @param seqCoercionFrom
-   * @param keyCoercionTo
-   * @param valueCoercionTo
-   * @param seqCoercionTo
-   * @param inner
-   * @param <K3>
-   * @param <K4>
-   * @param <V3>
-   * @param <V4>
-   * @param <I3>
-   * @param <I4>
-   * @return a wrapped, coercing transaction log.
-   */
-  public static <K3, K4, V3, V4, I3, I4> TransactionLogReader<I3, K3, V3> readerFrom(
-      final Function<K4, K3> keyCoercionFrom, final Function<V4, V3> valueCoercionFrom,
-      final Function<I4, I3> seqCoercionFrom, final Function<K3, K4> keyCoercionTo,
-      final Function<V3, V4> valueCoercionTo, final Function<I3, I4> seqCoercionTo,
+  public static <K3, K4, V3, V4, I3, I4> TransactionLog<K3, V3, I3> from(final Bijection<K3, K4> theKeyCoercion,
+      final Bijection<V3, V4> theValueCoercion, final Bijection<I3, I4> theSeqCoercion,
       final TransactionLog<K4, V4, I4> inner) {
-    return from(keyCoercionFrom, valueCoercionFrom, seqCoercionFrom, keyCoercionTo, valueCoercionTo, seqCoercionTo,
-        inner);
-  }
-
-  /**
-   * Convenience method for building a coercing transaction log.
-   *
-   * @param keyCoercionFrom
-   * @param valueCoercionFrom
-   * @param seqCoercionFrom
-   * @param keyCoercionTo
-   * @param valueCoercionTo
-   * @param seqCoercionTo
-   * @param inner
-   * @param <K3>
-   * @param <K4>
-   * @param <V3>
-   * @param <V4>
-   * @param <I3>
-   * @param <I4>
-   * @return a wrapped, coercing transaction log.
-   */
-  public static <K3, K4, V3, V4, I3, I4> TransactionLogWriter<K3, V3, I3> writerFrom(
-      final Function<K4, K3> keyCoercionFrom, final Function<V4, V3> valueCoercionFrom,
-      final Function<I4, I3> seqCoercionFrom, final Function<K3, K4> keyCoercionTo,
-      final Function<V3, V4> valueCoercionTo, final Function<I3, I4> seqCoercionTo,
-      final TransactionLog<K4, V4, I4> inner) {
-    return from(keyCoercionFrom, valueCoercionFrom, seqCoercionFrom, keyCoercionTo, valueCoercionTo, seqCoercionTo,
-        inner);
+    return new CoercingTxLog<>(theKeyCoercion, theValueCoercion, theSeqCoercion, inner);
   }
 
   /**
    * Wraps a transaction log with bijections to convert type parameters.
    *
-   * @param theKeyCoercionFrom
-   * @param theValueCoercionFrom
-   * @param theSeqCoercionFrom
-   * @param theKeyCoercionTo
-   * @param theValueCoercionTo
-   * @param theSeqCoercionTo
+   * @param theKeyCoercion
+   * @param theValueCoercion
+   * @param theSeqCoercion
    * @param theInner
    */
-  public CoercingTxLog(final Function<K2, K1> theKeyCoercionFrom, final Function<V2, V1> theValueCoercionFrom,
-      final Function<I2, I1> theSeqCoercionFrom, final Function<K1, K2> theKeyCoercionTo,
-      final Function<V1, V2> theValueCoercionTo, final Function<I1, I2> theSeqCoercionTo,
-      final TransactionLog<K2, V2, I2> theInner) {
-    keyCoercionFrom = theKeyCoercionFrom;
-    valueCoercionFrom = theValueCoercionFrom;
-    seqCoercionFrom = theSeqCoercionFrom;
-    keyCoercionTo = theKeyCoercionTo;
-    valueCoercionTo = theValueCoercionTo;
-    seqCoercionTo = theSeqCoercionTo;
+  public CoercingTxLog(final Bijection<K1, K2> theKeyCoercion, final Bijection<V1, V2> theValueCoercion,
+      final Bijection<I1, I2> theSeqCoercion, final TransactionLog<K2, V2, I2> theInner) {
+    keyCoercion = theKeyCoercion;
+    valueCoercion = theValueCoercion;
+    seqCoercion = theSeqCoercion;
     inner = theInner;
   }
 
   @Override
-  public Observable<Tuple3<I1, K1, V1>> from(final Optional<I1> offset) {
-    return inner.from(offset.map(seqCoercionTo))
-        .map(r -> Tuple.of(seqCoercionFrom.apply(r._1), keyCoercionFrom.apply(r._2), valueCoercionFrom.apply(r._3)));
+  public Stream<Tuple3<I1, K1, V1>> from(final I1 startExclusive,
+      @SuppressWarnings("OptionalUsedAsFieldOrParameterType") final Optional<I1> endInclusive)
+      throws StoreReadException {
+    return inner.from(seqCoercion.to(startExclusive), endInclusive.map(seqCoercion::to))
+        .map(r -> Tuple.of(seqCoercion.from(r._1), keyCoercion.from(r._2), valueCoercion.from(r._3)));
+  }
+
+  @Override
+  public Optional<I1> getLatestOffset() {
+    return inner.getLatestOffset().map(seqCoercion::from);
   }
 
   @Override
   public K1 begin() throws StoreWriteException {
-    return keyCoercionFrom.apply(inner.begin());
+    return keyCoercion.from(inner.begin());
   }
 
   @Override
   public void sendEvent(final K1 id, final V1 data) throws StoreWriteException {
-    inner.sendEvent(keyCoercionTo.apply(id), valueCoercionTo.apply(data));
+    inner.sendEvent(keyCoercion.to(id), valueCoercion.to(data));
   }
 
   @Override
   public I1 commit(final K1 txId) throws StoreWriteException {
-    return seqCoercionFrom.apply(inner.commit(keyCoercionTo.apply(txId)));
+    return seqCoercion.from(inner.commit(keyCoercion.to(txId)));
   }
 
   @Override
   public void abort(final K1 txId) throws StoreWriteException {
-    inner.abort(keyCoercionTo.apply(txId));
+    inner.abort(keyCoercion.to(txId));
   }
 }

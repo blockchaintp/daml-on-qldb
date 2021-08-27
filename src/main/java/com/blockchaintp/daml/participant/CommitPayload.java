@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.blockchaintp.daml.address.Identifier;
-import com.blockchaintp.daml.protobuf.DamlOperation;
+import com.daml.ledger.participant.state.kvutils.Raw;
 import com.daml.ledger.participant.state.kvutils.api.CommitMetadata;
 
 /**
@@ -29,30 +29,36 @@ import com.daml.ledger.participant.state.kvutils.api.CommitMetadata;
  *          the type of the identifier (e.g. {@link LedgerAddress} or {@link Identifier})
  */
 public final class CommitPayload<A extends Identifier> {
-  private final DamlOperation operation;
+  private final Raw.Envelope submission;
+  private final String correlationId;
+  private final String submittingParticipantId;
   private final Set<A> reads;
   private final Set<A> writes;
 
   /**
-   *
-   * @param theOperation
+   * @param theSubmission
+   * @param theCorrelationId
+   * @param theSubmittingParticipantId
    * @param theMetadata
    * @param readAddressExtractor
    * @param writeAddressExtractor
    */
-  public CommitPayload(final DamlOperation theOperation, final CommitMetadata theMetadata,
+  public CommitPayload(final Raw.Envelope theSubmission, final String theCorrelationId,
+      final String theSubmittingParticipantId, final CommitMetadata theMetadata,
       final Function<CommitMetadata, Stream<A>> readAddressExtractor,
       final Function<CommitMetadata, Stream<A>> writeAddressExtractor) {
-    this.operation = theOperation;
+    this.submission = theSubmission;
+    correlationId = theCorrelationId;
+    submittingParticipantId = theSubmittingParticipantId;
     this.reads = readAddressExtractor.apply(theMetadata).collect(Collectors.toSet());
     this.writes = writeAddressExtractor.apply(theMetadata).collect(Collectors.toSet());
   }
 
   /**
-   * @return the transaction
+   * @return the sumission.
    */
-  public DamlOperation getOperation() {
-    return operation;
+  public Raw.Envelope getSubmission() {
+    return submission;
   }
 
   /**
@@ -69,5 +75,21 @@ public final class CommitPayload<A extends Identifier> {
    */
   public Set<A> getWrites() {
     return writes;
+  }
+
+  /**
+   *
+   * @return The correlation id.
+   */
+  public String getCorrelationId() {
+    return correlationId;
+  }
+
+  /**
+   *
+   * @return The submitting participant id.
+   */
+  public String getSubmittingParticipantId() {
+    return submittingParticipantId;
   }
 }

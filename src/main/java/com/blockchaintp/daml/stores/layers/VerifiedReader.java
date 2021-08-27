@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -50,27 +51,25 @@ public class VerifiedReader implements StoreReader<ByteString, ByteString> {
 
   @Override
   public final Optional<Value<ByteString>> get(final Key<ByteString> key) throws StoreReadException {
-    var txRef = refStore.get(key);
-
-    if (txRef.isPresent()) {
-      Optional<Value<byte[]>> s3Val = blobStore
-          .get(Key.of(DatatypeConverter.printHexBinary(txRef.get().toNative().toByteArray())));
-
-      return s3Val.map(x -> Value.of(ByteString.copyFrom(x.toNative())));
-    } else {
-      return Optional.empty();
-    }
+    return get(List.of(key)).values().stream().findFirst();
   }
 
   @Override
   public final Map<Key<ByteString>, Value<ByteString>> get(final List<Key<ByteString>> listOfKeys)
       throws StoreReadException {
-    var map = new HashMap<Key<ByteString>, Value<ByteString>>();
-    for (var k : listOfKeys) {
-      var item = this.get(k);
-      item.ifPresent(byteStringValue -> map.put(k, byteStringValue));
+    var refKeys = refStore.get(listOfKeys).entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
+        v -> DatatypeConverter.printHexBinary(v.getValue().toNative().toByteArray())));
+
+    var values = blobStore.get(refKeys.values().stream().map(Key::of).collect(Collectors.toList()));
+
+    var retMap = new HashMap<Key<ByteString>, Value<ByteString>>();
+
+    for (var kv : refKeys.entrySet()) {
+      if (values.containsKey((Key.of(kv.getValue())))) {
+        retMap.put(kv.getKey(), values.get(Key.of(kv.getValue())).map(ByteString::copyFrom));
+      }
     }
 
-    return map;
+    return retMap;
   }
 }

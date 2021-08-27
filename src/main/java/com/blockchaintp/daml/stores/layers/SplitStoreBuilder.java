@@ -17,6 +17,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.function.UnaryOperator;
 
+import com.blockchaintp.daml.stores.LRUCache;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.StoreReader;
 import com.blockchaintp.exception.NoSHA512SupportException;
@@ -31,6 +32,7 @@ public class SplitStoreBuilder {
   private StoreReader<ByteString, ByteString> reader;
   private UnaryOperator<byte[]> hashFn;
   private boolean writeS3Index = false;
+  private LRUCache<ByteString, ByteString> cache;
 
   /**
    * Create a SplitStoreBuilder.
@@ -101,11 +103,29 @@ public class SplitStoreBuilder {
   }
 
   /**
+   * Cache the given number of items in memory.
+   *
+   * @param items
+   * @return A configured builder.
+   */
+  public final SplitStoreBuilder withCaching(final int items) {
+    this.cache = new LRUCache<>(items);
+
+    return this;
+  }
+
+  /**
    * Build the split store.
    *
-   * @return the split store
+   * @return The split store
    */
-  public final SplitStore build() {
-    return new SplitStore(writeS3Index, reader, refStore, blobs, hashFn);
+  public final Store<ByteString, ByteString> build() {
+    var inner = new SplitStore(writeS3Index, reader, refStore, blobs, hashFn);
+
+    if (cache != null) {
+      return new CachingStore<>(cache, inner);
+    }
+
+    return inner;
   }
 }

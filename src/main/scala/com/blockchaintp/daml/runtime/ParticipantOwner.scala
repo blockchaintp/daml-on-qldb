@@ -17,6 +17,7 @@ import com.blockchaintp.daml.address.Identifier
 import com.blockchaintp.daml.address.LedgerAddress
 import com.blockchaintp.daml.participant.Participant
 import com.blockchaintp.daml.participant.ParticipantBuilder
+import com.daml.ledger.participant.state.kvutils.KeyValueSubmission
 import com.daml.ledger.participant.state.kvutils.app.Config
 import com.daml.ledger.participant.state.v1.LedgerId
 import com.daml.ledger.participant.state.v1.ParticipantId
@@ -52,7 +53,6 @@ class ParticipantOwner[ExtraConfig, Id <: Identifier, Address <: LedgerAddress](
               .withEngine(engine)
               .withMetrics(metrics)
               .withLoggingContext(logCtx)
-              .withExecutionContext(context.executionContext)
               .withConfiguration(ledgerConfig.initialConfiguration)
           )
       ).build()

@@ -30,19 +30,21 @@ import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 class S3StoreIntegrationTest {
 
   private static final int NETTY_MAX_CONCURRENCY = 100;
-  private static final int ID_LENGTH = 10;
+  private static final int ID_LENGTH = 12;
   private static final int ITERATIONS = 40;
   private Store<String, byte[]> store;
   private S3StoreResources resources;
@@ -80,7 +82,10 @@ class S3StoreIntegrationTest {
 
   @Test
   void single_item_put_and_get_are_symmetric() throws StoreWriteException, StoreReadException {
-    final var k = Key.of("id");
+    byte[] array = new byte[4000];
+    new Random().nextBytes(array);
+
+    final var k = Key.of(new String(array, Charset.forName("UTF-8")));
     final var v = Value.of(new byte[] { 1, 2, 3 });
 
     // Insert

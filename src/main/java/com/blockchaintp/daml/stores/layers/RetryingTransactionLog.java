@@ -15,14 +15,14 @@ package com.blockchaintp.daml.stores.layers;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 
+import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
-import io.github.resilience4j.rxjava3.retry.transformer.RetryTransformer;
-import io.reactivex.rxjava3.core.Observable;
 import io.vavr.Tuple3;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
@@ -65,10 +65,15 @@ public final class RetryingTransactionLog<K, V, I> implements TransactionLog<K, 
   }
 
   @Override
-  public Observable<Tuple3<I, K, V>> from(final Optional<I> offset) {
-    RetryTransformer<Tuple3<I, K, V>> retrying = RetryTransformer.of(retry("from"));
+  public Stream<Tuple3<I, K, V>> from(final I startExclusive,
+      @SuppressWarnings("OptionalUsedAsFieldOrParameterType") final Optional<I> endInclusive)
+      throws StoreReadException {
+    return store.from(startExclusive, endInclusive);
+  }
 
-    return Observable.wrap(retrying.apply(store.from(offset)));
+  @Override
+  public Optional<I> getLatestOffset() {
+    return store.getLatestOffset();
   }
 
   @Override

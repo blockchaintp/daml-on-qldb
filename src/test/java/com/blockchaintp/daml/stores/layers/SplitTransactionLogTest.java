@@ -50,7 +50,7 @@ class SplitTransactionLogTest {
     /// Committing should make the log entry available for streaming
     splitLog.commit(uid);
 
-    Assertions.assertIterableEquals(splitLog.from(Optional.of(0L)).blockingIterable(),
-        Arrays.asList(Tuple.of(0L, uid, ByteString.copyFromUtf8("test"))));
+    Assertions.assertEquals(splitLog.from(-1L, Optional.empty()).findFirst(),
+        Optional.of(Tuple.of(0L, uid, ByteString.copyFromUtf8("test"))));
   }
 }

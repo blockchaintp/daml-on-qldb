@@ -13,10 +13,12 @@
  */
 package com.blockchaintp.daml.stores.layers;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -45,24 +47,24 @@ public class UnVerifiedReader implements StoreReader<ByteString, ByteString> {
 
   @Override
   public final Optional<Value<ByteString>> get(final Key<ByteString> key) throws StoreReadException {
-
-    var s3Index = blobs.get(Key.of(String.format("index/%s", key.toNative().toStringUtf8())));
-
-    if (s3Index.isPresent()) {
-      return blobs.get(Key.of(DatatypeConverter.printHexBinary(s3Index.get().toNative())))
-          .map(v -> v.map(ByteString::copyFrom));
-    }
-
-    return Optional.empty();
+    return get(List.of(key)).values().stream().findFirst();
   }
 
   @Override
   public final Map<Key<ByteString>, Value<ByteString>> get(final List<Key<ByteString>> listOfKeys)
       throws StoreReadException {
+
+    var refKeys = listOfKeys.stream().collect(Collectors.toMap(k -> k,
+        k -> k.map(k1 -> String.format("index/%s", DatatypeConverter.printHexBinary(k1.toByteArray())))));
+
+    var blobData = blobs.get(new ArrayList<>(refKeys.values()));
+
     var map = new HashMap<Key<ByteString>, Value<ByteString>>();
-    for (var k : listOfKeys) {
-      var item = this.get(k);
-      item.ifPresent(byteStringValue -> map.put(k, byteStringValue));
+
+    for (var kv : refKeys.entrySet()) {
+      if (blobData.containsKey(kv.getValue())) {
+        map.put(kv.getKey(), blobData.get(kv.getValue()).map(ByteString::copyFrom));
+      }
     }
 
     return map;

@@ -13,13 +13,21 @@
  */
 package com.blockchaintp.daml.stores.qldb;
 
+import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Deque;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Spliterators;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.LongStream;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import com.amazon.ion.IonBlob;
@@ -29,13 +37,13 @@ import com.amazon.ion.IonString;
 import com.amazon.ion.IonStruct;
 import com.amazon.ion.IonSystem;
 import com.amazon.ion.IonValue;
+import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.utility.UuidConverter;
 import com.google.protobuf.ByteString;
 
 import static software.amazon.awssdk.services.qldbsession.model.QldbSessionException.create;
-import io.reactivex.rxjava3.core.Observable;
 import io.vavr.API;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
@@ -55,7 +63,7 @@ import software.amazon.qldb.QldbDriver;
  * daml_tx_seq: s: Long sequence field, indexed d: docid of a daml_tx_log entry
  */
 public final class QldbTransactionLog implements TransactionLog<UUID, ByteString, Long> {
-
+  private static final Long PAGE_SIZE = 40L;
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QldbTransactionLog.class);
   private static final String ID_FIELD = "i";
   private static final String SEQ_FIELD = "s";
@@ -67,8 +75,6 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
   private final QldbDriver driver;
   private final IonSystem ion;
   private QldbTxSeq seqSource;
-  private final long pollInterval;
-  private final long pageSize;
 
   /**
    *
@@ -86,19 +92,14 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
    *          A common prefix for the transaction log tables names
    * @param theDriver
    * @param ionSystem
-   * @param thePollInterval
-   * @param thePageSize
    */
-  public QldbTransactionLog(final String tableName, final QldbDriver theDriver, final IonSystem ionSystem,
-      final long thePollInterval, final long thePageSize) {
+  public QldbTransactionLog(final String tableName, final QldbDriver theDriver, final IonSystem ionSystem) {
     this.driver = theDriver;
     this.ion = ionSystem;
     this.txLogTable = String.format("%s_tx_log", tableName);
     this.seqTable = String.format("%s_seq", tableName);
     this.tables = new RequiresTables(Arrays.asList(Tuple.of(txLogTable, ID_FIELD), Tuple.of(seqTable, SEQ_FIELD)),
         theDriver);
-    this.pollInterval = thePollInterval;
-    this.pageSize = thePageSize;
   }
 
   @Override
@@ -138,15 +139,16 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
     }
   }
 
-  private void ensureSequence() throws QldbSessionException {
+  private Long ensureSequence() throws QldbSessionException {
+    tables.checkTables();
     if (seqSource != null) {
-      return;
+      return seqSource.peekNext();
     }
 
-    driver.execute(tx -> {
+    return driver.execute(tx -> {
       var res = tx.execute(String.format("select max(%s) from %s", SEQ_FIELD, seqTable));
       if (res.isEmpty()) {
-        this.seqSource = new QldbTxSeq(0L);
+        this.seqSource = new QldbTxSeq(-1L);
       } else {
         var s = (IonStruct) res.iterator().next();
 
@@ -157,12 +159,16 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
         }
 
         if (v instanceof IonNull) {
-          this.seqSource = new QldbTxSeq(0L);
+          LOG.info("No MAX seq found");
+          this.seqSource = new QldbTxSeq(-1L);
         } else {
           var i = (IonInt) s.get("_1");
+          LOG.info("MAX seq found {}", i::longValue);
           this.seqSource = new QldbTxSeq(i.longValue());
+
         }
       }
+      return seqSource.peekNext();
     });
   }
 
@@ -218,7 +224,7 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
   private Tuple2<Long, Map.Entry<UUID, ByteString>> fromResult(final IonValue result) throws QldbTransactionException {
     var s = (IonStruct) result;
     if (s == null) {
-      throw QldbTransactionException.notAStruct(result);
+      throw QldbTransactionException.notAStruct(Objects.requireNonNull(result));
     }
 
     var idBytes = (IonBlob) s.get(ID_FIELD);
@@ -234,37 +240,86 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
   }
 
   @Override
-  public Observable<Tuple3<Long, UUID, ByteString>> from(final Optional<Long> offset) {
+  public Stream<Tuple3<Long, UUID, ByteString>> from(final Long startExclusive, final Optional<Long> endInclusive)
+      throws StoreReadException {
+    LOG.info("From {}  to {}", startExclusive, endInclusive);
     tables.checkTables();
 
-    final var readSeq = getQldbTxSeq(offset);
     var queryPattern = "select s.%s,d.%s,d.%s from %s as d BY d_id, %s as s where d_id = s.%s and s.%s in ( %s )";
-    return Observable.interval(pollInterval, TimeUnit.MILLISECONDS).map(x -> readSeq.peekRange(pageSize))
-        .flatMap(seq -> driver.execute(tx -> {
+
+    var rx = new Iterator<Tuple3<Long, UUID, ByteString>>() {
+      private Long taken = 0L;
+      private Deque<Tuple3<Long, UUID, ByteString>> currentPage;
+
+      private Deque<Tuple3<Long, UUID, ByteString>> nextPage(final LongStream range) {
+        return driver.execute(tx -> {
+          var ids = range.mapToObj((long x) -> String.format("%d", x)).collect(Collectors.joining(","));
+
+          LOG.info("Querying for page ({})", () -> ids);
+
+          if (ids.isEmpty()) {
+            return new ArrayDeque<>();
+          }
           var query = String.format(queryPattern, SEQ_FIELD, ID_FIELD, DATA_FIELD, txLogTable, seqTable, DOCID_FIELD,
-              SEQ_FIELD, seq.stream().map(Object::toString).collect(Collectors.joining(",")));
-          LOG.debug("Querying for page {}", () -> query);
+              SEQ_FIELD, ids);
           var r = tx.execute(query);
 
-          var rx = StreamSupport.stream(r.spliterator(), false).map(x -> API.unchecked(() -> fromResult(x)).get())
+          var page = StreamSupport.stream(r.spliterator(), false).map(x -> API.unchecked(() -> fromResult(x)).get())
               .sorted(Comparator.comparingLong(x -> x._1)).map(x -> Tuple.of(x._1, x._2.getKey(), x._2.getValue()))
-              .collect(Collectors.toList());
+              .collect(Collectors.toCollection(ArrayDeque::new));
 
-          readSeq.takeRange(rx.size());
+          LOG.info("Found {} records", page::size);
+          return page;
+        });
+      }
 
-          return Observable.fromIterable(rx);
-        }));
+      @Override
+      public boolean hasNext() {
+        long toFetch = PAGE_SIZE;
+        if (endInclusive.isPresent()) {
+          toFetch = endInclusive.get() - (startExclusive + taken);
+        }
+        if (toFetch <= 0) {
+          return false;
+        }
+        if (currentPage == null || currentPage.isEmpty()) {
+          currentPage = nextPage(LongStream.range(startExclusive + taken, startExclusive + toFetch + 1));
+        }
+
+        return !currentPage.isEmpty();
+      }
+
+      @Override
+      public Tuple3<Long, UUID, ByteString> next() {
+        if (!hasNext()) {
+          throw new NoSuchElementException();
+        }
+        taken = taken + 1;
+        return currentPage.remove();
+      }
+
+      @SuppressWarnings("EmptyMethod")
+      @Override
+      public void remove() {
+        Iterator.super.remove();
+      }
+
+      @Override
+      public void forEachRemaining(final Consumer<? super Tuple3<Long, UUID, ByteString>> action) {
+        Iterator.super.forEachRemaining(action);
+      }
+    };
+
+    return StreamSupport.stream(Spliterators.spliteratorUnknownSize(rx, 0), false);
   }
 
-  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  private QldbTxSeq getQldbTxSeq(final Optional<Long> offset) {
-    QldbTxSeq readSeq;
-    if (offset.isEmpty()) {
-      readSeq = new QldbTxSeq(this.seqSource.peekNext());
-    } else {
-      readSeq = new QldbTxSeq(offset.get());
+  @Override
+  public Optional<Long> getLatestOffset() {
+    var next = ensureSequence();
+    if (next == -1) {
+      return Optional.empty();
     }
-    return readSeq;
-  }
 
+    return Optional.of(ensureSequence() - 1);
+  }
 }

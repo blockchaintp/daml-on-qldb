@@ -15,6 +15,8 @@ package com.blockchaintp.daml.stores.resources;
 
 import java.util.concurrent.CompletableFuture;
 
+import com.blockchaintp.utility.Aws;
+
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
@@ -44,7 +46,8 @@ public class S3StoreResources implements RequiresAWSResources {
    */
   public S3StoreResources(final S3AsyncClient awsClient, final String storeName, final String tableName) {
     this.client = awsClient;
-    this.bucketName = "vs-" + storeName + "-table-" + tableName;
+
+    this.bucketName = Aws.complyWithS3BucketNaming("vs-" + storeName + "-table-" + tableName);
   }
 
   private boolean bucketExists() {

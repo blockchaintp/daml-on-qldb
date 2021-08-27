@@ -19,14 +19,12 @@ import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.address.LedgerAddress;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.TransactionLog;
-import com.daml.ledger.participant.state.kvutils.KeyValueCommitting;
 import com.daml.ledger.participant.state.v1.Configuration;
 import com.daml.lf.engine.Engine;
 import com.daml.logging.LoggingContext;
 import com.daml.metrics.Metrics;
+import com.daml.platform.akkastreams.dispatcher.Dispatcher;
 import com.google.protobuf.ByteString;
-
-import scala.concurrent.ExecutionContext;
 
 /**
  *
@@ -34,14 +32,13 @@ import scala.concurrent.ExecutionContext;
  * @param <A>
  */
 public final class InProcLedgerSubmitterBuilder<I extends Identifier, A extends LedgerAddress> {
-  private String participantId;
-  private ExecutionContext executionContext;
   private Store<ByteString, ByteString> stateStore;
   private TransactionLog<UUID, ByteString, Long> txLog;
   private Engine engine;
   private Metrics metrics;
   private LoggingContext loggingContext;
   private Configuration configuration;
+  private Dispatcher<Long> dispatcher;
 
   /**
    *
@@ -62,28 +59,6 @@ public final class InProcLedgerSubmitterBuilder<I extends Identifier, A extends 
   public InProcLedgerSubmitterBuilder<I, A> withTransactionLogWriter(
       final TransactionLog<UUID, ByteString, Long> theTxLog) {
     txLog = theTxLog;
-
-    return this;
-  }
-
-  /**
-   *
-   * @param theParticipantId
-   * @return A configured builder.
-   */
-  public InProcLedgerSubmitterBuilder<I, A> withParticipantId(final String theParticipantId) {
-    participantId = theParticipantId;
-
-    return this;
-  }
-
-  /**
-   *
-   * @param theExecutionContext
-   * @return A conffigured builder.
-   */
-  public InProcLedgerSubmitterBuilder<I, A> withExecutionContext(final ExecutionContext theExecutionContext) {
-    executionContext = theExecutionContext;
 
     return this;
   }
@@ -130,12 +105,22 @@ public final class InProcLedgerSubmitterBuilder<I extends Identifier, A extends 
 
   /**
    *
+   * @param theDispatcher
+   * @return A confdigured builder.
+   */
+  public InProcLedgerSubmitterBuilder<I, A> withDispatcher(final Dispatcher<Long> theDispatcher) {
+    dispatcher = theDispatcher;
+
+    return this;
+  }
+
+  /**
+   *
    * @return A configured ledger sumbitter.
    */
   public InProcLedgerSubmitter<I, A> build() {
-    var committing = new KeyValueCommitting(engine, metrics);
 
-    return new InProcLedgerSubmitter<>(committing, txLog, stateStore, executionContext, participantId, configuration,
-        loggingContext);
+    return new InProcLedgerSubmitter<>(engine, metrics, txLog, stateStore, dispatcher, configuration, loggingContext);
   }
+
 }

@@ -18,17 +18,19 @@ import java.util.function.UnaryOperator;
 
 import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.address.LedgerAddress;
+import com.blockchaintp.daml.stores.layers.Bijection;
 import com.blockchaintp.daml.stores.layers.CoercingTxLog;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.daml.stores.service.TransactionLogReader;
 import com.blockchaintp.exception.BuilderException;
 import com.blockchaintp.utility.UuidConverter;
 import com.daml.ledger.participant.state.kvutils.Raw;
-import com.daml.ledger.participant.state.v1.Offset;
-import com.daml.ledger.participant.state.v1.Offset$;
 import com.daml.ledger.resources.ResourceContext;
-import com.google.common.primitives.Longs;
+import com.daml.platform.akkastreams.dispatcher.Dispatcher$;
 import com.google.protobuf.ByteString;
+
+import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
+import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 
 /**
  *
@@ -37,10 +39,11 @@ import com.google.protobuf.ByteString;
  */
 @SuppressWarnings("checkstyle:RegexpSingleline")
 public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddress> {
+  private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(ParticipantBuilder.class);
   private final String participantId;
   private final String ledgerId;
   private final ResourceContext context;
-  private TransactionLogReader<Offset, Raw.LogEntryId, Raw.Envelope> txLog;
+  private TransactionLogReader<Long, Raw.LogEntryId, Raw.Envelope> txLog;
   private final CommitPayloadBuilder<I> commitPayloadBuilder;
   private InProcLedgerSubmitterBuilder<I, A> submitterBuilder;
 
@@ -65,11 +68,8 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
    * @return The configured builder.
    */
   public ParticipantBuilder<I, A> withTransactionLogReader(final TransactionLog<UUID, ByteString, Long> reader) {
-    this.txLog = CoercingTxLog.readerFrom(
-        (UUID k) -> Raw.LogEntryId$.MODULE$.apply(ByteString.copyFrom(UuidConverter.asBytes(k))),
-        Raw.Envelope$.MODULE$::apply, (Long i) -> Offset$.MODULE$.fromByteArray(Longs.toByteArray(i)),
-        (Raw.LogEntryId k) -> UuidConverter.asUuid(k.bytes().toByteArray()), Raw.Envelope::bytes,
-        (Offset i) -> Longs.fromByteArray(i.toByteArray()), reader);
+    this.txLog = CoercingTxLog.from(Bijection.of(UuidConverter::logEntryToUuid, UuidConverter::uuidtoLogEntry),
+        Bijection.of(Raw.Envelope::bytes, Raw.Envelope$.MODULE$::apply), Bijection.identity(), reader);
 
     return this;
   }
@@ -118,8 +118,14 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
       throw new BuilderException("Participant requires a configured submitter builder");
     }
 
-    return new Participant<>(txLog, commitPayloadBuilder,
-        submitterBuilder.withParticipantId(participantId).withExecutionContext(context.executionContext()).build(),
-        ledgerId, participantId, context.executionContext());
+    var logOffset = txLog.getLatestOffset();
+
+    LOG.info("Ledger head at {}", () -> logOffset);
+    /// Defer this construction
+    var dispatcher = Dispatcher$.MODULE$.apply("daml-on-qldb", -1L, logOffset.orElse(-1L),
+        scala.math.Ordering.comparatorToOrdering(Long::compare));
+
+    return new Participant<>(txLog, commitPayloadBuilder, submitterBuilder.withDispatcher(dispatcher).build(), ledgerId,
+        participantId, dispatcher, context.executionContext());
   }
 }

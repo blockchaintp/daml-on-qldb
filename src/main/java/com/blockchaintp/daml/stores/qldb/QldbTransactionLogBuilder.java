@@ -22,8 +22,6 @@ import software.amazon.qldb.QldbDriver;
  * A builder of QLDBStore instances.
  */
 public final class QldbTransactionLogBuilder {
-  private static final int POLL_INTERVAL = 500;
-  private static final int PAGE_SIZE = 20;
   private final QldbDriver driver;
   private String table;
   private final IonSystem ion = IonSystemBuilder.standard().build();
@@ -68,6 +66,6 @@ public final class QldbTransactionLogBuilder {
     if (table == null) {
       throw new QldbStoreBuilderException("No table name specified in builder");
     }
-    return new QldbTransactionLog(table, driver, ion, POLL_INTERVAL, PAGE_SIZE);
+    return new QldbTransactionLog(table, driver, ion);
   }
 }

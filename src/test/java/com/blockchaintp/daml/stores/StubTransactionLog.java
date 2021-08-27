@@ -13,6 +13,7 @@
  */
 package com.blockchaintp.daml.stores;
 
+import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.google.protobuf.ByteString;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 public class StubTransactionLog implements TransactionLog<UUID, ByteString, Long> {
   private long offset = 0L;
@@ -35,8 +37,14 @@ public class StubTransactionLog implements TransactionLog<UUID, ByteString, Long
   public final List<Tuple2<UUID, ByteString>> aborted = new ArrayList<>();
 
   @Override
-  public Observable<Tuple3<Long, UUID, ByteString>> from(final Optional<Long> offset) {
-    return Observable.fromIterable(complete);
+  public Stream<Tuple3<Long, UUID, ByteString>> from(Long startInclusive, final Optional<Long> endInclusive)
+      throws StoreReadException {
+    return complete.stream();
+  }
+
+  @Override
+  public Optional<Long> getLatestOffset() {
+    return Optional.of(offset);
   }
 
   @Override

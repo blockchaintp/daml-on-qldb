@@ -16,7 +16,6 @@ package com.blockchaintp.daml.stores.layers;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.blockchaintp.daml.stores.exception.StoreReadException;
@@ -39,18 +38,14 @@ import com.blockchaintp.daml.stores.service.Value;
  */
 public class CoercingStore<K1, K2, V1, V2> implements Store<K1, V1> {
   private final Store<K2, V2> inner;
-  private final Function<K2, K1> keyCoercionFrom;
-  private final Function<V2, V1> valueCoercionFrom;
-  private final Function<K1, K2> keyCoercionTo;
-  private final Function<V1, V2> valueCoercionTo;
+  private final Bijection<K1, K2> keyCoercion;
+  private final Bijection<V1, V2> valueCoercion;
 
   /**
    * Convenience method to wrap a store.
    *
-   * @param keyCoercionFrom
-   * @param valueCoercionFrom
-   * @param keyCoercionTo
-   * @param valueCoercionTo
+   * @param theKeyCoercion
+   * @param theValueCoercion
    * @param inner
    * @param <K3>
    * @param <K4>
@@ -58,52 +53,46 @@ public class CoercingStore<K1, K2, V1, V2> implements Store<K1, V1> {
    * @param <V4>
    * @return a wrapped store
    */
-  public static <K3, K4, V3, V4> Store<K3, V3> from(final Function<K4, K3> keyCoercionFrom,
-      final Function<V4, V3> valueCoercionFrom, final Function<K3, K4> keyCoercionTo,
-      final Function<V3, V4> valueCoercionTo, final Store<K4, V4> inner) {
-    return new CoercingStore<>(keyCoercionFrom, keyCoercionTo, valueCoercionFrom, valueCoercionTo, inner);
+  public static <K3, K4, V3, V4> Store<K3, V3> from(final Bijection<K3, K4> theKeyCoercion,
+      final Bijection<V3, V4> theValueCoercion, final Store<K4, V4> inner) {
+    return new CoercingStore<>(theKeyCoercion, theValueCoercion, inner);
   }
 
   /**
    * Wrap an underlying store with value and kehy coercions.
    *
    * @param theInner
-   * @param theKeyCoercionFrom
-   * @param theValueCoercionFrom
-   * @param theKeyCoercionTo
-   * @param theValueCoercionTo
+   * @param theKeyCoercion
+   * @param theValueCoercion
    */
-  public CoercingStore(final Function<K2, K1> theKeyCoercionFrom, final Function<K1, K2> theKeyCoercionTo,
-      final Function<V2, V1> theValueCoercionFrom, final Function<V1, V2> theValueCoercionTo,
+  public CoercingStore(final Bijection<K1, K2> theKeyCoercion, final Bijection<V1, V2> theValueCoercion,
       final Store<K2, V2> theInner) {
     this.inner = theInner;
-    this.keyCoercionFrom = theKeyCoercionFrom;
-    this.valueCoercionFrom = theValueCoercionFrom;
-    this.keyCoercionTo = theKeyCoercionTo;
-    this.valueCoercionTo = theValueCoercionTo;
+    keyCoercion = theKeyCoercion;
+    valueCoercion = theValueCoercion;
   }
 
   @Override
   public final Optional<Value<V1>> get(final Key<K1> key) throws StoreReadException {
-    return inner.get(key.map(keyCoercionTo)).map(o -> o.map(valueCoercionFrom));
+    return inner.get(key.map(keyCoercion::to)).map(o -> o.map(valueCoercion::from));
   }
 
   @Override
   public final Map<Key<K1>, Value<V1>> get(final List<Key<K1>> listOfKeys) throws StoreReadException {
-    return inner.get(listOfKeys.stream().map(k -> k.map(keyCoercionTo)).collect(Collectors.toList())).entrySet()
-        .stream()
-        .collect(Collectors.toMap(kv -> kv.getKey().map(keyCoercionFrom), kv -> kv.getValue().map(valueCoercionFrom)));
+    return inner.get(listOfKeys.stream().map(k -> k.map(keyCoercion::to)).collect(Collectors.toList())).entrySet()
+        .stream().collect(
+            Collectors.toMap(kv -> kv.getKey().map(keyCoercion::from), kv -> kv.getValue().map(valueCoercion::from)));
   }
 
   @Override
   public final void put(final Key<K1> key, final Value<V1> value) throws StoreWriteException {
-    inner.put(key.map(keyCoercionTo), value.map(valueCoercionTo));
+    inner.put(key.map(keyCoercion::to), value.map(valueCoercion::to));
   }
 
   @Override
   public final void put(final List<Map.Entry<Key<K1>, Value<V1>>> listOfPairs) throws StoreWriteException {
-    inner.put(
-        listOfPairs.stream().map(kv -> Map.entry(kv.getKey().map(keyCoercionTo), kv.getValue().map(valueCoercionTo)))
-            .collect(Collectors.toList()));
+    inner.put(listOfPairs.stream()
+        .map(kv -> Map.entry(kv.getKey().map(keyCoercion::to), kv.getValue().map(valueCoercion::to)))
+        .collect(Collectors.toList()));
   }
 }
