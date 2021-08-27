@@ -28,8 +28,6 @@ import io.vavr.Function2;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import io.vavr.Tuple3;
-import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
-import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 
 /**
  *
@@ -79,11 +77,10 @@ public final class CachingTransactionLog<K, V, I> implements TransactionLog<K, V
       return inner.from(startExclusive, endInclusive);
     }
 
-    return hit.stream().map(i -> Tuple.of(i._1, i._2.toNative()._1, i._2.toNative()._2))
-        .map(v -> {
-          commitCache.put(Key.of(v._1), Value.of(Tuple.of(v._2, v._3)));
-          return v;
-        });
+    return hit.stream().map(i -> Tuple.of(i._1, i._2.toNative()._1, i._2.toNative()._2)).map(v -> {
+      commitCache.put(Key.of(v._1), Value.of(Tuple.of(v._2, v._3)));
+      return v;
+    });
   }
 
   @Override

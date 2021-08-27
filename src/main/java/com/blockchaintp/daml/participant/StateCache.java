@@ -17,6 +17,7 @@ import java.util.Optional;
 
 import com.blockchaintp.daml.stores.LRUCache;
 import com.blockchaintp.daml.stores.service.Key;
+import com.blockchaintp.daml.stores.service.Opaque;
 import com.blockchaintp.daml.stores.service.Value;
 
 import scala.Function1;
@@ -51,7 +52,7 @@ public final class StateCache<K, V> extends com.daml.caching.ConcurrentCache<K, 
   @Override
   public Option<V> getIfPresent(final K theO) {
     synchronized (cache) {
-      return OptionConverters$.MODULE$.toScala(Optional.ofNullable(cache.get(theO)).map(x -> x.toNative()));
+      return OptionConverters$.MODULE$.toScala(Optional.ofNullable(cache.get(theO)).map(Opaque::toNative));
     }
   }
 

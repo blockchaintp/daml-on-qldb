@@ -28,25 +28,17 @@ import com.blockchaintp.daml.stores.resources.QldbResources
 import com.blockchaintp.daml.stores.resources.S3StoreResources
 import com.blockchaintp.daml.stores.s3.S3Store
 import com.blockchaintp.utility.Aws
-import com.daml.cliopts.GlobalLogLevel
 import com.daml.jwt.JwksVerifier
 import com.daml.jwt.RSA256Verifier
 import com.daml.ledger.api.auth.AuthService
 import com.daml.ledger.api.auth.AuthServiceJWT
 import com.daml.ledger.api.auth.AuthServiceWildcard
-import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlStateKey
-import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlStateValue
-import com.daml.ledger.participant.state.kvutils.Raw.StateKey
 import com.daml.ledger.participant.state.kvutils.api.CommitMetadata
 import com.daml.ledger.participant.state.kvutils.app.Config
 import com.daml.ledger.participant.state.kvutils.app.Runner
-import com.daml.ledger.participant.state.v1.Configuration
-import com.daml.ledger.participant.state.v1.TimeModel
 import com.daml.ledger.resources.ResourceContext
 import com.daml.ledger.validator.DefaultStateKeySerializationStrategy
-import com.daml.platform.configuration.LedgerConfiguration
 import com.daml.resources.ProgramResource
-import com.google.protobuf.ByteString
 import scopt.OptionParser
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
 import software.amazon.awssdk.http.async.SdkAsyncHttpClient
@@ -70,9 +62,6 @@ object Main extends App {
   val runner = new Runner(
     "daml-on-qldb",
     new LedgerFactory((config: Config[ExtraConfig], builder: ParticipantBuilder[QldbIdentifier, QldbAddress]) => {
-      GlobalLogLevel.set("Root")(
-        ch.qos.logback.classic.Level.toLevel(config.extra.logLevel, ch.qos.logback.classic.Level.INFO)
-      )
 
       val httpClient = NettyNioAsyncHttpClient.builder.maxConcurrency(NETTY_MAX_CONCURRENCY).build
       val clientBuilder = S3AsyncClient.builder
