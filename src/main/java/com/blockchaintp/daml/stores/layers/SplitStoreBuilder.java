@@ -28,7 +28,7 @@ import com.google.protobuf.ByteString;
  */
 public class SplitStoreBuilder {
   private final Store<ByteString, ByteString> refStore;
-  private final Store<String, byte[]> blobs;
+  private final Store<ByteString, ByteString> blobs;
   private StoreReader<ByteString, ByteString> reader;
   private UnaryOperator<byte[]> hashFn;
   private boolean writeS3Index = false;
@@ -40,9 +40,9 @@ public class SplitStoreBuilder {
    * @param refstore
    *          the reference store to use
    * @param blobStore
-   *          the blob store to use
    */
-  public SplitStoreBuilder(final Store<ByteString, ByteString> refstore, final Store<String, byte[]> blobStore) {
+  public SplitStoreBuilder(final Store<ByteString, ByteString> refstore,
+      final Store<ByteString, ByteString> blobStore) {
     this.refStore = refstore;
     this.blobs = blobStore;
     this.hashFn = bytes -> {
@@ -70,7 +70,7 @@ public class SplitStoreBuilder {
     if (verified) {
       this.reader = new VerifiedReader(refStore, blobs);
     } else {
-      this.reader = new UnVerifiedReader(blobs);
+      this.reader = new UnVerifiedReader(blobs, hashFn);
     }
 
     return this;

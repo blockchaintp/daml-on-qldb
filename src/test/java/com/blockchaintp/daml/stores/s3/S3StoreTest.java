@@ -17,6 +17,7 @@ import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Value;
+import com.google.protobuf.ByteString;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -57,7 +58,8 @@ class S3StoreTest {
 
     var store = new S3Store("", "", builder, x -> x, x -> x);
 
-    var ex = Assertions.assertThrows(StoreReadException.class, () -> store.get(Collections.singletonList(Key.of(""))));
+    var ex = Assertions.assertThrows(StoreReadException.class,
+        () -> store.get(Collections.singletonList(Key.of(ByteString.copyFromUtf8("")))));
 
     Assertions.assertInstanceOf(ApiCallTimeoutException.class, ex.getCause());
   }
@@ -76,8 +78,8 @@ class S3StoreTest {
 
     var store = new S3Store("", "", builder, x -> x, x -> x);
 
-    var ex = Assertions.assertThrows(StoreWriteException.class,
-        () -> store.put(Collections.singletonList(Map.entry(Key.of(""), Value.of(new byte[] {})))));
+    var ex = Assertions.assertThrows(StoreWriteException.class, () -> store.put(Collections
+        .singletonList(Map.entry(Key.of(ByteString.copyFromUtf8("")), Value.of(ByteString.copyFromUtf8(""))))));
 
     Assertions.assertInstanceOf(ApiCallTimeoutException.class, ex.getCause());
   }

@@ -13,6 +13,7 @@
  */
 package com.blockchaintp.daml.stores.s3;
 
+import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -34,7 +35,9 @@ import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.Value;
 import com.blockchaintp.exception.NoSHA512SupportException;
 import com.blockchaintp.utility.Aws;
+import com.google.protobuf.ByteString;
 
+import io.vavr.API;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import software.amazon.awssdk.core.ResponseBytes;
@@ -51,7 +54,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 /**
  * A Store implemented with S3 as the backing store.
  */
-public final class S3Store implements Store<String, byte[]> {
+public final class S3Store implements Store<ByteString, ByteString> {
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(S3Store.class);
   private static final int MAX_S3_KEY_LENGTH = 1_024;
   private final String bucketName;
@@ -59,14 +62,20 @@ public final class S3Store implements Store<String, byte[]> {
   private final UnaryOperator<GetObjectRequest.Builder> getModifications;
   private final UnaryOperator<PutObjectRequest.Builder> putModifications;
 
-  private String hashKeyIfNeeded(final String key) {
-    if (key.length() <= MAX_S3_KEY_LENGTH) {
-      return key;
+  /**
+   * Either hex-encode, or hash and prefix if the resulting bucket key will be too long.
+   *
+   * @param key
+   * @return An s3 compatible key.
+   */
+  private String hashKeyIfNeeded(final ByteString key) {
+    if ((key.size() * 2) <= MAX_S3_KEY_LENGTH) {
+      return DatatypeConverter.printHexBinary(key.toByteArray());
     }
     try {
       var messageDigest = MessageDigest.getInstance("SHA-512");
 
-      messageDigest.update(key.getBytes());
+      messageDigest.update(key.toByteArray());
 
       return "hashed/" + DatatypeConverter.printHexBinary(messageDigest.digest());
     } catch (NoSuchAlgorithmException nsae) {
@@ -109,7 +118,7 @@ public final class S3Store implements Store<String, byte[]> {
   }
 
   private CompletableFuture<Optional<ResponseBytes<GetObjectResponse>>> getObject(final S3AsyncClient client,
-      final String key) {
+      final ByteString key) {
     var get = client.getObject(
         getModifications.apply(GetObjectRequest.builder()).bucket(bucketName).key(hashKeyIfNeeded(key)).build(),
         AsyncResponseTransformer.toBytes());
@@ -131,24 +140,21 @@ public final class S3Store implements Store<String, byte[]> {
   }
 
   @Override
-  public Optional<Value<byte[]>> get(final Key<String> key) throws StoreReadException {
+  public Optional<Value<ByteString>> get(final Key<ByteString> key) throws StoreReadException {
     LOG.info("Get {} from bucket {}", key::toNative, () -> bucketName);
 
     return get(List.of(key)).values().stream().findFirst();
   }
 
   @Override
-  public Map<Key<String>, Value<byte[]>> get(final List<Key<String>> listOfKeys) throws StoreReadException {
+  public Map<Key<ByteString>, Value<ByteString>> get(final List<Key<ByteString>> listOfKeys) throws StoreReadException {
     LOG.info("Get {} items from bucket {}", listOfKeys::size, () -> bucketName);
 
     var client = clientBuilder.build();
     var futures = listOfKeys.stream()
-        .collect(
-            Collectors
-                .<Key<String>, Key<String>, CompletableFuture<Value<byte[]>>>toMap(k -> Key.of(k.toNative()),
-                    k -> getObject(client, k.toNative()).thenApply(x -> x
-                        .map(getObjectResponseResponseBytes -> Value.of(getObjectResponseResponseBytes.asByteArray()))
-                        .orElse(null))));
+        .collect(Collectors.<Key<ByteString>, Key<ByteString>, CompletableFuture<Value<ByteString>>>toMap(
+            k -> Key.of(k.toNative()), k -> getObject(client, k.toNative())
+                .thenApply(x -> x.map(r -> API.unchecked(() -> readResponseBytesAsByteString(r)).get()).orElse(null))));
 
     var waitOn = new ArrayList<>(futures.values()).toArray(CompletableFuture[]::new);
 
@@ -160,11 +166,20 @@ public final class S3Store implements Store<String, byte[]> {
     });
   }
 
-  private CompletableFuture<PutObjectResponse> putObject(final S3AsyncClient client, final String key,
-      final byte[] blob) {
+  private Value<ByteString> readResponseBytesAsByteString(final ResponseBytes<GetObjectResponse> response)
+      throws StoreReadException {
+    try {
+      return Value.of(ByteString.readFrom(response.asInputStream()));
+    } catch (IOException e) {
+      throw new StoreReadException(e);
+    }
+  }
+
+  private CompletableFuture<PutObjectResponse> putObject(final S3AsyncClient client, final ByteString key,
+      final ByteString blob) {
     return client.putObject(
         putModifications.apply(PutObjectRequest.builder()).bucket(bucketName).key(hashKeyIfNeeded(key)).build(),
-        AsyncRequestBody.fromBytes(blob));
+        AsyncRequestBody.fromByteBuffer(blob.asReadOnlyByteBuffer()));
   }
 
   private void guardWrite(final Runnable op) throws StoreWriteException {
@@ -176,12 +191,12 @@ public final class S3Store implements Store<String, byte[]> {
   }
 
   @Override
-  public void put(final Key<String> key, final Value<byte[]> value) throws StoreWriteException {
+  public void put(final Key<ByteString> key, final Value<ByteString> value) throws StoreWriteException {
     guardWrite(() -> putObject(clientBuilder.build(), key.toNative(), value.toNative()).join());
   }
 
   @Override
-  public void put(final List<Map.Entry<Key<String>, Value<byte[]>>> listOfPairs) throws StoreWriteException {
+  public void put(final List<Map.Entry<Key<ByteString>, Value<ByteString>>> listOfPairs) throws StoreWriteException {
     var client = clientBuilder.build();
     var futures = listOfPairs.stream().collect(Collectors.toMap(Map.Entry::getKey,
         kv -> putObject(client, kv.getKey().toNative(), kv.getValue().toNative()), (k1, k2) -> k1));

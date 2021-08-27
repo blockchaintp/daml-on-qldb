@@ -18,9 +18,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-
-import javax.xml.bind.DatatypeConverter;
 
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.service.Key;
@@ -33,16 +32,19 @@ import com.google.protobuf.ByteString;
  * Reads straight from s3 using an index.
  */
 public class UnVerifiedReader implements StoreReader<ByteString, ByteString> {
-  private final Store<String, byte[]> blobs;
+  private final Store<ByteString, ByteString> blobs;
+  private final UnaryOperator<byte[]> hashFn;
 
   /**
    * Construct an unverified reader around the provided store.
    *
    * @param ourBlobs
    *          The underlying store
+   * @param theHashFn
    */
-  public UnVerifiedReader(final Store<String, byte[]> ourBlobs) {
+  public UnVerifiedReader(final Store<ByteString, ByteString> ourBlobs, final UnaryOperator<byte[]> theHashFn) {
     this.blobs = ourBlobs;
+    hashFn = theHashFn;
   }
 
   @Override
@@ -54,16 +56,16 @@ public class UnVerifiedReader implements StoreReader<ByteString, ByteString> {
   public final Map<Key<ByteString>, Value<ByteString>> get(final List<Key<ByteString>> listOfKeys)
       throws StoreReadException {
 
-    var refKeys = listOfKeys.stream().collect(Collectors.toMap(k -> k,
-        k -> k.map(k1 -> String.format("index/%s", DatatypeConverter.printHexBinary(k1.toByteArray())))));
+    var refKeys = listOfKeys.stream()
+        .collect(Collectors.toMap(k -> k, k -> k.map(k1 -> SplitStore.indexKey(k1, hashFn))));
 
     var blobData = blobs.get(new ArrayList<>(refKeys.values()));
 
-    var map = new HashMap<Key<ByteString>, Value<ByteString>>();
+    HashMap<Key<ByteString>, Value<ByteString>> map = new HashMap<>();
 
     for (var kv : refKeys.entrySet()) {
       if (blobData.containsKey(kv.getValue())) {
-        map.put(kv.getKey(), blobData.get(kv.getValue()).map(ByteString::copyFrom));
+        map.put(kv.getKey(), blobData.get(kv.getValue()));
       }
     }
 

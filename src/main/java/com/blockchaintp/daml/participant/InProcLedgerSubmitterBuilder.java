@@ -120,7 +120,7 @@ public final class InProcLedgerSubmitterBuilder<I extends Identifier, A extends 
    */
   public InProcLedgerSubmitter<I, A> build() {
 
-    return new InProcLedgerSubmitter<>(engine, metrics, txLog, stateStore, dispatcher, configuration, loggingContext);
+    return new InProcLedgerSubmitter<>(engine, metrics, txLog, stateStore, dispatcher);
   }
 
 }

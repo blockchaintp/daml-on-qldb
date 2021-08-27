@@ -34,12 +34,10 @@ import com.blockchaintp.utility.UuidConverter;
 import com.daml.api.util.TimeProvider;
 import com.daml.ledger.participant.state.kvutils.DamlKvutils;
 import com.daml.ledger.participant.state.kvutils.Raw;
-import com.daml.ledger.participant.state.v1.Configuration;
 import com.daml.ledger.participant.state.v1.SubmissionResult;
 import com.daml.ledger.validator.SubmissionValidator;
 import com.daml.ledger.validator.ValidatingCommitter;
 import com.daml.lf.engine.Engine;
-import com.daml.logging.LoggingContext;
 import com.daml.metrics.Metrics;
 import com.daml.platform.akkastreams.dispatcher.Dispatcher;
 import com.google.protobuf.ByteString;
@@ -102,14 +100,11 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
    * @param theTxLog
    * @param theStateStore
    * @param theDispatcher
-   * @param theConfiguration
-   * @param theLoggingContext
    */
   @SuppressWarnings("checkstyle:ParameterNumber")
   public InProcLedgerSubmitter(final Engine theEngine, final Metrics theMetrics,
       final TransactionLog<UUID, ByteString, Long> theTxLog, final Store<ByteString, ByteString> theStateStore,
-      final Dispatcher<Long> theDispatcher, final Configuration theConfiguration,
-      final LoggingContext theLoggingContext) {
+      final Dispatcher<Long> theDispatcher) {
     writer = CoercingTxLog.from(Bijection.of(UuidConverter::logEntryToUuid, UuidConverter::uuidtoLogEntry),
         Bijection.of(Raw.Envelope::bytes, Raw.Envelope$.MODULE$::apply), Bijection.identity(), theTxLog);
     dispatcher = theDispatcher;

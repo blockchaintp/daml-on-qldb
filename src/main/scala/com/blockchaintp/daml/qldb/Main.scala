@@ -22,6 +22,7 @@ import com.blockchaintp.daml.runtime.BuilderLedgerFactory
 import com.blockchaintp.daml.stores.layers.CoercingStore
 import com.blockchaintp.daml.stores.layers.SplitStore
 import com.blockchaintp.daml.stores.layers.SplitTransactionLog
+import com.blockchaintp.daml.stores.postgres.PostgresStore
 import com.blockchaintp.daml.stores.qldb.QldbStore
 import com.blockchaintp.daml.stores.qldb.QldbTransactionLog
 import com.blockchaintp.daml.stores.resources.QldbResources
@@ -88,17 +89,16 @@ object Main extends App {
         }
       }
 
-      val txBlobStore = S3Store
-        .forClient(clientBuilder)
-        .forStore(config.ledgerId)
-        .forTable("tx-log-blobs")
+      val txBlobStore = PostgresStore
+        .fromUrl(config.extra.txLogStore)
+        .migrate()
         .retrying(3)
         .build()
 
-      val stateBlobStore = S3Store
-        .forClient(clientBuilder)
-        .forStore(config.ledgerId)
-        .forTable("daml-state-blobs")
+      val stateBlobStore = PostgresStore
+        .fromUrl(config.extra.stateStore)
+        .migrate()
+        .retrying(3)
         .build()
 
       val sessionBuilder = QldbSessionClient.builder
@@ -122,8 +122,7 @@ object Main extends App {
       val stateStore = SplitStore
         .fromStores(stateQldbStore, stateBlobStore)
         .withCaching(10000)
-        .withS3Index(true)
-        .verified(false)
+        .verified(true)
         .build()
 
       val qldbTransactionLog = QldbTransactionLog
@@ -203,6 +202,29 @@ class LedgerFactory(
         config.copy(
           extra = config.extra.copy(
             createAws = v
+          )
+        )
+      }
+
+    parser
+      .opt[String](name = "txlogstore")
+      .required()
+      .text("JDBC connection url for the tx log blob store")
+      .action { case (v, config) =>
+        config.copy(
+          extra = config.extra.copy(
+            txLogStore = v
+          )
+        )
+      }
+    parser
+      .opt[String](name = "statestore")
+      .required()
+      .text("JDBC connection url for the state blob store")
+      .action { case (v, config) =>
+        config.copy(
+          extra = config.extra.copy(
+            stateStore = v
           )
         )
       }

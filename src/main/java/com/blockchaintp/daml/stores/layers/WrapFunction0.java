@@ -15,6 +15,8 @@ package com.blockchaintp.daml.stores.layers;
 
 import com.blockchaintp.daml.stores.exception.StoreException;
 
+import io.vavr.API;
+import io.vavr.CheckedFunction0;
 import io.vavr.Function0;
 import io.vavr.Function1;
 
@@ -54,6 +56,20 @@ public final class WrapFunction0<T, E extends StoreException> {
   }
 
   /**
+   * Wrap a checked function with a checked wrapper and exception wrapping.
+   *
+   * @param inner
+   * @param wrap
+   * @param <R>
+   * @param <E>
+   * @return A wrapped function.
+   */
+  public static <R, E extends StoreException> WrapFunction0<R, E> ofChecked(final CheckedFunction0<R> inner,
+      final Function1<Exception, E> wrap) {
+    return new WrapFunction0<>(API.unchecked(inner), wrap);
+  }
+
+  /**
    * Execute this function.
    *
    * @return the result.
@@ -69,5 +85,14 @@ public final class WrapFunction0<T, E extends StoreException> {
       }
       throw e;
     }
+  }
+
+  /**
+   * Apply, unchecked.
+   *
+   * @return the result.
+   */
+  public T unchecked() {
+    return API.unchecked(() -> this.apply()).apply();
   }
 }

@@ -41,7 +41,7 @@ public final class SplitStore implements Store<ByteString, ByteString> {
 
   private final boolean writeS3Index;
   private final Store<ByteString, ByteString> refStore;
-  private final Store<String, byte[]> blobs;
+  private final Store<ByteString, ByteString> blobs;
   private final StoreReader<ByteString, ByteString> reader;
   private final UnaryOperator<byte[]> hashFn;
 
@@ -52,7 +52,7 @@ public final class SplitStore implements Store<ByteString, ByteString> {
    * @return A builder for a splitstore composed from refstore and blobstore
    */
   public static SplitStoreBuilder fromStores(final Store<ByteString, ByteString> refstore,
-      final Store<String, byte[]> blobStore) {
+      final Store<ByteString, ByteString> blobStore) {
     return new SplitStoreBuilder(refstore, blobStore);
   }
 
@@ -71,7 +71,7 @@ public final class SplitStore implements Store<ByteString, ByteString> {
    *          the hash function to use
    */
   public SplitStore(final boolean s3Index, final StoreReader<ByteString, ByteString> indexReader,
-      final Store<ByteString, ByteString> refstore, final Store<String, byte[]> blobStore,
+      final Store<ByteString, ByteString> refstore, final Store<ByteString, ByteString> blobStore,
       final UnaryOperator<byte[]> hashingFn) {
     this.writeS3Index = s3Index;
     this.reader = indexReader;
@@ -85,30 +85,34 @@ public final class SplitStore implements Store<ByteString, ByteString> {
     put(List.of(Map.entry(key, value)));
   }
 
+  /**
+   * Form an index key to directly access the object.
+   *
+   * @param key
+   * @param hashFn
+   * @return An index key
+   */
+  public static ByteString indexKey(final ByteString key, final UnaryOperator<byte[]> hashFn) {
+    return ByteString
+        .copyFromUtf8(String.format("index/%s", DatatypeConverter.printHexBinary(hashFn.apply(key.toByteArray()))));
+  }
+
   @Override
   public void put(final List<Map.Entry<Key<ByteString>, Value<ByteString>>> listOfPairs) throws StoreWriteException {
     var hashes = listOfPairs.stream()
-        .collect(Collectors.toMap(Map.Entry::getKey, kv -> Tuple.of(kv.getValue().toNative().toByteArray(),
-            hashFn.apply(kv.getValue().toNative().toByteArray()), kv.getValue())));
+        .collect(Collectors.toMap(Map.Entry::getKey, kv -> Tuple.of(kv.getValue().toNative(),
+            ByteString.copyFrom(hashFn.apply(kv.getValue().toNative().toByteArray())), kv.getValue())));
 
     if (writeS3Index) {
-      blobs.put(hashes.values().stream()
-          .map(theValueTuple3 -> Arrays.asList(
-              Map.entry(Key.of(DatatypeConverter.printHexBinary(theValueTuple3._2)),
-                  theValueTuple3._3.map(ByteString::toByteArray)),
-              Map.entry(Key.of(String.format("index/%s", DatatypeConverter.printHexBinary(theValueTuple3._1))),
-                  Value.of(theValueTuple3._2))))
+      blobs.put(hashes.values().stream().map(
+          v -> Arrays.asList(Map.entry(Key.of(v._2), v._3), Map.entry(Key.of(indexKey(v._1, hashFn)), Value.of(v._2))))
           .flatMap(Collection::stream).collect(Collectors.toList()));
     } else {
-      blobs.put(hashes.values().stream()
-          .map(theValueTuple3 -> Map.entry(Key.of(DatatypeConverter.printHexBinary(theValueTuple3._2)),
-              theValueTuple3._3.map(ByteString::toByteArray)))
-          .collect(Collectors.toList()));
+      blobs.put(hashes.values().stream().map(v -> Map.entry(Key.of(v._2), v._3)).collect(Collectors.toList()));
     }
 
-    refStore.put(
-        hashes.entrySet().stream().map(kv -> Map.entry(kv.getKey(), Value.of(ByteString.copyFrom(kv.getValue()._2))))
-            .collect(Collectors.toList()));
+    refStore.put(hashes.entrySet().stream().map(kv -> Map.entry(kv.getKey(), Value.of(kv.getValue()._2)))
+        .collect(Collectors.toList()));
 
   }
 

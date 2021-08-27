@@ -33,14 +33,17 @@ import com.google.protobuf.ByteString;
 
 import io.vavr.Tuple;
 import io.vavr.Tuple3;
+import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
+import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 
 /**
  * TransactionLog composing a transaction log and an S3 store to keep large values outside of the
  * transaction log.
  */
 public final class SplitTransactionLog implements TransactionLog<UUID, ByteString, Long> {
+  private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(SplitTransactionLog.class);
   private final TransactionLog<UUID, ByteString, Long> txLog;
-  private final Store<String, byte[]> blobs;
+  private final Store<ByteString, ByteString> blobs;
   private final UnaryOperator<byte[]> hashFn;
 
   /**
@@ -51,7 +54,7 @@ public final class SplitTransactionLog implements TransactionLog<UUID, ByteStrin
    * @return A partially configured builder.
    */
   public static SplitTransactionLogBuilder from(final TransactionLog<UUID, ByteString, Long> theTxLog,
-      final Store<String, byte[]> blobs) {
+      final Store<ByteString, ByteString> blobs) {
     return new SplitTransactionLogBuilder(theTxLog, blobs);
   }
 
@@ -62,8 +65,8 @@ public final class SplitTransactionLog implements TransactionLog<UUID, ByteStrin
    * @param blobStore
    * @param hasher
    */
-  public SplitTransactionLog(final TransactionLog<UUID, ByteString, Long> txlog, final Store<String, byte[]> blobStore,
-      final UnaryOperator<byte[]> hasher) {
+  public SplitTransactionLog(final TransactionLog<UUID, ByteString, Long> txlog,
+      final Store<ByteString, ByteString> blobStore, final UnaryOperator<byte[]> hasher) {
     this.txLog = txlog;
     this.blobs = blobStore;
     this.hashFn = hasher;
@@ -83,20 +86,22 @@ public final class SplitTransactionLog implements TransactionLog<UUID, ByteStrin
       @SuppressWarnings("OptionalUsedAsFieldOrParameterType") final Optional<Long> endInclusive)
       throws StoreReadException {
 
-    var resultsByS3Key = txLog.from(startExclusive, endInclusive)
-        .collect(Collectors.toMap(r -> Key.of(DatatypeConverter.printHexBinary(r._3.toByteArray())), r -> r));
+    var resultsByS3Key = txLog.from(startExclusive, endInclusive).collect(Collectors.toMap(r -> Key.of(r._3), r -> r));
 
     var blobData = blobs.get(new ArrayList<>(resultsByS3Key.keySet()));
 
     var diff = Sets.difference(resultsByS3Key.keySet(), blobData.keySet());
 
     if (!diff.isEmpty()) {
-      throw new StoreReadException(SpltStoreException.missingS3Data(diff.stream()
-          .map(d -> Tuple.of(d.toNative(), resultsByS3Key.get(d)._3.toStringUtf8())).collect(Collectors.toList())));
+      throw new StoreReadException(
+          SpltStoreException.missingData(diff.stream()
+              .map(d -> Tuple.of(DatatypeConverter.printHexBinary(d.toNative().toByteArray()),
+                  DatatypeConverter.printHexBinary(resultsByS3Key.get(d)._3.toByteArray())))
+              .collect(Collectors.toList())));
     }
 
-    return resultsByS3Key.entrySet().stream().map(
-        r -> Tuple.of(r.getValue()._1, r.getValue()._2, blobData.get(r.getKey()).map(ByteString::copyFrom).toNative()));
+    return resultsByS3Key.entrySet().stream()
+        .map(r -> Tuple.of(r.getValue()._1, r.getValue()._2, blobData.get(r.getKey()).toNative()));
 
   }
 
@@ -112,16 +117,16 @@ public final class SplitTransactionLog implements TransactionLog<UUID, ByteStrin
 
   @Override
   public void sendEvent(final UUID id, final ByteString data) throws StoreWriteException {
-    var bytes = data.toByteArray();
-    var hash = hashFn.apply(bytes);
+    LOG.debug("Send event {} {}", id, data);
+    var hash = hashFn.apply(data.toByteArray());
 
-    var hexKey = DatatypeConverter.printHexBinary(hash);
-    blobs.put(Key.of(hexKey), Value.of(bytes));
+    blobs.put(Key.of(ByteString.copyFrom(hash)), Value.of(data));
     txLog.sendEvent(id, ByteString.copyFrom(hash));
   }
 
   @Override
   public Long commit(final UUID txId) throws StoreWriteException {
+    LOG.debug("Commit {}", txId);
     return txLog.commit(txId);
   }
 

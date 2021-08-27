@@ -35,7 +35,9 @@ import software.amazon.awssdk.services.qldbsession.QldbSessionClient;
 import software.amazon.qldb.QldbDriver;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -81,11 +83,10 @@ class QldbStoreIntegrationTest {
 
   @Test
   void get_non_existent_items_returns_none() throws StoreReadException {
-    Assertions.assertEquals(Optional.empty(),
-        store.get(Key.of(ByteString.copyFrom("nothere", Charset.defaultCharset()))));
+    Assertions.assertEquals(Optional.empty(), store.get(Key.of(ByteString.copyFromUtf8("nothere"))));
 
     var params = new ArrayList<Key<ByteString>>();
-    params.add(Key.of(ByteString.copyFrom("nothere", Charset.defaultCharset())));
+    params.add(Key.of(ByteString.copyFromUtf8("nothere")));
 
     Assertions.assertEquals(Map.of(), store.get(params));
   }
@@ -93,18 +94,19 @@ class QldbStoreIntegrationTest {
   @Test
   void single_item_put_and_get_are_symmetric() throws StoreWriteException, StoreReadException {
     final var id = UUID.randomUUID();
-    final var k = Key.of(ByteString.copyFrom(id.toString(), Charset.defaultCharset()));
-    final var v = Value.of(ByteString.copyFrom("test", Charset.defaultCharset()));
+    final var k = Key.of(ByteString.copyFromUtf8(id.toString()));
+    final var v = Value.of(ByteString.copyFromUtf8("test"));
 
     // Insert
     store.put(k, v);
-    Assertions.assertEquals("test", store.get(k).get().toNative().toStringUtf8());
+    Assertions.assertArrayEquals(ByteString.copyFromUtf8("test").toByteArray(),
+        store.get(k).get().toNative().toByteArray());
 
-    final var v2 = Value.of(ByteString.copyFrom("test2", Charset.defaultCharset()));
+    final var v2 = Value.of(ByteString.copyFromUtf8("test2"));
 
     // Update
     store.put(k, v2);
-    Assertions.assertEquals("test2", store.get(k).get().toNative().toStringUtf8());
+    Assertions.assertEquals(ByteString.copyFromUtf8("test2"), store.get(k).get().toNative());
   }
 
   @Test
@@ -112,13 +114,14 @@ class QldbStoreIntegrationTest {
     final var map = new HashMap<Key<ByteString>, Value<ByteString>>();
     for (int i = 0; i < ITERATIONS; i++) {
       final var id = UUID.randomUUID();
-      final var k = Key.of(ByteString.copyFrom(String.format("\"%s\"", id), Charset.defaultCharset()));
-      final var v = Value.of(ByteString.copyFrom("test", Charset.defaultCharset()));
+      final var k = Key.of(ByteString.copyFromUtf8(String.format("\"%s\"", id)));
+      final var v = Value.of(ByteString.copyFromUtf8("test"));
 
       map.put(k, v);
     }
 
-    var sortedkeys = map.keySet().stream().sorted(Comparator.comparing(o -> o.toNative().toString()))
+    var sortedkeys = map.keySet().stream()
+        .sorted(Comparator.comparing(Opaque::toNative, (l, r) -> Arrays.compare(l.toByteArray(), r.toByteArray())))
         .collect(Collectors.toList());
 
     // Put our initial list of values, will issue insert
@@ -137,10 +140,8 @@ class QldbStoreIntegrationTest {
   final void compareUpserted(final HashMap<Key<ByteString>, Value<ByteString>> map,
       final List<Key<ByteString>> sortedkeys, final Map<Key<ByteString>, Value<ByteString>> rx) {
     Assertions.assertIterableEquals(
-        sortedkeys.stream().map(map::get).map(Opaque::toNative).map(ByteString::toStringUtf8)
-            .collect(Collectors.toList()),
-        sortedkeys.stream().map(rx::get).map(Opaque::toNative).map(ByteString::toStringUtf8)
-            .collect(Collectors.toList()));
+        sortedkeys.stream().map(map::get).map(Opaque::toNative).collect(Collectors.toList()),
+        sortedkeys.stream().map(rx::get).map(Opaque::toNative).collect(Collectors.toList()));
   }
 
 }

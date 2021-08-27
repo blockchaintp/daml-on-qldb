@@ -35,7 +35,7 @@ public final class SpltStoreException extends StoreException {
    * @param missing
    * @return The exception.
    */
-  public static SpltStoreException missingS3Data(final List<Tuple2<String, String>> missing) {
+  public static SpltStoreException missingData(final List<Tuple2<String, String>> missing) {
     return new SpltStoreException(String.format("Cannot find s3 data (%s)",
         missing.stream().map(x -> String.format("%s:%s", x._1, x._2)).collect(Collectors.joining())));
   }

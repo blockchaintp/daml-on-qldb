@@ -28,6 +28,8 @@ import com.daml.ledger.validator.BatchingLedgerStateOperations;
 import com.daml.ledger.validator.LedgerStateAccess;
 import com.daml.ledger.validator.LedgerStateOperations;
 
+import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
+import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import scala.Function1;
 import scala.Option;
 import scala.collection.Iterable;
@@ -45,7 +47,7 @@ import scala.util.Try;
  * Implementation of LedgerStateAccess in terms of abstract state store and a transaction writer.
  */
 class StateAccess implements LedgerStateAccess<Long> {
-
+  private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(StateAccess.class);
   private final Store<Raw.StateKey, Raw.Envelope> stateStore;
   private final TransactionLogWriter<Raw.LogEntryId, Raw.Envelope, Long> writer;
 
@@ -82,6 +84,7 @@ class StateAccess implements LedgerStateAccess<Long> {
     @Override
     public Future<BoxedUnit> writeState(final Iterable<scala.Tuple2<Raw.StateKey, Raw.Envelope>> keyValuePairs,
         final ExecutionContext executionContext) {
+      LOG.debug("Write state {}", keyValuePairs);
       var syncFuture = Future.fromTry(Try.apply(Functions.uncheckFn(() -> {
         stateStore.put(new ArrayList<>(StreamConverters.asJavaParStream(keyValuePairs)
             .collect(Collectors.toMap(kv -> Key.of(kv._1), kv -> Value.of(kv._2))).entrySet()));

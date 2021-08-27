@@ -23,7 +23,7 @@ import software.amazon.qldb.QldbDriver;
 import software.amazon.qldb.exceptions.Errors;
 import software.amazon.qldb.exceptions.QldbDriverException;
 
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -40,6 +40,6 @@ class QldbStoreTest {
     var closedStore = new QldbStore(closedDriver, "");
 
     Assertions.assertThrows(StoreReadException.class,
-        () -> closedStore.get(Key.of(ByteString.copyFrom("identity", Charset.defaultCharset()))));
+        () -> closedStore.get(Key.of(ByteString.copyFromUtf8("identity"))));
   }
 }

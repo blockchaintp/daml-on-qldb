@@ -22,7 +22,7 @@
   <logger name="org.apache" level="INFO" />
   <logger name="software.amazon" level="ERROR" />
 
-  <root level="INFO">
+  <root level="DEBUG">
     <appender-ref ref="STDOUT"/>
   </root>
 </configuration>
