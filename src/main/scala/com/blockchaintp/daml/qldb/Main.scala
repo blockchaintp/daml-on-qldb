@@ -205,18 +205,6 @@ class LedgerFactory(
           )
         )
       }
-
-    parser
-      .opt[String](name = "txlogstore")
-      .required()
-      .text("JDBC connection url for the tx log blob store")
-      .action { case (v, config) =>
-        config.copy(
-          extra = config.extra.copy(
-            txLogStore = v
-          )
-        )
-      }
     parser
       .opt[String](name = "statestore")
       .required()

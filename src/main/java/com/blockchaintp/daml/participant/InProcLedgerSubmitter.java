@@ -16,7 +16,6 @@ package com.blockchaintp.daml.participant;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeoutException;
 
 import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.address.LedgerAddress;
@@ -42,9 +41,8 @@ import com.google.protobuf.ByteString;
 
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
-import scala.concurrent.Await$;
+import scala.compat.java8.FutureConverters;
 import scala.concurrent.ExecutionContext;
-import scala.concurrent.duration.Duration;
 import scala.runtime.BoxedUnit;
 
 /**
@@ -54,7 +52,7 @@ import scala.runtime.BoxedUnit;
  * @param <B>
  */
 public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerAddress>
-    implements LedgerSubmitter<A, B> {
+    implements LedgerSubmitter<A,B> {
 
   private static final int STATE_CACHE_SIZE = 1000;
   private final ValidatingCommitter<Long> comitter;
@@ -120,25 +118,16 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
 
   @Override
   public CompletableFuture<SubmissionStatus> submitPayload(final CommitPayload<A> cp) {
-
-    return CompletableFuture.supplyAsync(() -> {
-      SubmissionResult res = null;
-      try {
-        res = Await$.MODULE$.result(
-            this.comitter.commit(cp.getCorrelationId(), cp.getSubmission(), cp.getSubmittingParticipantId(), context),
-            Duration.Inf());
-      } catch (InterruptedException theE) {
-        return SubmissionStatus.PARTIALLY_SUBMITTED;
-      } catch (TimeoutException theE) {
-        return SubmissionStatus.PARTIALLY_SUBMITTED;
-      }
-
-      if (!(res instanceof SubmissionResult.Acknowledged$)) {
-        return SubmissionStatus.REJECTED;
-      } else {
+    return FutureConverters.toJava(
+      this.comitter.commit(cp.getCorrelationId(), cp.getSubmission(), cp.getSubmittingParticipantId(), context)
+    ).thenApply(x -> {
+      if (x == SubmissionResult.Acknowledged$.MODULE$) {
         return SubmissionStatus.SUBMITTED;
       }
-    });
-
+      if (x == SubmissionResult.NotSupported$.MODULE$) {
+        return SubmissionStatus.REJECTED;
+      }
+      return SubmissionStatus.OVERLOADED;
+    }).toCompletableFuture();
   }
 }

@@ -39,7 +39,7 @@ import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 public final class LedgerSubmitterBulkhead<A extends Identifier, B extends LedgerAddress>
     implements LedgerSubmitter<A, B> {
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(InProcLedgerSubmitter.class);
-  private static final int MAX_CONCURRENT = 5;
+  private static final int MAX_CONCURRENT = 50;
   private final LedgerSubmitter<A, B> inner;
   private final CircuitBreaker circuitBreaker;
   private final Bulkhead bulkhead;
