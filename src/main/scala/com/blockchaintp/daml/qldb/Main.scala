@@ -72,17 +72,13 @@ object Main extends App {
 
       if (config.extra.createAws) {
         try {
-          val log_blob_resource        = new S3StoreResources(clientBuilder.build, config.ledgerId, "tx-log-blobs")
-          val daml_state_blob_resource = new S3StoreResources(clientBuilder.build, config.ledgerId, "daml-state-blobs")
           val qldbClient = QldbClient.builder
             .credentialsProvider(DefaultCredentialsProvider.create)
             .region(Region.of(config.extra.region))
             .build
 
-          val qldb_resource = new QldbResources(qldbClient, config.ledgerId)
+          val qldb_resource = new QldbResources(qldbClient, config.ledgerId, false)
 
-          log_blob_resource.ensureResources()
-          daml_state_blob_resource.ensureResources()
           qldb_resource.ensureResources()
         } catch {
           case e: Exception => throw e
@@ -152,6 +148,8 @@ object Main extends App {
         .withTransactionLogReader(txLog)
         .withInProcLedgerSubmitterBuilder(builder =>
           builder
+            .withSlowCall(60000)
+            .withMaxThroughput(50)
             .withStateStore(stateStore)
             .withTransactionLogWriter(txLog)
         )
@@ -202,6 +200,18 @@ class LedgerFactory(
         config.copy(
           extra = config.extra.copy(
             createAws = v
+          )
+        )
+      }
+
+    parser
+      .opt[String](name = "txlogstore")
+      .required()
+      .text("JDBC connection url for the tx log blob store")
+      .action { case (v, config) =>
+        config.copy(
+          extra = config.extra.copy(
+            txLogStore = v
           )
         )
       }

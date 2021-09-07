@@ -79,8 +79,6 @@ pipeline {
             }
           }
         }
-        // TODO for now don't abort the pipeline
-        waitForQualityGate abortPipeline: false
       }
     }
 

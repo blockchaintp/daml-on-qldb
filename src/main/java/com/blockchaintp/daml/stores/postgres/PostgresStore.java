@@ -42,7 +42,7 @@ import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
  * A PostgresStore is a store backed by a postgres interface.
  */
 public class PostgresStore implements Store<ByteString, ByteString> {
-  private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(PostgresStore.class);
+  private static final String BYTEA = "bytea";
   private final Connection connection;
 
   /**
@@ -62,87 +62,69 @@ public class PostgresStore implements Store<ByteString, ByteString> {
   }
 
   private <T> T guardRead(final CheckedFunction0<T> op) throws StoreReadException {
-    return WrapFunction0.of(() -> op.unchecked().get(), e -> new StoreReadException(e)).apply();
+    return WrapFunction0.of(() -> op.unchecked().get(), StoreReadException::new).apply();
   }
 
   private void guardWrite(final CheckedRunnable op) throws StoreWriteException {
-    WrapRunnable.of(() -> op.unchecked().run(), e -> new StoreWriteException(e)).run();
-  }
-
-  private ResultSet getByKey(final List<Key<ByteString>> keys) throws SQLException {
-    var stmt = connection.prepareStatement("select id,data from kv where id = any((?))",
-        ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-    var blobs = new ArrayList<byte[]>();
-
-    for (Key<ByteString> key : keys) {
-      blobs.add(key.toNative().toByteArray());
-    }
-    var in = connection.createArrayOf("bytea", blobs.toArray(new byte[blobs.size()][]));
-    stmt.setArray(1, in);
-
-    LOG.debug("Execute {}", stmt);
-
-    return stmt.executeQuery();
+    WrapRunnable.of(() -> op.unchecked().run(), StoreWriteException::new).run();
   }
 
   @Override
   public final Optional<Value<ByteString>> get(final Key<ByteString> key) throws StoreReadException {
-    return guardRead(() -> {
-      var rx = getByKey(Arrays.asList(key));
-
-      if (!rx.first()) {
-        return Optional.empty();
-      }
-
-      var ret = Optional.of(Value.of(ByteString.readFrom(rx.getBinaryStream("data"))));
-
-      rx.close();
-
-      return ret;
-    });
+    return get(Arrays.asList(key)).values().stream().findFirst();
   }
 
   @Override
   public final Map<Key<ByteString>, Value<ByteString>> get(final List<Key<ByteString>> listOfKeys)
       throws StoreReadException {
     return guardRead(() -> {
-      var rx = getByKey(listOfKeys);
-      var map = new HashMap<Key<ByteString>, Value<ByteString>>();
+      try (var stmt = connection.prepareStatement("select id,data from kv where id = any((?))",
+          ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+        var blobs = new ArrayList<byte[]>();
 
-      if (rx.first()) {
-        do {
-          map.put(Key.of(ByteString.readFrom(rx.getBinaryStream("id"))),
-              Value.of(ByteString.readFrom(rx.getBinaryStream("data"))));
-        } while (rx.next());
+        for (var key : listOfKeys) {
+          blobs.add(key.toNative().toByteArray());
+        }
+        var in = connection.createArrayOf(BYTEA, blobs.toArray(new byte[blobs.size()][]));
+        stmt.setArray(1, in);
+
+        try (var rx = stmt.executeQuery()) {
+
+          var map = new HashMap<Key<ByteString>, Value<ByteString>>();
+
+          if (rx.first()) {
+            do {
+              map.put(Key.of(ByteString.readFrom(rx.getBinaryStream("id"))),
+                  Value.of(ByteString.readFrom(rx.getBinaryStream("data"))));
+            } while (rx.next());
+          }
+
+          return map;
+        }
       }
-      rx.close();
-
-      return map;
     });
   }
 
   private int setByKey(final List<Map.Entry<Key<ByteString>, Value<ByteString>>> listOfPairs) throws SQLException {
     /// De-duplicate input list by key, taking last value
-    var toPut = listOfPairs.stream().collect(Collectors.toMap(kv -> kv.getKey(), kv -> kv.getValue(), (l, r) -> r))
+    var toPut = listOfPairs.stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (l, r) -> r))
         .entrySet().stream().collect(Collectors.toList());
 
-    var stmt = connection.prepareStatement(
-        "insert into kv(id,data) select unnest((?)),unnest((?)) on conflict(id) do update set data = excluded.data");
-    var keys = new ArrayList<byte[]>();
-    var values = new ArrayList<byte[]>();
+    try (var stmt = connection.prepareStatement(
+        "insert into kv(id,data) select unnest((?)),unnest((?)) on conflict(id) do update set data = excluded.data")) {
 
-    for (var kv : toPut) {
-      keys.add(kv.getKey().toNative().toByteArray());
-      values.add(kv.getValue().toNative().toByteArray());
+      var keys = new ArrayList<byte[]>();
+      var values = new ArrayList<byte[]>();
+
+      for (var kv : toPut) {
+        keys.add(kv.getKey().toNative().toByteArray());
+        values.add(kv.getValue().toNative().toByteArray());
+      }
+      stmt.setArray(1, connection.createArrayOf(BYTEA, keys.toArray(new byte[keys.size()][])));
+      stmt.setArray(2, connection.createArrayOf(BYTEA, values.toArray(new byte[values.size()][])));
+
+      return stmt.executeUpdate();
     }
-    stmt.setArray(1, connection.createArrayOf("bytea", keys.toArray(new byte[keys.size()][])));
-    stmt.setArray(2, connection.createArrayOf("bytea", values.toArray(new byte[values.size()][])));
-
-    LOG.debug("Execute {}", stmt);
-
-    var rows = stmt.executeUpdate();
-
-    return rows;
   }
 
   @Override

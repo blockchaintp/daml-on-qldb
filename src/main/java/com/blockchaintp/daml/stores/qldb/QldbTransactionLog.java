@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -63,7 +64,7 @@ import software.amazon.qldb.QldbDriver;
  * daml_tx_seq: s: Long sequence field, indexed d: docid of a daml_tx_log entry
  */
 public final class QldbTransactionLog implements TransactionLog<UUID, ByteString, Long> {
-  private static final Long PAGE_SIZE = 40L;
+  private static final Long PAGE_SIZE = 100L;
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QldbTransactionLog.class);
   private static final String ID_FIELD = "i";
   private static final String SEQ_FIELD = "s";
@@ -142,7 +143,7 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
   private Long ensureSequence() throws QldbSessionException {
     tables.checkTables();
     if (seqSource != null) {
-      return seqSource.peekNext();
+      return seqSource.head();
     }
 
     return driver.execute(tx -> {
@@ -168,16 +169,17 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
 
         }
       }
-      return seqSource.peekNext();
+      return seqSource.head();
     });
   }
 
   @Override
   public Long commit(final UUID txId) throws StoreWriteException {
     tables.checkTables();
-    LOG.info("Commit transaction {}", () -> txId);
+    ensureSequence();
+    var next = seqSource.takeNext();
+    LOG.info("Commit transaction {} as seq {}", () -> txId, () -> next);
     try {
-      ensureSequence();
 
       var uuidBytes = UuidConverter.asBytes(txId);
 
@@ -198,7 +200,7 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
         }
 
         var struct = ion.newEmptyStruct();
-        struct.add(SEQ_FIELD, ion.newInt(seqSource.peekNext()));
+        struct.add(SEQ_FIELD, ion.newInt(next));
         struct.add(DOCID_FIELD, ion.newString(((IonString) docid).stringValue()));
 
         tx.execute(String.format("insert into %s value ?", seqTable), struct);
@@ -209,7 +211,7 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
       throw new StoreWriteException(e);
     }
 
-    return seqSource.takeNext();
+    return next;
   }
 
   @Override
@@ -248,7 +250,7 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
     var queryPattern = "select s.%s,d.%s,d.%s from %s as d BY d_id, %s as s where d_id = s.%s and s.%s in ( %s )";
 
     var rx = new Iterator<Tuple3<Long, UUID, ByteString>>() {
-      private Long taken = 0L;
+      private Long position = startExclusive;
       private Deque<Tuple3<Long, UUID, ByteString>> currentPage;
 
       private Deque<Tuple3<Long, UUID, ByteString>> nextPage(final LongStream range) {
@@ -264,26 +266,22 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
               SEQ_FIELD, ids);
           var r = tx.execute(query);
 
-          var page = StreamSupport.stream(r.spliterator(), false).map(x -> API.unchecked(() -> fromResult(x)).get())
+          return StreamSupport.stream(r.spliterator(), false).map(x -> API.unchecked(() -> fromResult(x)).get())
               .sorted(Comparator.comparingLong(x -> x._1)).map(x -> Tuple.of(x._1, x._2.getKey(), x._2.getValue()))
               .collect(Collectors.toCollection(ArrayDeque::new));
-
-          LOG.info("Found {} records", page::size);
-          return page;
         });
       }
 
       @Override
       public boolean hasNext() {
-        long toFetch = PAGE_SIZE;
+        var toFetch = PAGE_SIZE;
+
         if (endInclusive.isPresent()) {
-          toFetch = endInclusive.get() - (startExclusive + taken);
+          toFetch = Math.min(PAGE_SIZE, endInclusive.get() - position);
         }
-        if (toFetch <= 0) {
-          return false;
-        }
+
         if (currentPage == null || currentPage.isEmpty()) {
-          currentPage = nextPage(LongStream.range(startExclusive + taken, startExclusive + toFetch + 1));
+          currentPage = nextPage(LongStream.range(position + 1, position + toFetch + 1));
         }
 
         return !currentPage.isEmpty();
@@ -294,8 +292,11 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
         if (!hasNext()) {
           throw new NoSuchElementException();
         }
-        taken = taken + 1;
-        return currentPage.remove();
+        var next = currentPage.remove();
+
+        position = next._1;
+
+        return next;
       }
 
       @SuppressWarnings("EmptyMethod")
@@ -310,7 +311,8 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
       }
     };
 
-    return StreamSupport.stream(Spliterators.spliteratorUnknownSize(rx, 0), false);
+    return StreamSupport.stream(Spliterators.spliteratorUnknownSize(rx,
+        Spliterator.IMMUTABLE | Spliterator.DISTINCT | Spliterator.ORDERED | Spliterator.NONNULL), false);
   }
 
   @Override

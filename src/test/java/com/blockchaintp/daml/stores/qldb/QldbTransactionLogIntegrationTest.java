@@ -56,7 +56,7 @@ class QldbTransactionLogIntegrationTest {
 
     this.resources = new QldbResources(
         QldbClient.builder().credentialsProvider(DefaultCredentialsProvider.create()).region(Region.EU_WEST_2).build(),
-        ledger);
+        ledger, false);
 
     final var storeBuilder = QldbTransactionLog.forDriver(driver).tablePrefix("qldbtxintegrationtest");
 
@@ -94,7 +94,9 @@ class QldbTransactionLogIntegrationTest {
       theE.printStackTrace();
     }
 
-    Assertions.assertIterableEquals(ids, stream.limit(30).map(x -> x._2).collect(Collectors.toList()));
+    var fetched = stream.limit(30).map(x -> x._2).collect(Collectors.toList());
+
+    Assertions.assertIterableEquals(ids, fetched);
   }
 
 }

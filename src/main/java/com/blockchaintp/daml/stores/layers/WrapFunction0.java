@@ -93,6 +93,6 @@ public final class WrapFunction0<T, E extends StoreException> {
    * @return the result.
    */
   public T unchecked() {
-    return API.unchecked(() -> this.apply()).apply();
+    return API.unchecked(this::apply).apply();
   }
 }

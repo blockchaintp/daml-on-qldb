@@ -32,6 +32,7 @@ import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -48,7 +49,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class PostgresTxLogIntegrationTest {
+@Disabled
+class PostgresTxLogIntegrationTest {
   private static final int ITERATIONS = 40;
   private Store<ByteString, ByteString> store;
   private PostgresTransactionLog txLog;

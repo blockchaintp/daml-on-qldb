@@ -36,6 +36,7 @@ public class QldbResources implements RequiresAWSResources {
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QldbResources.class);
   private final QldbClient infrastructureClient;
   private final String ledger;
+  private final boolean waitDelete;
 
   /**
    * Constructor.
@@ -43,11 +44,12 @@ public class QldbResources implements RequiresAWSResources {
    * @param qldbClient
    *          the qldb client
    * @param ledgerName
-   *          the ledger name
+   * @param waitForDeletion
    */
-  public QldbResources(final QldbClient qldbClient, final String ledgerName) {
-    this.infrastructureClient = qldbClient;
-    this.ledger = Aws.complyWithQldbLedgerNaming(ledgerName);
+  public QldbResources(final QldbClient qldbClient, final String ledgerName, final boolean waitForDeletion) {
+    infrastructureClient = qldbClient;
+    waitDelete = waitForDeletion;
+    ledger = Aws.complyWithQldbLedgerNaming(ledgerName);
   }
 
   private boolean ledgerState(final LedgerState state) {
@@ -65,7 +67,7 @@ public class QldbResources implements RequiresAWSResources {
 
   @Override
   public final void ensureResources() {
-    LOG.debug("Check ledger state");
+    LOG.debug("Check ledger state {}", ledger);
     if (ledgerState(LedgerState.ACTIVE)) {
       LOG.debug("Ledger {} exists, skip create", () -> ledger);
     } else {
@@ -99,7 +101,7 @@ public class QldbResources implements RequiresAWSResources {
       return;
     }
 
-    while (!ledgerState(LedgerState.DELETED)) {
+    while (waitDelete && !ledgerState(LedgerState.DELETED)) {
       try {
         Thread.sleep(DEFAULT_WAIT_TIME_MS);
       } catch (InterruptedException e) {

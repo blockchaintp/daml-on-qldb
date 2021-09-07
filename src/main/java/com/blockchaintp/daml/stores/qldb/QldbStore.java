@@ -28,6 +28,7 @@ import com.amazon.ion.system.IonSystemBuilder;
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.Key;
+import com.blockchaintp.daml.stores.service.Opaque;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.Value;
 import com.google.common.collect.Sets;
@@ -88,7 +89,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
   public Optional<Value<ByteString>> get(final Key<ByteString> key) throws StoreReadException {
     this.tables.checkTables();
 
-    LOG.info("get id='{}' in table={}", () -> key.toNative(), () -> table);
+    LOG.info("get id='{}' in table={}", key::toNative, () -> table);
 
     try {
       final var r = driver.execute((Executor<Result>) ex -> ex
@@ -135,7 +136,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
   public Map<Key<ByteString>, Value<ByteString>> get(final List<Key<ByteString>> listOfKeys) throws StoreReadException {
     this.tables.checkTables();
 
-    LOG.info("get ids=({}) in table={}", () -> listOfKeys.stream().map(k -> k.toNative()), () -> table);
+    LOG.info("get ids=({}) in table={}", () -> listOfKeys.stream().map(Opaque::toNative), () -> table);
 
     if (listOfKeys.isEmpty()) {
       return Map.of();
@@ -180,7 +181,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
   public void put(final Key<ByteString> key, final Value<ByteString> value) throws StoreWriteException {
     this.tables.checkTables();
 
-    LOG.info("upsert id={} in table={}", () -> key.toNative(), () -> table);
+    LOG.info("upsert id={} in table={}", key::toNative, () -> table);
 
     driver.execute(tx -> {
       var exists = tx.execute(String.format("select o.%s from %s as o where o.%s = ?", ID_FIELD, table, ID_FIELD),

@@ -34,8 +34,6 @@ import software.amazon.awssdk.services.qldb.QldbClient;
 import software.amazon.awssdk.services.qldbsession.QldbSessionClient;
 import software.amazon.qldb.QldbDriver;
 
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -66,7 +64,7 @@ class QldbStoreIntegrationTest {
 
     this.resources = new QldbResources(
         QldbClient.builder().credentialsProvider(DefaultCredentialsProvider.create()).region(Region.EU_WEST_2).build(),
-        ledger);
+        ledger, false);
 
     final var storeBuilder = QldbStore.forDriver(driver).tableName("qldbstoreintegrationtest");
 

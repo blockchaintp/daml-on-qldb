@@ -75,7 +75,7 @@ class SplitStoreTest {
 
     // blobStore Index should contain blob hash
     Assertions.assertArrayEquals(ByteString.copyFromUtf8("ok").toByteArray(),
-        blobStore.get(Key.of(ByteString.copyFromUtf8("index/434F4E54454E54"))).get().toNative().toByteArray());
+        blobStore.get(Key.of(ByteString.copyFromUtf8("index/6F6B"))).get().toNative().toByteArray());
   }
 
   @Test

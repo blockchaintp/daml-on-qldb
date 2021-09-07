@@ -16,7 +16,7 @@
   explicitly enabling the info logging for sandbox main and ledger api server
   for the usual startup info logging (which port, dar files, etc...)
   -->
-  <logger name="com.daml" level="DEBUG" >
+  <logger name="com.daml" level="DEBUG">
     <appender-ref ref="STDOUT"/>
   </logger>
   <logger name="software.amazon" level="ERROR" />

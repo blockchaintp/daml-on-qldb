@@ -37,4 +37,12 @@ public interface LedgerSubmitter<A extends Identifier, B extends LedgerAddress> 
    */
   CompletableFuture<SubmissionStatus> submitPayload(CommitPayload<A> cp);
 
+  /**
+   * For convenience we can translate one the payload to the expected output payload.
+   *
+   * @param cp
+   *          the input payload.
+   * @return the output payload.
+   */
+  CommitPayload<B> translatePayload(CommitPayload<A> cp);
 }

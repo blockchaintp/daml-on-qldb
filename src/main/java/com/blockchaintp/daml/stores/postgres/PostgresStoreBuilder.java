@@ -13,7 +13,6 @@
  */
 package com.blockchaintp.daml.stores.postgres;
 
-import java.lang.reflect.InvocationTargetException;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
@@ -45,8 +44,7 @@ public final class PostgresStoreBuilder {
    *
    * @return A configured builder.
    */
-  public PostgresStoreBuilder migrate()
-      throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+  public PostgresStoreBuilder migrate() {
     var flyway = Flyway.configure().locations("classpath:migrations/store").dataSource(url, "", "").load();
 
     flyway.migrate();

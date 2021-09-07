@@ -45,7 +45,10 @@ public final class RequiresTables {
   }
 
   private boolean tableExists(final String table) {
-    return StreamSupport.stream(driver.getTableNames().spliterator(), false).anyMatch(s -> s.equals(table));
+    return StreamSupport.stream(driver.getTableNames().spliterator(), false).map(t -> {
+      LOG.debug("Looking for {} found table {}", table, t);
+      return t;
+    }).anyMatch(s -> s.equals(table));
   }
 
   /**
@@ -56,21 +59,28 @@ public final class RequiresTables {
       return;
     }
 
-    tables.forEach(t -> {
-      if (tableExists(t._1)) {
-        LOG.debug("Table {} exists, skip create", () -> t._1);
+    synchronized (tables) {
+      if (allCreated) {
         return;
       }
 
-      LOG.info("Creating table {}", () -> t._1);
+      tables.forEach(t -> {
+        if (tableExists(t._1)) {
+          LOG.debug("Table {} exists, skip create", () -> t._1);
+          return;
+        }
 
-      driver.execute(tx -> {
-        tx.execute(String.format("create table %s", t._1));
-        tx.execute(String.format("create index on %s(%s)", t._1, t._2));
+        LOG.info("Creating table {}", () -> t._1);
+
+        driver.execute(tx -> {
+          tx.execute(String.format("create table %s", t._1));
+          tx.execute(String.format("create index on %s(%s)", t._1, t._2));
+        });
       });
-    });
 
-    allCreated = true;
+      allCreated = true;
+    }
+
   }
 
 }

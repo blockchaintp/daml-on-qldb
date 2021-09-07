@@ -13,24 +13,21 @@
  */
 package com.blockchaintp.daml.stores.layers;
 
-import java.util.ArrayList;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import javax.xml.bind.DatatypeConverter;
 
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.Key;
+import com.blockchaintp.daml.stores.service.Opaque;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.daml.stores.service.Value;
-import com.google.common.collect.Sets;
 import com.google.protobuf.ByteString;
 
+import io.vavr.API;
 import io.vavr.Tuple;
 import io.vavr.Tuple3;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
@@ -73,8 +70,8 @@ public final class SplitTransactionLog implements TransactionLog<UUID, ByteStrin
   }
 
   /**
-   * Reads through txlog keys then enriches with blob data, using bulk fetch, this may cause memory
-   * issues with large data sets and should possibly be paged.
+   * Reads through txlog keys then enriches with blob data, inefficient without some sort of sliding
+   * window and buffering.
    *
    * @param startExclusive
    * @param endInclusive
@@ -86,23 +83,19 @@ public final class SplitTransactionLog implements TransactionLog<UUID, ByteStrin
       @SuppressWarnings("OptionalUsedAsFieldOrParameterType") final Optional<Long> endInclusive)
       throws StoreReadException {
 
-    var resultsByS3Key = txLog.from(startExclusive, endInclusive).collect(Collectors.toMap(r -> Key.of(r._3), r -> r));
-
-    var blobData = blobs.get(new ArrayList<>(resultsByS3Key.keySet()));
-
-    var diff = Sets.difference(resultsByS3Key.keySet(), blobData.keySet());
-
-    if (!diff.isEmpty()) {
-      throw new StoreReadException(
-          SpltStoreException.missingData(diff.stream()
-              .map(d -> Tuple.of(DatatypeConverter.printHexBinary(d.toNative().toByteArray()),
-                  DatatypeConverter.printHexBinary(resultsByS3Key.get(d)._3.toByteArray())))
-              .collect(Collectors.toList())));
-    }
-
-    return resultsByS3Key.entrySet().stream()
-        .map(r -> Tuple.of(r.getValue()._1, r.getValue()._2, blobData.get(r.getKey()).toNative()));
-
+    return txLog
+        .from(startExclusive,
+            endInclusive)
+        .map(
+            r -> API
+                .unchecked(() -> Tuple.of(r._1, r._2,
+                    blobs.get(Key.of(r._3)).map(Opaque::toNative)
+                        .orElseThrow(() -> new StoreReadException(SpltStoreException.missingData()))))
+                .apply())
+        .map(x -> {
+          LOG.debug("Yield log entry {} {}", x._1, x._2);
+          return x;
+        });
   }
 
   @Override

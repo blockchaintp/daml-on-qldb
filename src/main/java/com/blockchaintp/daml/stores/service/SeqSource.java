@@ -21,11 +21,11 @@ import java.util.List;
  * @param <I>
  */
 public interface SeqSource<I> {
+
   /**
-   *
-   * @return the next I, without consuming it
+   * @return the next I
    */
-  I peekNext();
+  I head();
 
   /**
    *

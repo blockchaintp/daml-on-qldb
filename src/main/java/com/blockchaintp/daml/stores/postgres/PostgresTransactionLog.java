@@ -67,7 +67,7 @@ public final class PostgresTransactionLog implements TransactionLog<UUID, ByteSt
       return s;
     }, StoreReadException::new).unchecked());
 
-    var resultSet = WrapFunction0.ofChecked(() -> stmt.executeQuery(), StoreReadException::new).apply();
+    var resultSet = WrapFunction0.ofChecked(stmt::executeQuery, StoreReadException::new).apply();
 
     return Stream.iterate(resultSet, rx -> closingWrap(rx, () -> rx.first() && rx.isFirst() || rx.next()).unchecked(),
         rx -> closingWrap(rx, () -> {
@@ -105,21 +105,21 @@ public final class PostgresTransactionLog implements TransactionLog<UUID, ByteSt
 
   @Override
   public UUID begin() throws StoreWriteException {
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void sendEvent(final UUID id, final ByteString data) throws StoreWriteException {
-
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public Long commit(final UUID txId) throws StoreWriteException {
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void abort(final UUID txId) throws StoreWriteException {
-
+    throw new UnsupportedOperationException();
   }
 }

@@ -38,25 +38,33 @@ public final class QldbTxSeq implements SeqSource<Long> {
   }
 
   @Override
-  public Long peekNext() {
-    return current + 1;
+  public Long head() {
+    synchronized (this) {
+      return current + 1;
+    }
   }
 
   @Override
   public Long takeNext() {
-    current = current + 1;
-    return current;
+    synchronized (this) {
+      current = current + 1;
+      return current;
+    }
   }
 
   @Override
   public List<Long> peekRange(final long size) {
-    return LongStream.range(current, current + size).boxed().collect(Collectors.toList());
+    synchronized (this) {
+      return LongStream.range(current, current + size).boxed().collect(Collectors.toList());
+    }
   }
 
   @Override
   public List<Long> takeRange(final long size) {
-    var seq = peekRange(size);
-    current += size;
-    return seq;
+    synchronized (this) {
+      var seq = peekRange(size);
+      current += size;
+      return seq;
+    }
   }
 }

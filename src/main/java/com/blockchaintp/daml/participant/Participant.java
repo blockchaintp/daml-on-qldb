@@ -137,7 +137,7 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
       final CommitMetadata metadata, final TelemetryContext telemetryContext) {
 
     var payloads = commitPayloadBuilder.build(envelope, metadata, correlationId).stream().map(submitter::submitPayload)
-        .map(f -> f.thenApply((x) -> {
+        .map(f -> f.thenApply(x -> {
           if (x == SubmissionStatus.OVERLOADED) {
             return SubmissionResult.Overloaded$.MODULE$;
           } else if (x == SubmissionStatus.REJECTED) {

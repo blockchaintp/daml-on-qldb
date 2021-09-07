@@ -52,7 +52,7 @@ import scala.runtime.BoxedUnit;
  * @param <B>
  */
 public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerAddress>
-    implements LedgerSubmitter<A,B> {
+    implements LedgerSubmitter<A, B> {
 
   private static final int STATE_CACHE_SIZE = 1000;
   private final ValidatingCommitter<Long> comitter;
@@ -118,16 +118,22 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
 
   @Override
   public CompletableFuture<SubmissionStatus> submitPayload(final CommitPayload<A> cp) {
-    return FutureConverters.toJava(
-      this.comitter.commit(cp.getCorrelationId(), cp.getSubmission(), cp.getSubmittingParticipantId(), context)
-    ).thenApply(x -> {
-      if (x == SubmissionResult.Acknowledged$.MODULE$) {
-        return SubmissionStatus.SUBMITTED;
-      }
-      if (x == SubmissionResult.NotSupported$.MODULE$) {
-        return SubmissionStatus.REJECTED;
-      }
-      return SubmissionStatus.OVERLOADED;
-    }).toCompletableFuture();
+    return FutureConverters
+        .toJava(
+            this.comitter.commit(cp.getCorrelationId(), cp.getSubmission(), cp.getSubmittingParticipantId(), context))
+        .thenApply(x -> {
+          if (x == SubmissionResult.Acknowledged$.MODULE$) {
+            return SubmissionStatus.SUBMITTED;
+          }
+          if (x == SubmissionResult.NotSupported$.MODULE$) {
+            return SubmissionStatus.REJECTED;
+          }
+          return SubmissionStatus.OVERLOADED;
+        }).toCompletableFuture();
+  }
+
+  @Override
+  public CommitPayload<B> translatePayload(final CommitPayload<A> cp) {
+    throw new UnsupportedOperationException();
   }
 }

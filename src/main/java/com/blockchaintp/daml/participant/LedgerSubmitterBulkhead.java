@@ -13,6 +13,7 @@
  */
 package com.blockchaintp.daml.participant;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
@@ -38,23 +39,30 @@ import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
  */
 public final class LedgerSubmitterBulkhead<A extends Identifier, B extends LedgerAddress>
     implements LedgerSubmitter<A, B> {
-  private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(InProcLedgerSubmitter.class);
-  private static final int MAX_CONCURRENT = 50;
+  private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(LedgerSubmitterBulkhead.class);
   private final LedgerSubmitter<A, B> inner;
   private final CircuitBreaker circuitBreaker;
   private final Bulkhead bulkhead;
 
   /**
-   *
    * @param theInner
+   * @param maxConcurrent
+   * @param slowCallDuration
    */
-  public LedgerSubmitterBulkhead(final LedgerSubmitter<A, B> theInner) {
+  public LedgerSubmitterBulkhead(final LedgerSubmitter<A, B> theInner, final int maxConcurrent,
+      final long slowCallDuration) {
     inner = theInner;
     // Create a CircuitBreaker with default configuration
-    circuitBreaker = CircuitBreaker.of("ledger-submitter", CircuitBreakerConfig.ofDefaults().custom().build());
+    circuitBreaker = CircuitBreaker.of("ledger-submitter",
+        CircuitBreakerConfig.custom().slowCallDurationThreshold(Duration.ofMillis(slowCallDuration)).build());
+
+    circuitBreaker.getEventPublisher()
+        .onStateTransition(r -> LOG.info("Ledger submitted curcuit breaker state", r.toString()));
 
     // Create a Bulkhead with default configuration
-    bulkhead = Bulkhead.of("ledger-submitter", BulkheadConfig.custom().maxConcurrentCalls(MAX_CONCURRENT).build());
+    bulkhead = Bulkhead.of("ledger-submitter", BulkheadConfig.custom().maxConcurrentCalls(maxConcurrent).build());
+
+    bulkhead.getEventPublisher().onCallRejected(r -> LOG.info("Bulkhead rejected call {}", r.toString()));
   }
 
   @Override
@@ -65,5 +73,10 @@ public final class LedgerSubmitterBulkhead<A extends Identifier, B extends Ledge
             Arrays.asList(TimeoutException.class, CallNotPermittedException.class, BulkheadFullException.class),
             throwable -> SubmissionStatus.OVERLOADED)
         .get().toCompletableFuture();
+  }
+
+  @Override
+  public CommitPayload<B> translatePayload(final CommitPayload<A> cp) {
+    throw new UnsupportedOperationException();
   }
 }

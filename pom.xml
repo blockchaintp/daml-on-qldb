@@ -329,9 +329,6 @@
       <artifactId>protobuf-java-util</artifactId>
     </dependency>
 
-    <!-- Netty -->
-
-
     <!-- DAML Dependencies -->
       <dependency>
         <groupId>com.daml</groupId>
@@ -494,6 +491,9 @@
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.0.0-M5</version>
+          <configuration>
+            <skipTests>true</skipTests>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>net.alchim31.maven</groupId>
