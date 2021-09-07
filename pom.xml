@@ -164,12 +164,22 @@
       <!-- Resilience -->
       <dependency>
         <groupId>io.github.resilience4j</groupId>
-        <artifactId>resilience4j-circuitbreaker</artifactId>
+        <artifactId>resilience4j-all</artifactId>
         <version>1.7.1</version>
       </dependency>
       <dependency>
         <groupId>io.github.resilience4j</groupId>
         <artifactId>resilience4j-retry</artifactId>
+        <version>1.7.1</version>
+      </dependency>
+      <dependency>
+        <groupId>io.github.resilience4j</groupId>
+        <artifactId>resilience4j-bulkhead</artifactId>
+        <version>1.7.1</version>
+      </dependency>
+      <dependency>
+        <groupId>io.github.resilience4j</groupId>
+        <artifactId>resilience4j-circuitbreaker</artifactId>
         <version>1.7.1</version>
       </dependency>
       <dependency>
@@ -370,11 +380,19 @@
     <!-- Resilience -->
     <dependency>
       <groupId>io.github.resilience4j</groupId>
-      <artifactId>resilience4j-circuitbreaker</artifactId>
+      <artifactId>resilience4j-all</artifactId>
     </dependency>
     <dependency>
       <groupId>io.github.resilience4j</groupId>
       <artifactId>resilience4j-retry</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.github.resilience4j</groupId>
+      <artifactId>resilience4j-circuitbreaker</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.github.resilience4j</groupId>
+      <artifactId>resilience4j-bulkhead</artifactId>
     </dependency>
     <dependency>
       <groupId>io.github.resilience4j</groupId>

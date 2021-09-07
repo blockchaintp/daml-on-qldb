@@ -13,7 +13,7 @@
  */
 package com.blockchaintp.daml.participant;
 
-import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.address.LedgerAddress;
@@ -35,23 +35,6 @@ public interface LedgerSubmitter<A extends Identifier, B extends LedgerAddress> 
    *          the payload to submit.
    * @return a reference to the submission.
    */
-  SubmissionReference submitPayload(CommitPayload<A> cp);
+  CompletableFuture<SubmissionStatus> submitPayload(CommitPayload<A> cp);
 
-  /**
-   * Check the status of a submission.
-   *
-   * @param ref
-   *          the reference to check.
-   * @return a status object.
-   */
-  Optional<SubmissionStatus> checkSubmission(SubmissionReference ref);
-
-  /**
-   * For convenience we can translate one the payload to the expected output payload.
-   *
-   * @param cp
-   *          the input payload.
-   * @return the output payload.
-   */
-  CommitPayload<B> translatePayload(CommitPayload<A> cp);
 }

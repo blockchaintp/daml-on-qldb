@@ -18,6 +18,10 @@ package com.blockchaintp.daml.participant;
  */
 public enum SubmissionStatus {
   /**
+   * The participant cannot currently process this submission.
+   */
+  OVERLOADED,
+  /**
    * The participant has not yet submitted a proposal.
    */
   ENQUEUED,

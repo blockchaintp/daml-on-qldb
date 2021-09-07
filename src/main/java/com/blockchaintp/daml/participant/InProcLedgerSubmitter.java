@@ -13,11 +13,9 @@
  */
 package com.blockchaintp.daml.participant;
 
-import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeoutException;
 
 import com.blockchaintp.daml.address.Identifier;
@@ -42,8 +40,6 @@ import com.daml.metrics.Metrics;
 import com.daml.platform.akkastreams.dispatcher.Dispatcher;
 import com.google.protobuf.ByteString;
 
-import io.vavr.Tuple;
-import io.vavr.Tuple2;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import scala.concurrent.Await$;
@@ -66,8 +62,6 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(InProcLedgerSubmitter.class);
   private final Dispatcher<Long> dispatcher;
   private final TransactionLogWriter<Raw.LogEntryId, Raw.Envelope, Long> writer;
-  private final LinkedBlockingQueue<Tuple2<SubmissionReference, CommitPayload<A>>> queue;
-  private final ConcurrentHashMap<SubmissionReference, SubmissionStatus> status;
   private final ExecutionContext context;
 
   /**
@@ -108,8 +102,6 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
     writer = CoercingTxLog.from(Bijection.of(UuidConverter::logEntryToUuid, UuidConverter::uuidtoLogEntry),
         Bijection.of(Raw.Envelope::bytes, Raw.Envelope$.MODULE$::apply), Bijection.identity(), theTxLog);
     dispatcher = theDispatcher;
-    queue = new LinkedBlockingQueue<>();
-    status = new ConcurrentHashMap<>();
 
     comitter = new ValidatingCommitter<>(TimeProvider.UTC$.MODULE$::getCurrentTime,
         SubmissionValidator.create(
@@ -124,57 +116,29 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
         });
 
     context = scala.concurrent.ExecutionContext.fromExecutorService(Executors.newSingleThreadExecutor());
-
-    scala.concurrent.ExecutionContext.fromExecutorService(Executors.newSingleThreadExecutor()).execute(this::work);
   }
 
-  private void work() {
-    var run = true;
-    while (run) {
+  @Override
+  public CompletableFuture<SubmissionStatus> submitPayload(final CommitPayload<A> cp) {
+
+    return CompletableFuture.supplyAsync(() -> {
+      SubmissionResult res = null;
       try {
-        var next = queue.take();
-
-        status.put(next._1, SubmissionStatus.PARTIALLY_SUBMITTED);
-
-        var res = Await$.MODULE$.result(this.comitter.commit(next._2.getCorrelationId(), next._2.getSubmission(),
-            next._2.getSubmittingParticipantId(), context), Duration.Inf());
-
-        if (!(res instanceof SubmissionResult.Acknowledged$)) {
-          status.put(next._1, SubmissionStatus.REJECTED);
-        } else {
-          status.put(next._1, SubmissionStatus.SUBMITTED);
-        }
-      } catch (TimeoutException | InterruptedException e) {
-        Thread.currentThread().interrupt();
-        LOG.error("Thread interrupted", e);
-
-        run = false;
+        res = Await$.MODULE$.result(
+            this.comitter.commit(cp.getCorrelationId(), cp.getSubmission(), cp.getSubmittingParticipantId(), context),
+            Duration.Inf());
+      } catch (InterruptedException theE) {
+        return SubmissionStatus.PARTIALLY_SUBMITTED;
+      } catch (TimeoutException theE) {
+        return SubmissionStatus.PARTIALLY_SUBMITTED;
       }
-    }
+
+      if (!(res instanceof SubmissionResult.Acknowledged$)) {
+        return SubmissionStatus.REJECTED;
+      } else {
+        return SubmissionStatus.SUBMITTED;
+      }
+    });
+
   }
-
-  @Override
-  public SubmissionReference submitPayload(final CommitPayload<A> cp) {
-    var ref = new SubmissionReference();
-    try {
-      queue.put(Tuple.of(ref, cp));
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      LOG.warn("Committer thread has been interrupted!");
-    }
-    status.put(ref, SubmissionStatus.ENQUEUED);
-
-    return ref;
-  }
-
-  @Override
-  public Optional<SubmissionStatus> checkSubmission(final SubmissionReference ref) {
-    return Optional.of(status.get(ref));
-  }
-
-  @Override
-  public CommitPayload<B> translatePayload(final CommitPayload<A> cp) {
-    return null;
-  }
-
 }

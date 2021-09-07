@@ -118,9 +118,9 @@ public final class InProcLedgerSubmitterBuilder<I extends Identifier, A extends 
    *
    * @return A configured ledger sumbitter.
    */
-  public InProcLedgerSubmitter<I, A> build() {
-
-    return new InProcLedgerSubmitter<>(engine, metrics, txLog, stateStore, dispatcher);
+  public LedgerSubmitter<I, A> build() {
+    var inproc = new InProcLedgerSubmitter<I, A>(engine, metrics, txLog, stateStore, dispatcher);
+    return new LedgerSubmitterBulkhead<>(inproc);
   }
 
 }

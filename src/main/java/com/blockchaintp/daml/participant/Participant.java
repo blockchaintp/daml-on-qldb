@@ -41,8 +41,10 @@ import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import scala.Option;
 import scala.Tuple2;
+import scala.compat.java8.FutureConverters;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
+import scala.jdk.CollectionConverters;
 import scala.math.Ordering;
 
 /**
@@ -134,17 +136,26 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   public Future<SubmissionResult> commit(final String correlationId, final Raw.Envelope envelope,
       final CommitMetadata metadata, final TelemetryContext telemetryContext) {
 
-    return Future.apply(() -> {
-      try {
-        var references = commitPayloadBuilder.build(envelope, metadata, correlationId).stream()
-            .map(submitter::submitPayload).collect(Collectors.toList());
-        LOG.trace("Received {} submission references", references.size());
-        return SubmissionResult.Acknowledged$.MODULE$;
-      } catch (final Exception e) {
-        LOG.warn("Interrupted while submitting transaction {}", () -> e);
-        Thread.currentThread().interrupt();
-        return new SubmissionResult.InternalError("Interrupted while submitting transaction");
-      }
-    }, context);
+    var payloads = commitPayloadBuilder.build(envelope, metadata, correlationId).stream().map(submitter::submitPayload)
+        .map(f -> f.thenApply((x) -> {
+          if (x == SubmissionStatus.OVERLOADED) {
+            return SubmissionResult.Overloaded$.MODULE$;
+          } else if (x == SubmissionStatus.REJECTED) {
+            return SubmissionResult.NotSupported$.MODULE$;
+          }
+          return SubmissionResult.Acknowledged$.MODULE$;
+        })).map(FutureConverters::toScala).collect(Collectors.toList());
+
+    return Future.foldLeft(CollectionConverters.CollectionHasAsScala(payloads).asScala().toSeq(),
+        SubmissionResult.Acknowledged$.MODULE$,
+        // Folding latch to any failed payload, unknown how this will affect retry behaviour without
+        // atomicity
+        (a, x) -> {
+          if (a == SubmissionResult.Acknowledged$.MODULE$ && x == SubmissionResult.Acknowledged$.MODULE$) {
+            return SubmissionResult.Acknowledged$.MODULE$;
+          }
+
+          return x;
+        }, context);
   }
 }
