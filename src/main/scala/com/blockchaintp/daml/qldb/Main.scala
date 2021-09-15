@@ -106,13 +106,13 @@ object Main extends App {
 
       val stateQldbStore = QldbStore
         .forDriver(driver)
-        .retrying(3)
+        .retrying(10)
         .tableName("daml_state")
         .build()
 
       val stateStore = SplitStore
         .fromStores(stateQldbStore, stateBlobStore)
-        .withCaching(10000)
+        .withCaching(1000)
         .verified(true)
         .build()
 
@@ -123,7 +123,7 @@ object Main extends App {
 
       val txLog = SplitTransactionLog
         .from(qldbTransactionLog, txBlobStore)
-        .withCache(1000)
+        .withCache(0)
         .build()
 
       val inputAddressReader = (meta: CommitMetadata) =>

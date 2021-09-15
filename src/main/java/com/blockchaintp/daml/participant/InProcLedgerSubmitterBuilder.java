@@ -35,7 +35,7 @@ public final class InProcLedgerSubmitterBuilder<I extends Identifier, A extends 
   private Engine engine;
   private Metrics metrics;
   private Dispatcher<Long> dispatcher;
-  private static final int MAX_CONCURRENT = 20;
+  private static final int MAX_CONCURRENT = 50;
   private int maxConcurrent = MAX_CONCURRENT;
   private static final int SLOW_CALL_DURATION = 10000;
   private long slowCallDuration = SLOW_CALL_DURATION;

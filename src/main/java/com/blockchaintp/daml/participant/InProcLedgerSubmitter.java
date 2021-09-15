@@ -32,7 +32,6 @@ import com.daml.api.util.TimeProvider;
 import com.daml.ledger.participant.state.kvutils.DamlKvutils;
 import com.daml.ledger.participant.state.kvutils.Raw;
 import com.daml.ledger.participant.state.v1.SubmissionResult;
-import com.daml.ledger.validator.SubmissionValidator;
 import com.daml.ledger.validator.SubmissionValidator$;
 import com.daml.ledger.validator.ValidatingCommitter;
 import com.daml.lf.engine.Engine;
