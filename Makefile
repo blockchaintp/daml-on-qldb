@@ -17,7 +17,7 @@ build: $(MARKERS)/build_mvn $(MARKERS)/build_ledgertest
 
 package: $(MARKERS)/package_mvn $(MARKERS)/package_docker
 
-test: $(MARKERS)/test_mvn
+test: $(MARKERS)/test_mvn $(MARKERS)/test_daml
 
 test_daml: $(MARKERS)/test_daml ${}
 

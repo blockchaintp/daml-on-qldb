@@ -64,12 +64,6 @@ object Main extends App {
     "daml-on-qldb",
     new LedgerFactory((config: Config[ExtraConfig], builder: ParticipantBuilder[QldbIdentifier, QldbAddress]) => {
 
-      val httpClient = NettyNioAsyncHttpClient.builder.maxConcurrency(NETTY_MAX_CONCURRENCY).build
-      val clientBuilder = S3AsyncClient.builder
-        .httpClient(httpClient)
-        .region(Region.of(config.extra.region))
-        .credentialsProvider(DefaultCredentialsProvider.builder.build)
-
       if (config.extra.createAws) {
         try {
           val qldbClient = QldbClient.builder
@@ -106,6 +100,7 @@ object Main extends App {
         QldbDriver.builder
           .ledger(Aws.complyWithQldbLedgerNaming(config.ledgerId))
           .sessionClientBuilder(sessionBuilder)
+          .maxConcurrentTransactions(100)
           .ionSystem(ionSystem)
           .build()
 

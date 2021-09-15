@@ -17,13 +17,12 @@ import com.blockchaintp.daml.address.Identifier
 import com.blockchaintp.daml.address.LedgerAddress
 import com.blockchaintp.daml.participant.Participant
 import com.blockchaintp.daml.participant.ParticipantBuilder
-import com.daml.ledger.participant.state.kvutils.KeyValueSubmission
+import com.daml.ledger.api.domain.LedgerId
 import com.daml.ledger.participant.state.kvutils.app.Config
-import com.daml.ledger.participant.state.v1.LedgerId
-import com.daml.ledger.participant.state.v1.ParticipantId
 import com.daml.ledger.resources.Resource
 import com.daml.ledger.resources.ResourceContext
 import com.daml.ledger.resources.ResourceOwner
+import com.daml.lf.data.Ref.ParticipantId
 import com.daml.lf.engine.Engine
 import com.daml.logging.LoggingContext
 import com.daml.metrics.Metrics
@@ -35,7 +34,7 @@ class ParticipantOwner[ExtraConfig, Id <: Identifier, Address <: LedgerAddress](
     val engine: Engine,
     val metrics: Metrics,
     val logCtx: LoggingContext,
-    val ledgerId: LedgerId,
+    val ledgerId: String,
     val participantId: ParticipantId,
     val config: Config[ExtraConfig],
     val build: (Config[ExtraConfig], ParticipantBuilder[Id, Address]) => ParticipantBuilder[Id, Address]

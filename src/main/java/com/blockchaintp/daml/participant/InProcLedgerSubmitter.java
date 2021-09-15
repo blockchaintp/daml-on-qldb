@@ -33,6 +33,7 @@ import com.daml.ledger.participant.state.kvutils.DamlKvutils;
 import com.daml.ledger.participant.state.kvutils.Raw;
 import com.daml.ledger.participant.state.v1.SubmissionResult;
 import com.daml.ledger.validator.SubmissionValidator;
+import com.daml.ledger.validator.SubmissionValidator$;
 import com.daml.ledger.validator.ValidatingCommitter;
 import com.daml.lf.engine.Engine;
 import com.daml.metrics.Metrics;
@@ -102,18 +103,18 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
     dispatcher = theDispatcher;
 
     comitter = new ValidatingCommitter<>(TimeProvider.UTC$.MODULE$::getCurrentTime,
-        SubmissionValidator.create(
+        SubmissionValidator$.MODULE$.createForTimeMode(
             new StateAccess(CoercingStore.from(Bijection.of(Raw.StateKey::bytes, Raw.StateKey$.MODULE$::apply),
                 Bijection.of(Raw.Envelope::bytes, Raw.Envelope$.MODULE$::apply), theStateStore), writer),
             () -> logEntryIdToDamlLogEntryId(Functions.uncheckFn(writer::begin).apply()), false,
-            new StateCache<>(new LRUCache<>(STATE_CACHE_SIZE)), theEngine, theMetrics),
+            new StateCache<>(new LRUCache<>(STATE_CACHE_SIZE)), theEngine, theMetrics, false),
         r -> {
           LOG.info("Signal new head {}", () -> r + 1);
           dispatcher.signalNewHead(r + 1);
           return BoxedUnit.UNIT;
         });
 
-    context = scala.concurrent.ExecutionContext.fromExecutorService(Executors.newWorkStealingPool());
+    context = scala.concurrent.ExecutionContext.fromExecutorService(Executors.newCachedThreadPool());
   }
 
   @Override
