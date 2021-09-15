@@ -49,6 +49,7 @@ import software.amazon.awssdk.services.qldb.QldbClient
 import software.amazon.awssdk.services.qldbsession.QldbSessionClient
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.qldb.QldbDriver
+import software.amazon.qldb.RetryPolicy
 
 import scala.jdk.CollectionConverters._
 import java.nio.file.Paths
@@ -101,6 +102,7 @@ object Main extends App {
           .ledger(Aws.complyWithQldbLedgerNaming(config.ledgerId))
           .sessionClientBuilder(sessionBuilder)
           .maxConcurrentTransactions(100)
+          .transactionRetryPolicy(RetryPolicy.builder().maxRetries(20).build())
           .ionSystem(ionSystem)
           .build()
 
