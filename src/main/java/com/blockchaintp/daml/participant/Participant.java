@@ -114,7 +114,7 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
         .comparatorToOrdering(Comparator.comparingLong(scala.Long::unbox));
 
     var rangeSource = new RangeSource<>((s, e) -> Source
-        .fromJavaStream(() -> API.unchecked(() -> txLog.from(s - 1, Optional.of(e - 1))).apply()
+        .fromJavaStream(() -> API.unchecked(() -> txLog.from(s - 1, Optional.of(e))).apply()
             .map(r -> Tuple2.apply(r._1, LedgerRecord.apply(OffsetBuilder.fromLong(r._1, 0, 0), r._2, r._3))))
         .mapMaterializedValue(m -> NotUsed.notUsed()).asScala(), scalaLongOrdering);
 
