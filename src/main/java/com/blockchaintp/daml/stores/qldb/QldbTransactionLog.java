@@ -227,7 +227,7 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
 
           var seq = ress.get(SEQ_FIELD);
 
-          if (seq == null || !(seq instanceof IonInt)) {
+          if (!(seq instanceof IonInt)) {
             throw create("", QldbTransactionException.invalidSchema(res));
           }
 
