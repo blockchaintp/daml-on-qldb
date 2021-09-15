@@ -35,8 +35,6 @@ import com.google.protobuf.ByteString;
 
 import io.vavr.CheckedFunction0;
 import io.vavr.CheckedRunnable;
-import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
-import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 
 /**
  * A PostgresStore is a store backed by a postgres interface.
