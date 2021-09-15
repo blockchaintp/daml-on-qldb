@@ -281,9 +281,8 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
       private Deque<Tuple3<Long, UUID, ByteString>> currentPage;
 
       private Deque<Tuple3<Long, UUID, ByteString>> nextPage(final LongStream range) {
+        var ids = range.mapToObj((long x) -> String.format("%d", x)).collect(Collectors.joining(","));
         return driver.execute(tx -> {
-          var ids = range.mapToObj((long x) -> String.format("%d", x)).collect(Collectors.joining(","));
-
           LOG.info("Querying for page ({})", () -> ids);
 
           if (ids.isEmpty()) {

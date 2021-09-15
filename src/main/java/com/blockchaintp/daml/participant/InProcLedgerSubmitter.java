@@ -113,7 +113,7 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
           return BoxedUnit.UNIT;
         });
 
-    context = scala.concurrent.ExecutionContext.fromExecutorService(Executors.newSingleThreadExecutor());
+    context = scala.concurrent.ExecutionContext.fromExecutorService(Executors.newWorkStealingPool());
   }
 
   @Override
