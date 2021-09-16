@@ -22,6 +22,7 @@ import com.blockchaintp.daml.runtime.BuilderLedgerFactory
 import com.blockchaintp.daml.stores.layers.CoercingStore
 import com.blockchaintp.daml.stores.layers.SplitStore
 import com.blockchaintp.daml.stores.layers.SplitTransactionLog
+import com.blockchaintp.daml.stores.postgres.PostgresStore
 import com.blockchaintp.daml.stores.qldb.QldbStore
 import com.blockchaintp.daml.stores.qldb.QldbTransactionLog
 import com.blockchaintp.daml.stores.resources.QldbResources
@@ -48,6 +49,7 @@ import software.amazon.awssdk.services.qldb.QldbClient
 import software.amazon.awssdk.services.qldbsession.QldbSessionClient
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.qldb.QldbDriver
+import software.amazon.qldb.RetryPolicy
 
 import scala.jdk.CollectionConverters._
 import java.nio.file.Paths
@@ -63,42 +65,31 @@ object Main extends App {
     "daml-on-qldb",
     new LedgerFactory((config: Config[ExtraConfig], builder: ParticipantBuilder[QldbIdentifier, QldbAddress]) => {
 
-      val httpClient = NettyNioAsyncHttpClient.builder.maxConcurrency(NETTY_MAX_CONCURRENCY).build
-      val clientBuilder = S3AsyncClient.builder
-        .httpClient(httpClient)
-        .region(Region.of(config.extra.region))
-        .credentialsProvider(DefaultCredentialsProvider.builder.build)
-
       if (config.extra.createAws) {
         try {
-          val log_blob_resource        = new S3StoreResources(clientBuilder.build, config.ledgerId, "tx-log-blobs")
-          val daml_state_blob_resource = new S3StoreResources(clientBuilder.build, config.ledgerId, "daml-state-blobs")
           val qldbClient = QldbClient.builder
             .credentialsProvider(DefaultCredentialsProvider.create)
             .region(Region.of(config.extra.region))
             .build
 
-          val qldb_resource = new QldbResources(qldbClient, config.ledgerId)
+          val qldb_resource = new QldbResources(qldbClient, config.ledgerId, false)
 
-          log_blob_resource.ensureResources()
-          daml_state_blob_resource.ensureResources()
           qldb_resource.ensureResources()
         } catch {
           case e: Exception => throw e
         }
       }
 
-      val txBlobStore = S3Store
-        .forClient(clientBuilder)
-        .forStore(config.ledgerId)
-        .forTable("tx-log-blobs")
+      val txBlobStore = PostgresStore
+        .fromUrl(config.extra.txLogStore)
+        .migrate()
         .retrying(3)
         .build()
 
-      val stateBlobStore = S3Store
-        .forClient(clientBuilder)
-        .forStore(config.ledgerId)
-        .forTable("daml-state-blobs")
+      val stateBlobStore = PostgresStore
+        .fromUrl(config.extra.stateStore)
+        .migrate()
+        .retrying(3)
         .build()
 
       val sessionBuilder = QldbSessionClient.builder
@@ -110,20 +101,21 @@ object Main extends App {
         QldbDriver.builder
           .ledger(Aws.complyWithQldbLedgerNaming(config.ledgerId))
           .sessionClientBuilder(sessionBuilder)
+          .maxConcurrentTransactions(100)
+          .transactionRetryPolicy(RetryPolicy.builder().maxRetries(20).build())
           .ionSystem(ionSystem)
           .build()
 
       val stateQldbStore = QldbStore
         .forDriver(driver)
-        .retrying(3)
+        .retrying(10)
         .tableName("daml_state")
         .build()
 
       val stateStore = SplitStore
         .fromStores(stateQldbStore, stateBlobStore)
-        .withCaching(10000)
-        .withS3Index(true)
-        .verified(false)
+        .withCaching(1000)
+        .verified(true)
         .build()
 
       val qldbTransactionLog = QldbTransactionLog
@@ -133,7 +125,7 @@ object Main extends App {
 
       val txLog = SplitTransactionLog
         .from(qldbTransactionLog, txBlobStore)
-        .withCache(1000)
+        .withCache(0)
         .build()
 
       val inputAddressReader = (meta: CommitMetadata) =>
@@ -153,6 +145,8 @@ object Main extends App {
         .withTransactionLogReader(txLog)
         .withInProcLedgerSubmitterBuilder(builder =>
           builder
+            .withSlowCall(60000)
+            .withMaxThroughput(50)
             .withStateStore(stateStore)
             .withTransactionLogWriter(txLog)
         )
@@ -203,6 +197,29 @@ class LedgerFactory(
         config.copy(
           extra = config.extra.copy(
             createAws = v
+          )
+        )
+      }
+
+    parser
+      .opt[String](name = "txlogstore")
+      .required()
+      .text("JDBC connection url for the tx log blob store")
+      .action { case (v, config) =>
+        config.copy(
+          extra = config.extra.copy(
+            txLogStore = v
+          )
+        )
+      }
+    parser
+      .opt[String](name = "statestore")
+      .required()
+      .text("JDBC connection url for the state blob store")
+      .action { case (v, config) =>
+        config.copy(
+          extra = config.extra.copy(
+            stateStore = v
           )
         )
       }

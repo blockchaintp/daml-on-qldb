@@ -11,18 +11,28 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.blockchaintp.daml.stores.qldb;
+package com.blockchaintp.daml.stores.postgres;
 
 import com.amazon.ion.IonSystem;
 import com.amazon.ion.system.IonSystemBuilder;
+import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
+import com.blockchaintp.daml.stores.qldb.QldbStore;
 import com.blockchaintp.daml.stores.resources.QldbResources;
+import com.blockchaintp.daml.stores.service.Key;
+import com.blockchaintp.daml.stores.service.Opaque;
+import com.blockchaintp.daml.stores.service.Store;
+import com.blockchaintp.daml.stores.service.Value;
 import com.blockchaintp.utility.Aws;
 import com.google.protobuf.ByteString;
 import io.vavr.Tuple3;
+import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
+import oracle.jdbc.proxy.annotation.Post;
+import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -30,45 +40,29 @@ import software.amazon.awssdk.services.qldb.QldbClient;
 import software.amazon.awssdk.services.qldbsession.QldbSessionClient;
 import software.amazon.qldb.QldbDriver;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-class QldbTransactionLogIntegrationTest {
-
-  private QldbTransactionLog txLog;
-  private IonSystem ionSystem;
-  private QldbResources resources;
+@Disabled
+class PostgresTxLogIntegrationTest {
+  private static final int ITERATIONS = 40;
+  private Store<ByteString, ByteString> store;
+  private PostgresTransactionLog txLog;
 
   @BeforeEach
-  final void establishStore() throws StoreWriteException {
-    String ledger = UUID.randomUUID().toString().replace("-", "");
+  final void establishStore() throws SQLException, IOException {
+    var pg = EmbeddedPostgres.builder().start();
+    pg.getPostgresDatabase().setLogWriter(new PrintWriter(System.out, true));
+    var connection = pg.getPostgresDatabase().getConnection();
+    Flyway.configure().locations("classpath:migrations/txlog").dataSource(pg.getPostgresDatabase()).load().migrate();
 
-    final var sessionBuilder = QldbSessionClient.builder().region(Region.EU_WEST_2)
-        .credentialsProvider(DefaultCredentialsProvider.builder().build());
-
-    this.ionSystem = IonSystemBuilder.standard().build();
-
-    final var driver = QldbDriver.builder().ledger(Aws.complyWithQldbLedgerNaming(ledger))
-        .sessionClientBuilder(sessionBuilder).ionSystem(ionSystem).build();
-
-    this.resources = new QldbResources(
-        QldbClient.builder().credentialsProvider(DefaultCredentialsProvider.create()).region(Region.EU_WEST_2).build(),
-        ledger, false);
-
-    final var storeBuilder = QldbTransactionLog.forDriver(driver).tablePrefix("qldbtxintegrationtest");
-
-    this.txLog = storeBuilder.build();
-
-    resources.destroyResources();
-    resources.ensureResources();
-  }
-
-  @AfterEach
-  final void dropStore() {
-    resources.destroyResources();
+    txLog = new PostgresTransactionLog(connection);
   }
 
   @Test
@@ -94,9 +88,6 @@ class QldbTransactionLogIntegrationTest {
       theE.printStackTrace();
     }
 
-    var fetched = stream.limit(30).map(x -> x._2).collect(Collectors.toList());
-
-    Assertions.assertIterableEquals(ids, fetched);
+    Assertions.assertIterableEquals(ids, stream.limit(30).map(x -> x._2).collect(Collectors.toList()));
   }
-
 }

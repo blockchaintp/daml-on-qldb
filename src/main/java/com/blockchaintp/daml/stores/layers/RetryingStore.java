@@ -114,5 +114,4 @@ public class RetryingStore<K, V> implements Store<K, V> {
         .of(Retry.decorateCheckedRunnable(putRetry, () -> store.put(listOfPairs)).unchecked(), StoreWriteException::new)
         .run();
   }
-
 }

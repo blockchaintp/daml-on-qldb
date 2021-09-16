@@ -13,6 +13,7 @@
  */
 package com.blockchaintp.daml.stores.qldb;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,6 +28,7 @@ import com.amazon.ion.system.IonSystemBuilder;
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.Key;
+import com.blockchaintp.daml.stores.service.Opaque;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.Value;
 import com.google.common.collect.Sets;
@@ -37,7 +39,7 @@ import io.vavr.Tuple;
 import io.vavr.collection.Stream;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
-import software.amazon.awssdk.services.qldbsession.model.QldbSessionException;
+import software.amazon.awssdk.services.qldb.model.QldbException;
 import software.amazon.qldb.Executor;
 import software.amazon.qldb.QldbDriver;
 import software.amazon.qldb.Result;
@@ -87,7 +89,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
   public Optional<Value<ByteString>> get(final Key<ByteString> key) throws StoreReadException {
     this.tables.checkTables();
 
-    LOG.info("get id='{}' in table={}", () -> key.toNative().toStringUtf8(), () -> table);
+    LOG.info("get id='{}' in table={}", key::toNative, () -> table);
 
     try {
       final var r = driver.execute((Executor<Result>) ex -> ex
@@ -100,7 +102,7 @@ public final class QldbStore implements Store<ByteString, ByteString> {
         return Optional.of(Value.of(ByteString.copyFrom(hash.getBytes())));
       }
       return Optional.empty();
-    } catch (QldbSessionException e) {
+    } catch (QldbException e) {
       throw new StoreReadException(e);
     }
   }
@@ -134,7 +136,11 @@ public final class QldbStore implements Store<ByteString, ByteString> {
   public Map<Key<ByteString>, Value<ByteString>> get(final List<Key<ByteString>> listOfKeys) throws StoreReadException {
     this.tables.checkTables();
 
-    LOG.info("get ids=({}) in table={}", () -> listOfKeys.stream().map(k -> k.toNative().toStringUtf8()), () -> table);
+    LOG.info("get ids=({}) in table={}", () -> listOfKeys.stream().map(Opaque::toNative), () -> table);
+
+    if (listOfKeys.isEmpty()) {
+      return Map.of();
+    }
 
     final var query = String.format("select o.* from %s as o where o.%s in ( %s )", table, ID_FIELD,
         listOfKeys.stream().map(k -> "?").collect(Collectors.joining(",")));
@@ -143,20 +149,19 @@ public final class QldbStore implements Store<ByteString, ByteString> {
       final var r = driver.execute((Executor<Result>) ex -> ex.execute(query,
           listOfKeys.stream().map(this::makeStoreableKey).toArray(IonValue[]::new)));
 
-      /// Pull id out of the struct to use for our result map
       return Stream.ofAll(r).toJavaMap(
-          k -> Tuple.of(Key.of(ByteString.copyFrom(API.unchecked(() -> getIdFromRecord(k)).get().getBytes())),
-              Value.of(ByteString.copyFrom(API.unchecked(() -> getHashFromRecord(k)).get().getBytes()))));
-    } catch (QldbSessionException e) {
+          k -> Tuple.of(Key.of(API.unchecked(() -> ByteString.copyFrom(getIdFromRecord(k).getBytes())).get()),
+              Value.of(API.unchecked(() -> ByteString.copyFrom(getHashFromRecord(k).getBytes())).get())));
+    } catch (QldbException e) {
       throw new StoreReadException(e);
     }
   }
 
-  private IonValue makeStoreableKey(final Key<ByteString> key) {
+  private IonBlob makeStoreableKey(final Key<ByteString> key) {
     return ion.newBlob(key.toNative().toByteArray());
   }
 
-  private IonValue makeStorableValue(final Value<ByteString> value) {
+  private IonBlob makeStorableValue(final Value<ByteString> value) {
     return ion.newBlob(value.toNative().toByteArray());
   }
 
@@ -176,23 +181,27 @@ public final class QldbStore implements Store<ByteString, ByteString> {
   public void put(final Key<ByteString> key, final Value<ByteString> value) throws StoreWriteException {
     this.tables.checkTables();
 
-    LOG.info("upsert id={} in table={}", () -> key.toNative().toStringUtf8(), () -> table);
+    LOG.info("upsert id={} in table={}", key::toNative, () -> table);
 
-    driver.execute(tx -> {
-      var exists = tx.execute(String.format("select o.%s from %s as o where o.%s = ?", ID_FIELD, table, ID_FIELD),
-          makeStoreableKey(key));
-
-      if (exists.isEmpty()) {
-        LOG.debug("Not present, inserting");
-        var r = tx.execute(String.format("insert into %s value ?", table), makeRecord(key, value));
-
-        LOG.debug("{}", r);
-      } else {
-        LOG.debug("Present, updating");
-        tx.execute(String.format("update %s as o set o = ? where o.%s = ?", table, ID_FIELD), makeRecord(key, value),
+    try {
+      driver.execute(tx -> {
+        var exists = tx.execute(String.format("select o.%s from %s as o where o.%s = ?", ID_FIELD, table, ID_FIELD),
             makeStoreableKey(key));
-      }
-    });
+
+        if (exists.isEmpty()) {
+          LOG.debug("Not present, inserting");
+          var r = tx.execute(String.format("insert into %s value ?", table), makeRecord(key, value));
+
+          LOG.debug("{}", r);
+        } else {
+          LOG.debug("Present, updating");
+          tx.execute(String.format("update %s as o set o = ? where o.%s = ?", table, ID_FIELD), makeRecord(key, value),
+              makeStoreableKey(key));
+        }
+      });
+    } catch (QldbException e) {
+      throw new StoreWriteException(e);
+    }
   }
 
   /**
@@ -211,36 +220,42 @@ public final class QldbStore implements Store<ByteString, ByteString> {
     LOG.debug("upsert ids={} in table={}",
         () -> listOfPairs.stream().map(Map.Entry::getKey).collect(Collectors.toList()), () -> table);
 
-    driver.execute(txn -> {
-      var keys = listOfPairs.stream().map(Map.Entry::getKey).collect(Collectors.toSet());
+    try {
+      driver.execute(txn -> {
+        var keys = listOfPairs.stream().map(Map.Entry::getKey).collect(Collectors.toSet());
 
-      var exists = StreamSupport
-          .stream(txn.execute(
-              String.format("select o.%s from %s as o where o.%s in ( %s )", ID_FIELD, table, ID_FIELD,
-                  keys.stream().map(k -> "?").collect(Collectors.joining(","))),
-              keys.stream().map(this::makeStoreableKey).collect(Collectors.toList())).spliterator(), false)
-          .collect(Collectors.toSet());
+        var exists = StreamSupport
+            .stream(txn.execute(
+                String.format("select o.%s from %s as o where o.%s in ( %s )", ID_FIELD, table, ID_FIELD,
+                    keys.stream().map(k -> "?").collect(Collectors.joining(","))),
+                keys.stream().map(this::makeStoreableKey).collect(Collectors.toList())).spliterator(), false)
+            .collect(Collectors.toSet());
 
-      // results are tuples of {id,value}
-      var existingKeys = exists.stream()
-          .map(k -> API.unchecked(() -> Key.of(ByteString.copyFrom(getIdFromRecord(k).getBytes()))).get())
-          .collect(Collectors.toSet());
+        // results are tuples of {id,value}
+        var existingKeys = exists.stream()
+            .map(k -> API.unchecked(() -> Key.of(ByteString.copyFrom(getIdFromRecord(k).getBytes()))).get())
+            .collect(Collectors.toSet());
 
-      var valueMap = listOfPairs.stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        var valueMap = new HashMap<Key<ByteString>, Value<ByteString>>();
 
-      var keysToInsert = Sets.difference(keys, existingKeys);
-      var keysToUpdate = Sets.difference(existingKeys, keysToInsert);
+        listOfPairs.stream().forEach(kv -> valueMap.put(kv.getKey(), kv.getValue()));
 
-      LOG.info("Inserting {} rows and updating {} rows in {}", keysToInsert.size(), keysToUpdate.size(), table);
+        var keysToInsert = Sets.difference(keys, existingKeys);
+        var keysToUpdate = Sets.difference(existingKeys, keysToInsert);
 
-      txn.execute(
-          String.format("insert into %s << %s >>", table,
-              keysToInsert.stream().map(k -> "?").collect(Collectors.joining(","))),
-          keysToInsert.stream().map(k -> makeRecord(k, valueMap.get(k))).collect(Collectors.toList()));
+        LOG.info("Inserting {} rows and updating {} rows in {}", keysToInsert.size(), keysToUpdate.size(), table);
 
-      final var updateQuery = String.format("update %s as o set o.%s = ? where o.%s = ?", table, HASH_FIELD, ID_FIELD);
-      keysToUpdate.forEach(k -> txn.execute(updateQuery, makeStorableValue(valueMap.get(k)), makeStoreableKey(k)));
+        txn.execute(
+            String.format("insert into %s << %s >>", table,
+                keysToInsert.stream().map(k -> "?").collect(Collectors.joining(","))),
+            keysToInsert.stream().map(k -> makeRecord(k, valueMap.get(k))).collect(Collectors.toList()));
 
-    });
+        final var updateQuery = String.format("update %s as o set o.%s = ? where o.%s = ?", table, HASH_FIELD,
+            ID_FIELD);
+        keysToUpdate.forEach(k -> txn.execute(updateQuery, makeStorableValue(valueMap.get(k)), makeStoreableKey(k)));
+      });
+    } catch (QldbException e) {
+      throw new StoreWriteException(e);
+    }
   }
 }

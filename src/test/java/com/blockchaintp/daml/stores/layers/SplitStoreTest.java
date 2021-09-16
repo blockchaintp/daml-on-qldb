@@ -16,18 +16,16 @@ package com.blockchaintp.daml.stores.layers;
 import com.amazon.ion.system.IonSystemBuilder;
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
-import com.blockchaintp.daml.stores.layers.SplitStore;
-import com.blockchaintp.daml.stores.layers.VerifiedReader;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.StoreReader;
-import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.daml.stores.service.Value;
 import com.google.protobuf.ByteString;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
@@ -41,19 +39,18 @@ class SplitStoreTest {
   void unindexed_put_enters_hash_into_txlog_after_storing_in_blobstore()
       throws StoreWriteException, StoreReadException {
     var txLog = new com.blockchaintp.daml.stores.StubStore<ByteString, ByteString>();
-    var blobStore = new com.blockchaintp.daml.stores.StubStore<String, byte[]>();
+    var blobStore = new com.blockchaintp.daml.stores.StubStore<ByteString, ByteString>();
     var splitStore = new SplitStore(false, mock(StoreReader.class), txLog, blobStore, bytes -> new byte[] { 'o', 'k' });
 
-    splitStore.put(Key.of(ByteString.copyFrom("DamlKey", Charset.defaultCharset())),
-        Value.of(ByteString.copyFrom("CONTENT", Charset.defaultCharset())));
+    splitStore.put(Key.of(ByteString.copyFromUtf8("DamlKey")), Value.of(ByteString.copyFromUtf8("CONTENT")));
 
     // txlog should contain hash
-    Assertions.assertEquals(ByteString.copyFrom("ok", Charset.defaultCharset()),
-        txLog.get(Key.of(ByteString.copyFrom("DamlKey", Charset.defaultCharset()))).get().toNative());
+    Assertions.assertEquals(ByteString.copyFromUtf8("ok"),
+        txLog.get(Key.of(ByteString.copyFromUtf8("DamlKey"))).get().toNative());
 
     // blobstore Should contain blob
-    Assertions.assertArrayEquals(ByteString.copyFrom("CONTENT", Charset.defaultCharset()).toByteArray(),
-        blobStore.get(Key.of("6F6B")).get().toNative());
+    Assertions.assertArrayEquals(ByteString.copyFromUtf8("CONTENT").toByteArray(),
+        blobStore.get(Key.of(ByteString.copyFromUtf8("ok"))).get().toNative().toByteArray());
 
   }
 
@@ -62,24 +59,23 @@ class SplitStoreTest {
       throws StoreWriteException, StoreReadException {
     var ion = IonSystemBuilder.standard().build();
     var txLog = new com.blockchaintp.daml.stores.StubStore<ByteString, ByteString>();
-    var blobStore = new com.blockchaintp.daml.stores.StubStore<String, byte[]>();
+    var blobStore = new com.blockchaintp.daml.stores.StubStore<ByteString, ByteString>();
 
     var splitStore = new SplitStore(true, mock(StoreReader.class), txLog, blobStore, bytes -> new byte[] { 'o', 'k' });
 
-    splitStore.put(Key.of(ByteString.copyFrom("DamlKey", Charset.defaultCharset())),
-        Value.of(ByteString.copyFrom("CONTENT", Charset.defaultCharset())));
+    splitStore.put(Key.of(ByteString.copyFromUtf8("DamlKey")), Value.of(ByteString.copyFromUtf8("CONTENT")));
 
     // txlog should contain hash
     Assertions.assertEquals(ByteString.copyFrom("ok", Charset.defaultCharset()),
-        txLog.get(Key.of(ByteString.copyFrom("DamlKey", Charset.defaultCharset()))).get().toNative());
+        txLog.get(Key.of(ByteString.copyFromUtf8("DamlKey"))).get().toNative());
 
     // blobStore Should contain blob
-    Assertions.assertArrayEquals(ByteString.copyFrom("CONTENT", Charset.defaultCharset()).toByteArray(),
-        blobStore.get(Key.of("6F6B")).get().toNative());
+    Assertions.assertArrayEquals(ByteString.copyFromUtf8("CONTENT").toByteArray(),
+        blobStore.get(Key.of(ByteString.copyFromUtf8("ok"))).get().toNative().toByteArray());
 
     // blobStore Index should contain blob hash
-    Assertions.assertArrayEquals(new byte[] { 'o', 'k' },
-        blobStore.get(Key.of("index/434F4E54454E54")).get().toNative());
+    Assertions.assertArrayEquals(ByteString.copyFromUtf8("ok").toByteArray(),
+        blobStore.get(Key.of(ByteString.copyFromUtf8("index/6F6B"))).get().toNative().toByteArray());
   }
 
   @Test
@@ -91,13 +87,13 @@ class SplitStoreTest {
 
     var txStoreResult = ByteString.copyFrom("ok", Charset.defaultCharset());
 
-    when(refStore.get(Arrays.asList(Key.of(ByteString.copyFrom("DamlKey", Charset.defaultCharset()))))).thenReturn(
+    when(refStore.get(Arrays.asList(Key.of(ByteString.copyFromUtf8("DamlKey"))))).thenReturn(
         Map.of(Key.of(Key.of(ByteString.copyFrom("DamlKey", Charset.defaultCharset()))), Value.of(txStoreResult)));
-    when(blobStore.get(Arrays.asList(Key.of("6F6B")))).thenReturn(Map.of(Key.of("6F6B"), Value.of(new byte[] { 'x' })));
+    when(blobStore.get(Arrays.asList(Key.of(ByteString.copyFromUtf8("ok")))))
+        .thenReturn(Map.of(Key.of(ByteString.copyFromUtf8("ok")), Value.of(ByteString.copyFromUtf8("x"))));
 
-    Optional<Value<ByteString>> blobStoreVal = verified
-        .get(Key.of(ByteString.copyFrom("DamlKey", Charset.defaultCharset())));
+    Optional<Value<ByteString>> blobStoreVal = verified.get(Key.of(ByteString.copyFromUtf8("DamlKey")));
 
-    Assertions.assertEquals(ByteString.copyFrom(new byte[] { 'x' }), blobStoreVal.get().toNative());
+    Assertions.assertEquals(ByteString.copyFromUtf8("x"), blobStoreVal.get().toNative());
   }
 }

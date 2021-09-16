@@ -19,6 +19,7 @@ import com.blockchaintp.daml.stores.layers.RetryingConfig;
 import com.blockchaintp.daml.stores.layers.RetryingStore;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.exception.BuilderException;
+import com.google.protobuf.ByteString;
 
 import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -117,7 +118,7 @@ public class S3StoreBuilder {
    * @throws BuilderException
    *           an error in construction
    */
-  public final Store<String, byte[]> build() throws BuilderException {
+  public final Store<ByteString, ByteString> build() throws BuilderException {
     if (this.storeName == null) {
       throw new BuilderException("Ledger name must be specified");
     }

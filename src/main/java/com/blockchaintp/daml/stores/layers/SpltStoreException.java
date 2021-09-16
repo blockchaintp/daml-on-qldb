@@ -13,12 +13,7 @@
  */
 package com.blockchaintp.daml.stores.layers;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import com.blockchaintp.daml.stores.exception.StoreException;
-
-import io.vavr.Tuple2;
 
 /**
  * An exception on a split store operation.
@@ -32,11 +27,9 @@ public final class SpltStoreException extends StoreException {
   /**
    * The corresponding s3 blobs for a transaction could not be found.
    *
-   * @param missing
    * @return The exception.
    */
-  public static SpltStoreException missingS3Data(final List<Tuple2<String, String>> missing) {
-    return new SpltStoreException(String.format("Cannot find s3 data (%s)",
-        missing.stream().map(x -> String.format("%s:%s", x._1, x._2)).collect(Collectors.joining())));
+  public static SpltStoreException missingData() {
+    return new SpltStoreException("Cannot find blob store data");
   }
 }

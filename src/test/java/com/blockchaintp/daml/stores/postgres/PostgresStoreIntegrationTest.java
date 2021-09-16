@@ -11,28 +11,25 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.blockchaintp.daml.stores.s3;
+package com.blockchaintp.daml.stores.postgres;
 
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
-import com.blockchaintp.daml.stores.resources.S3StoreResources;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Opaque;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.Value;
 import com.google.protobuf.ByteString;
-import org.junit.jupiter.api.AfterEach;
+import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
+import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
-import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
-import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.S3AsyncClient;
 
-import java.lang.reflect.Array;
-import java.nio.charset.Charset;
+import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
+
+import java.io.PrintWriter;
+import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -41,37 +38,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
-class S3StoreIntegrationTest {
+class PostgresStoreIntegrationTest {
 
-  private static final int NETTY_MAX_CONCURRENCY = 100;
-  private static final int ID_LENGTH = 12;
   private static final int ITERATIONS = 40;
   private Store<ByteString, ByteString> store;
-  private S3StoreResources resources;
 
   @BeforeEach
-  final void create_test_bucket() {
-    var ledgerId = UUID.randomUUID().toString().substring(0, ID_LENGTH);
-    var tableId = UUID.randomUUID().toString().substring(0, ID_LENGTH);
+  void createStore() throws Exception {
+    var pg = EmbeddedPostgres.builder().start();
+    pg.getPostgresDatabase().setLogWriter(new PrintWriter(System.out, true));
+    var connection = pg.getPostgresDatabase().getConnection();
+    Flyway.configure().locations("classpath:migrations/store").dataSource(pg.getPostgresDatabase()).load().migrate();
 
-    SdkAsyncHttpClient httpClient = NettyNioAsyncHttpClient.builder().maxConcurrency(NETTY_MAX_CONCURRENCY).build();
-
-    var clientBuilder = S3AsyncClient.builder().httpClient(httpClient).region(Region.EU_WEST_2)
-        .credentialsProvider(DefaultCredentialsProvider.builder().build());
-
-    this.resources = new S3StoreResources(clientBuilder.build(), ledgerId, tableId);
-
-    resources.ensureResources();
-
-    this.store = S3Store.forClient(clientBuilder).forStore(ledgerId).forTable(tableId).build();
-  }
-
-  @AfterEach
-  final void destroy_test_bucket() {
-    resources.destroyResources();
+    store = new PostgresStore(connection);
   }
 
   @Test
@@ -85,7 +66,7 @@ class S3StoreIntegrationTest {
 
   @Test
   void single_item_put_and_get_are_symmetric() throws StoreWriteException, StoreReadException {
-    byte[] array = new byte[4000];
+    byte[] array = new byte[512];
     new Random().nextBytes(array);
 
     final var k = Key.of(ByteString.copyFrom(array));
@@ -126,7 +107,11 @@ class S3StoreIntegrationTest {
 
     compareUpserted(map, sortedkeys, rx);
 
-    // Put it again, will issue update
+    for (var kv : map.entrySet()) {
+      kv.setValue(Value.of(ByteString.copyFromUtf8("data2")));
+    }
+
+    // Put it again
     store.put(new ArrayList<>(map.entrySet()));
     var rx2 = store.get(sortedkeys);
 

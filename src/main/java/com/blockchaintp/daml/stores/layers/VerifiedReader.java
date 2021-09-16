@@ -19,8 +19,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import javax.xml.bind.DatatypeConverter;
-
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
@@ -34,7 +32,7 @@ import com.google.protobuf.ByteString;
 public class VerifiedReader implements StoreReader<ByteString, ByteString> {
 
   private final Store<ByteString, ByteString> refStore;
-  private final Store<String, byte[]> blobStore;
+  private final Store<ByteString, ByteString> blobStore;
 
   /**
    * Construct a VerifiedReader around the provided stores.
@@ -44,7 +42,7 @@ public class VerifiedReader implements StoreReader<ByteString, ByteString> {
    * @param blobs
    *          the blob store which masters the Hash->Value map.
    */
-  public VerifiedReader(final Store<ByteString, ByteString> refstore, final Store<String, byte[]> blobs) {
+  public VerifiedReader(final Store<ByteString, ByteString> refstore, final Store<ByteString, ByteString> blobs) {
     this.refStore = refstore;
     this.blobStore = blobs;
   }
@@ -57,16 +55,16 @@ public class VerifiedReader implements StoreReader<ByteString, ByteString> {
   @Override
   public final Map<Key<ByteString>, Value<ByteString>> get(final List<Key<ByteString>> listOfKeys)
       throws StoreReadException {
-    var refKeys = refStore.get(listOfKeys).entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
-        v -> DatatypeConverter.printHexBinary(v.getValue().toNative().toByteArray())));
+    var refKeys = refStore.get(listOfKeys).entrySet().stream()
+        .collect(Collectors.toMap(Map.Entry::getKey, v -> v.getValue().toNative()));
 
     var values = blobStore.get(refKeys.values().stream().map(Key::of).collect(Collectors.toList()));
 
-    var retMap = new HashMap<Key<ByteString>, Value<ByteString>>();
+    HashMap<Key<ByteString>, Value<ByteString>> retMap = new HashMap<>();
 
     for (var kv : refKeys.entrySet()) {
       if (values.containsKey((Key.of(kv.getValue())))) {
-        retMap.put(kv.getKey(), values.get(Key.of(kv.getValue())).map(ByteString::copyFrom));
+        retMap.put(kv.getKey(), values.get(Key.of(kv.getValue())));
       }
     }
 

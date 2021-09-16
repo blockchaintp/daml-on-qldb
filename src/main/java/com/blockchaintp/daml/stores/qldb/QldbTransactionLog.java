@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -63,9 +64,10 @@ import software.amazon.qldb.QldbDriver;
  * daml_tx_seq: s: Long sequence field, indexed d: docid of a daml_tx_log entry
  */
 public final class QldbTransactionLog implements TransactionLog<UUID, ByteString, Long> {
-  private static final Long PAGE_SIZE = 40L;
+  private static final Long PAGE_SIZE = 100L;
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(QldbTransactionLog.class);
   private static final String ID_FIELD = "i";
+  private static final String COMPLETE_FIELD = "c";
   private static final String SEQ_FIELD = "s";
   private static final String DOCID_FIELD = "d";
   private static final String DATA_FIELD = "v";
@@ -105,19 +107,42 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
   @Override
   public UUID begin() throws StoreWriteException {
     tables.checkTables();
+    ensureSequence();
+    var next = seqSource.takeNext();
     var uuid = UUID.randomUUID();
     LOG.info("Begin transaction {}", () -> uuid);
-    try {
-      var uuidBytes = UuidConverter.asBytes(uuid);
+    var uuidBytes = UuidConverter.asBytes(uuid);
 
+    try {
       driver.execute(tx -> {
         var struct = ion.newEmptyStruct();
         struct.add(ID_FIELD, ion.newBlob(uuidBytes));
-        tx.execute(String.format("insert into %s value ?", txLogTable), struct);
+        struct.add(COMPLETE_FIELD, ion.newBool(false));
+        var query = String.format("insert into %s value ?", txLogTable);
+        var r = tx.execute(query, struct);
+
+        if (r.isEmpty()) {
+          throw create("", QldbTransactionException.noMetadata(query));
+        }
+
+        var metaData = (IonStruct) r.iterator().next();
+        var docid = metaData.get("documentId");
+
+        if (docid == null || docid instanceof IonNull) {
+          throw create("", QldbTransactionException.invalidSchema(metaData));
+        }
+
+        var seq = ion.newEmptyStruct();
+        seq.add(SEQ_FIELD, ion.newInt(next));
+        seq.add(DOCID_FIELD, ion.newString(((IonString) docid).stringValue()));
+
+        tx.execute(String.format("insert into %s value ?", seqTable), seq);
+
       });
     } catch (QldbException e) {
       throw new StoreWriteException(e);
     }
+
     return uuid;
   }
 
@@ -139,16 +164,17 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
     }
   }
 
-  private Long ensureSequence() throws QldbSessionException {
+  private Optional<Long> ensureSequence() throws QldbSessionException {
     tables.checkTables();
     if (seqSource != null) {
-      return seqSource.peekNext();
+      return Optional.of(seqSource.head());
     }
 
     return driver.execute(tx -> {
       var res = tx.execute(String.format("select max(%s) from %s", SEQ_FIELD, seqTable));
       if (res.isEmpty()) {
         this.seqSource = new QldbTxSeq(-1L);
+        return Optional.empty();
       } else {
         var s = (IonStruct) res.iterator().next();
 
@@ -161,14 +187,14 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
         if (v instanceof IonNull) {
           LOG.info("No MAX seq found");
           this.seqSource = new QldbTxSeq(-1L);
+          return Optional.empty();
         } else {
           var i = (IonInt) s.get("_1");
           LOG.info("MAX seq found {}", i::longValue);
           this.seqSource = new QldbTxSeq(i.longValue());
-
+          return Optional.of(i.longValue());
         }
       }
-      return seqSource.peekNext();
     });
   }
 
@@ -177,39 +203,43 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
     tables.checkTables();
     LOG.info("Commit transaction {}", () -> txId);
     try {
-      ensureSequence();
 
       var uuidBytes = UuidConverter.asBytes(txId);
 
-      driver.execute((ExecutorNoReturn) tx -> API.unchecked(() -> {
-        var query = String.format("select metadata.id from _ql_committed_%s as o where o.data.%s = ?", txLogTable,
-            ID_FIELD);
-        var r = tx.execute(query, ion.newBlob(uuidBytes));
+      return driver.execute(tx -> {
+        tx.execute(String.format("update %s as o set %s = ? where o.%s = ?", txLogTable, COMPLETE_FIELD, ID_FIELD),
+            ion.newBool(true), ion.newBlob(uuidBytes));
 
-        if (r.isEmpty()) {
-          throw new StoreWriteException(QldbTransactionException.noMetadata(query));
+        var query = String.format("select s.%s from %s as s, %s as d BY d_id where d_id = s.%s and d.%s = ?", SEQ_FIELD,
+            seqTable, txLogTable, DOCID_FIELD, ID_FIELD);
+
+        LOG.debug("Query {}", query);
+
+        var rx = tx.execute(query, ion.newBlob(uuidBytes));
+
+        if (rx.isEmpty()) {
+          throw create("", QldbTransactionException.noMetadata(query));
         }
 
-        var metaData = (IonStruct) r.iterator().next();
-        var docid = metaData.get("id");
+        var res = rx.iterator().next();
 
-        if (docid == null || docid instanceof IonNull) {
-          throw new StoreWriteException(QldbTransactionException.invalidSchema(metaData));
+        if (res instanceof IonStruct) {
+          var ress = (IonStruct) res;
+
+          var seq = ress.get(SEQ_FIELD);
+
+          if (!(seq instanceof IonInt)) {
+            throw create("", QldbTransactionException.invalidSchema(res));
+          }
+
+          return ((IonInt) seq).longValue();
         }
 
-        var struct = ion.newEmptyStruct();
-        struct.add(SEQ_FIELD, ion.newInt(seqSource.peekNext()));
-        struct.add(DOCID_FIELD, ion.newString(((IonString) docid).stringValue()));
-
-        tx.execute(String.format("insert into %s value ?", seqTable), struct);
-
-        return null;
-      }).get());
+        throw create("", QldbTransactionException.invalidSchema(res));
+      });
     } catch (QldbException e) {
       throw new StoreWriteException(e);
     }
-
-    return seqSource.takeNext();
   }
 
   @Override
@@ -245,45 +275,44 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
     LOG.info("From {}  to {}", startExclusive, endInclusive);
     tables.checkTables();
 
-    var queryPattern = "select s.%s,d.%s,d.%s from %s as d BY d_id, %s as s where d_id = s.%s and s.%s in ( %s )";
+    var qP = "select s.%s,d.%s,d.%s from %s as d BY d_id, %s as s where d_id = s.%s and d.%s = true and s.%s in ( %s )";
 
     var rx = new Iterator<Tuple3<Long, UUID, ByteString>>() {
-      private Long taken = 0L;
+      private Long position = startExclusive;
       private Deque<Tuple3<Long, UUID, ByteString>> currentPage;
 
       private Deque<Tuple3<Long, UUID, ByteString>> nextPage(final LongStream range) {
+        var ids = range.mapToObj((long x) -> String.format("%d", x)).collect(Collectors.joining(","));
         return driver.execute(tx -> {
-          var ids = range.mapToObj((long x) -> String.format("%d", x)).collect(Collectors.joining(","));
-
           LOG.info("Querying for page ({})", () -> ids);
 
           if (ids.isEmpty()) {
             return new ArrayDeque<>();
           }
-          var query = String.format(queryPattern, SEQ_FIELD, ID_FIELD, DATA_FIELD, txLogTable, seqTable, DOCID_FIELD,
-              SEQ_FIELD, ids);
+          var query = String.format(qP, SEQ_FIELD, ID_FIELD, DATA_FIELD, txLogTable, seqTable, DOCID_FIELD,
+              COMPLETE_FIELD, SEQ_FIELD, ids);
           var r = tx.execute(query);
 
-          var page = StreamSupport.stream(r.spliterator(), false).map(x -> API.unchecked(() -> fromResult(x)).get())
+          return StreamSupport.stream(r.spliterator(), false).map(x -> API.unchecked(() -> fromResult(x)).get())
               .sorted(Comparator.comparingLong(x -> x._1)).map(x -> Tuple.of(x._1, x._2.getKey(), x._2.getValue()))
               .collect(Collectors.toCollection(ArrayDeque::new));
-
-          LOG.info("Found {} records", page::size);
-          return page;
         });
       }
 
       @Override
       public boolean hasNext() {
-        long toFetch = PAGE_SIZE;
+        var toFetch = PAGE_SIZE;
+
         if (endInclusive.isPresent()) {
-          toFetch = endInclusive.get() - (startExclusive + taken);
+          toFetch = Math.min(PAGE_SIZE, endInclusive.get() - position);
         }
+
         if (toFetch <= 0) {
           return false;
         }
+
         if (currentPage == null || currentPage.isEmpty()) {
-          currentPage = nextPage(LongStream.range(startExclusive + taken, startExclusive + toFetch + 1));
+          currentPage = nextPage(LongStream.range(position + 1, position + toFetch + 1));
         }
 
         return !currentPage.isEmpty();
@@ -294,8 +323,11 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
         if (!hasNext()) {
           throw new NoSuchElementException();
         }
-        taken = taken + 1;
-        return currentPage.remove();
+        var next = currentPage.remove();
+
+        position = next._1;
+
+        return next;
       }
 
       @SuppressWarnings("EmptyMethod")
@@ -310,16 +342,12 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
       }
     };
 
-    return StreamSupport.stream(Spliterators.spliteratorUnknownSize(rx, 0), false);
+    return StreamSupport.stream(Spliterators.spliteratorUnknownSize(rx,
+        Spliterator.IMMUTABLE | Spliterator.DISTINCT | Spliterator.ORDERED | Spliterator.NONNULL), false);
   }
 
   @Override
   public Optional<Long> getLatestOffset() {
-    var next = ensureSequence();
-    if (next == -1) {
-      return Optional.empty();
-    }
-
-    return Optional.of(ensureSequence() - 1);
+    return ensureSequence();
   }
 }

@@ -9,7 +9,7 @@ CLEAN_DIRS := $(CLEAN_DIRS) test-dars
 
 export LEDGER_NAME = $(ISOLATION_ID)
 
-clean: clean_mvn clean_dirs_daml clean_containers clean_aws
+clean: clean_dirs_daml clean_containers clean_aws
 
 distclean: clean_docker clean_dirs_daml clean_markers
 
@@ -17,9 +17,7 @@ build: $(MARKERS)/build_mvn $(MARKERS)/build_ledgertest
 
 package: $(MARKERS)/package_mvn $(MARKERS)/package_docker
 
-# TODO: Integration tests are not yet ready
-# test: $(MARKERS)/test_mvn $(MARKERS)/test_daml
-test: $(MARKERS)/test_mvn ${}
+test: $(MARKERS)/test_mvn $(MARKERS)/test_daml
 
 test_daml: $(MARKERS)/test_daml ${}
 
@@ -84,13 +82,10 @@ clean_docker:
 	docker-compose -p $(ISOLATION_ID) -f docker/daml-test.yaml down \
 		-v --rmi all || true
 
+
 .PHONY: clean_aws
 clean_aws:
 	docker run --rm -e AWS_REGION -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY \
 		--entrypoint /bin/bash amazon/aws-cli:latest \
 		-c "aws qldb delete-ledger \
-			--name ${ISOLATION_ID}" || true
-	docker run --rm -e AWS_REGION -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY \
-		--entrypoint /bin/bash amazon/aws-cli:latest \
-		-c "aws s3 rb s3://valuestore-${ISOLATION_ID} \
-			--force" || true
+			--name ${ISOLATION_ID::-1} --region ${AWS_REGION}" || true

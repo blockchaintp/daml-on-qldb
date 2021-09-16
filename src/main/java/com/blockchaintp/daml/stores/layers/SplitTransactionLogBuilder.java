@@ -33,17 +33,16 @@ import com.google.protobuf.ByteString;
 public class SplitTransactionLogBuilder {
   private UnaryOperator<byte[]> hashFn;
   private final TransactionLog<UUID, ByteString, Long> txLog;
-  private final Store<String, byte[]> blobs;
+  private final Store<ByteString, ByteString> blobs;
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private Optional<Integer> cacheSize = Optional.empty();
 
   /**
-   *
    * @param theTxLog
    * @param theBlobs
    */
   public SplitTransactionLogBuilder(final TransactionLog<UUID, ByteString, Long> theTxLog,
-      final Store<String, byte[]> theBlobs) {
+      final Store<ByteString, ByteString> theBlobs) {
     txLog = theTxLog;
     blobs = theBlobs;
     this.hashFn = bytes -> {

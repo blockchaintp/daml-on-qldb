@@ -31,7 +31,7 @@ class SplitTransactionLogTest {
   @Test
   void commit_writes_records() throws StoreWriteException, StoreReadException {
     var txLog = new com.blockchaintp.daml.stores.StubTransactionLog();
-    var blobStore = new com.blockchaintp.daml.stores.StubStore<String, byte[]>();
+    var blobStore = new com.blockchaintp.daml.stores.StubStore<ByteString, ByteString>();
 
     var splitLog = new SplitTransactionLog(txLog, blobStore, x -> new byte[] { 'o', 'k' });
 
@@ -45,7 +45,7 @@ class SplitTransactionLogTest {
     Assertions.assertArrayEquals(new byte[] { 'o', 'k' }, txLog.inprogress.get(uid).toByteArray());
 
     Assertions.assertArrayEquals(ByteString.copyFromUtf8("test").toByteArray(),
-        blobStore.get(Key.of("6F6B")).get().toNative());
+        blobStore.get(Key.of(ByteString.copyFromUtf8("ok"))).get().toNative().toByteArray());
 
     /// Committing should make the log entry available for streaming
     splitLog.commit(uid);

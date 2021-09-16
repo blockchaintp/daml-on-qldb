@@ -19,9 +19,7 @@ import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.address.LedgerAddress;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.TransactionLog;
-import com.daml.ledger.participant.state.v1.Configuration;
 import com.daml.lf.engine.Engine;
-import com.daml.logging.LoggingContext;
 import com.daml.metrics.Metrics;
 import com.daml.platform.akkastreams.dispatcher.Dispatcher;
 import com.google.protobuf.ByteString;
@@ -36,9 +34,11 @@ public final class InProcLedgerSubmitterBuilder<I extends Identifier, A extends 
   private TransactionLog<UUID, ByteString, Long> txLog;
   private Engine engine;
   private Metrics metrics;
-  private LoggingContext loggingContext;
-  private Configuration configuration;
   private Dispatcher<Long> dispatcher;
+  private static final int MAX_CONCURRENT = 50;
+  private int maxConcurrent = MAX_CONCURRENT;
+  private static final int SLOW_CALL_DURATION = 20000;
+  private long slowCallDuration = SLOW_CALL_DURATION;
 
   /**
    *
@@ -84,29 +84,33 @@ public final class InProcLedgerSubmitterBuilder<I extends Identifier, A extends 
   }
 
   /**
+   * Slow call duration, concurrent calls over this time will open the circuit breaker and cause back
+   * pressure.
    *
-   * @param theLoggingContext
+   * @param duration
    * @return A configured builder.
    */
-  public InProcLedgerSubmitterBuilder<I, A> withLoggingContext(final LoggingContext theLoggingContext) {
-    loggingContext = theLoggingContext;
+  public InProcLedgerSubmitterBuilder<I, A> withSlowCall(final int duration) {
+    slowCallDuration = duration;
+
     return this;
   }
 
   /**
+   * The maximum number of concurrently executing ledger submissions before backpressure is applied.
    *
-   * @param theConfiguration
+   * @param max
    * @return A configured builder.
    */
-  public InProcLedgerSubmitterBuilder<I, A> withConfiguration(final Configuration theConfiguration) {
-    configuration = theConfiguration;
+  public InProcLedgerSubmitterBuilder<I, A> withMaxThroughput(final int max) {
+    maxConcurrent = max;
     return this;
   }
 
   /**
    *
    * @param theDispatcher
-   * @return A confdigured builder.
+   * @return A configured t builder.
    */
   public InProcLedgerSubmitterBuilder<I, A> withDispatcher(final Dispatcher<Long> theDispatcher) {
     dispatcher = theDispatcher;
@@ -118,9 +122,9 @@ public final class InProcLedgerSubmitterBuilder<I extends Identifier, A extends 
    *
    * @return A configured ledger sumbitter.
    */
-  public InProcLedgerSubmitter<I, A> build() {
-
-    return new InProcLedgerSubmitter<>(engine, metrics, txLog, stateStore, dispatcher, configuration, loggingContext);
+  public LedgerSubmitter<I, A> build() {
+    var inproc = new InProcLedgerSubmitter<I, A>(engine, metrics, txLog, stateStore, dispatcher);
+    return new LedgerSubmitterBulkhead<>(inproc, maxConcurrent, slowCallDuration);
   }
 
 }

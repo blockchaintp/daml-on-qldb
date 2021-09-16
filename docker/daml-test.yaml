@@ -21,7 +21,10 @@ services:
     image: postgres
     environment:
       - POSTGRES_HOST_AUTH_METHOD=trust
-
+      - POSTGRES_USER=postgres
+    volumes:
+        # copy the sql script to create tables
+        - ./sql/create_databases.sql:/docker-entrypoint-initdb.d/create_databases.sql
   daml-on-qldb:
     image: daml-on-qldb:${ISOLATION_ID}
     environment:
@@ -38,9 +41,11 @@ services:
       env;
       /opt/daml-on-qldb/entrypoint.sh  \
         --createaws true \
-        --region AWS_REGION \
+        --region $$AWS_REGION \
         --ledger $$LEDGER_NAME \
-        --participant participant-id=test-participant,port=9000 \
+        --statestore \"jdbc:postgresql://postgres/damlstate?user=postgres\" \
+        --txlogstore \"jdbc:postgresql://postgres/txblobs?user=postgres\" \
+        --participant participant-id=test-participant,port=9000,address=0.0.0.0 \
         `ls /opt/daml-on-qldb/dar/*.dar`\""
     volumes:
       - /dev/urandom:/dev/random
@@ -62,24 +67,24 @@ services:
     # TransactionServiceIT - not clear why this fails, certain tests report "RESOURCE_EXHAUSTED" and thats all we get so
     #                        far
     entrypoint: "bash -xc \"\
-      sleep 60 && \
+      sleep 120  && \
       java -jar ledger-api-test-tool.jar \
-        --timeout-scale-factor 10 \
-        --concurrent-test-runs 1 \
+        --timeout-scale-factor 1 \
+        --concurrent-test-runs 8 \
         daml-on-qldb:9000 \
         || \
       java -jar ledger-api-test-tool.jar \
-        --timeout-scale-factor 10 \
-        --concurrent-test-runs 1 \
+        --timeout-scale-factor 1 \
+        --concurrent-test-runs 4 \
         daml-on-qldb:9000 \
         || \
       java -jar ledger-api-test-tool.jar \
-        --timeout-scale-factor 10 \
-        --concurrent-test-runs 1 \
+        --timeout-scale-factor 1 \
+        --concurrent-test-runs 2 \
         daml-on-qldb:9000 \
         || \
       java -jar ledger-api-test-tool.jar \
-        --timeout-scale-factor 10 \
+        --timeout-scale-factor 1 \
         --concurrent-test-runs 1 \
         daml-on-qldb:9000 \
         \""
