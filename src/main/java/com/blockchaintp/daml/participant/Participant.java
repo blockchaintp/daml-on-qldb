@@ -113,8 +113,10 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
     Ordering<Long> scalaLongOrdering = scala.math.Ordering
         .comparatorToOrdering(Comparator.comparingLong(scala.Long::unbox));
 
+    /// Documentation says that s is exclusive start, but this does not seem to be the required
+    /// behaviour
     var rangeSource = new RangeSource<>((s, e) -> Source
-        .fromJavaStream(() -> API.unchecked(() -> txLog.from(s - 1, Optional.of(e))).apply()
+        .fromJavaStream(() -> API.unchecked(() -> txLog.from(s - 1, Optional.of(e - 1))).apply()
             .map(r -> Tuple2.apply(r._1, LedgerRecord.apply(OffsetBuilder.fromLong(r._1, 0, 0), r._2, r._3))))
         .mapMaterializedValue(m -> NotUsed.notUsed()).asScala(), scalaLongOrdering);
 

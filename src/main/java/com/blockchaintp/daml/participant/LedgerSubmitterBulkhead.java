@@ -40,6 +40,7 @@ import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 public final class LedgerSubmitterBulkhead<A extends Identifier, B extends LedgerAddress>
     implements LedgerSubmitter<A, B> {
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(LedgerSubmitterBulkhead.class);
+  private static final int MINIMUM_NUMBER_OF_CALLS = 100;
   private final LedgerSubmitter<A, B> inner;
   private final CircuitBreaker circuitBreaker;
   private final Bulkhead bulkhead;
@@ -54,10 +55,13 @@ public final class LedgerSubmitterBulkhead<A extends Identifier, B extends Ledge
     inner = theInner;
     // Create a CircuitBreaker with default configuration
     circuitBreaker = CircuitBreaker.of("ledger-submitter",
-        CircuitBreakerConfig.custom().slowCallDurationThreshold(Duration.ofMillis(slowCallDuration)).build());
+        CircuitBreakerConfig.custom().enableAutomaticTransitionFromOpenToHalfOpen()
+            .minimumNumberOfCalls(MINIMUM_NUMBER_OF_CALLS)
+            .slowCallDurationThreshold(Duration.ofMillis(slowCallDuration)).build());
 
     circuitBreaker.getEventPublisher()
-        .onStateTransition(r -> LOG.info("Ledger submitted curcuit breaker state", r.toString()));
+        .onCallNotPermitted(r -> LOG.info("Ledger submitted circuit breaker deny call {}", r))
+        .onStateTransition(r -> LOG.info("Ledger submitted circuit breaker state", r.toString()));
 
     // Create a Bulkhead with default configuration
     bulkhead = Bulkhead.of("ledger-submitter", BulkheadConfig.custom().maxConcurrentCalls(maxConcurrent).build());

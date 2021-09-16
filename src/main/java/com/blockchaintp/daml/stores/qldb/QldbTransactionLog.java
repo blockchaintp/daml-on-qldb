@@ -164,16 +164,17 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
     }
   }
 
-  private Long ensureSequence() throws QldbSessionException {
+  private Optional<Long> ensureSequence() throws QldbSessionException {
     tables.checkTables();
     if (seqSource != null) {
-      return seqSource.head();
+      return Optional.of(seqSource.head());
     }
 
     return driver.execute(tx -> {
       var res = tx.execute(String.format("select max(%s) from %s", SEQ_FIELD, seqTable));
       if (res.isEmpty()) {
         this.seqSource = new QldbTxSeq(-1L);
+        return Optional.empty();
       } else {
         var s = (IonStruct) res.iterator().next();
 
@@ -186,14 +187,14 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
         if (v instanceof IonNull) {
           LOG.info("No MAX seq found");
           this.seqSource = new QldbTxSeq(-1L);
+          return Optional.empty();
         } else {
           var i = (IonInt) s.get("_1");
           LOG.info("MAX seq found {}", i::longValue);
           this.seqSource = new QldbTxSeq(i.longValue());
-
+          return Optional.of(i.longValue());
         }
       }
-      return seqSource.head();
     });
   }
 
@@ -306,6 +307,10 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
           toFetch = Math.min(PAGE_SIZE, endInclusive.get() - position);
         }
 
+        if (toFetch <= 0) {
+          return false;
+        }
+
         if (currentPage == null || currentPage.isEmpty()) {
           currentPage = nextPage(LongStream.range(position + 1, position + toFetch + 1));
         }
@@ -343,11 +348,6 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
 
   @Override
   public Optional<Long> getLatestOffset() {
-    var next = ensureSequence();
-    if (next == -1) {
-      return Optional.empty();
-    }
-
-    return Optional.of(ensureSequence() - 1);
+    return ensureSequence();
   }
 }

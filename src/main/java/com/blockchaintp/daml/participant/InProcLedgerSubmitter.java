@@ -108,6 +108,8 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
             () -> logEntryIdToDamlLogEntryId(Functions.uncheckFn(writer::begin).apply()), false,
             new StateCache<>(new LRUCache<>(STATE_CACHE_SIZE)), theEngine, theMetrics, false),
         r -> {
+          /// New head should be end of sequence, i.e. one past the actual head. This should really have a
+          /// nicer type
           LOG.info("Signal new head {}", () -> r + 1);
           dispatcher.signalNewHead(r + 1);
           return BoxedUnit.UNIT;
@@ -128,6 +130,8 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
           if (x == SubmissionResult.NotSupported$.MODULE$) {
             return SubmissionStatus.REJECTED;
           }
+
+          LOG.info("Overloaded {} {} ", cp.getCorrelationId(), x);
           return SubmissionStatus.OVERLOADED;
         }).toCompletableFuture();
   }

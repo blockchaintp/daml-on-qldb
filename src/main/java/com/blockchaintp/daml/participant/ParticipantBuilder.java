@@ -118,11 +118,13 @@ public final class ParticipantBuilder<I extends Identifier, A extends LedgerAddr
       throw new BuilderException("Participant requires a configured submitter builder");
     }
 
+    /// Log offset is the offset of the last written log, daml wants a head indicator - the end of the
+    /// stream
     var logOffset = txLog.getLatestOffset();
 
     LOG.info("Ledger head at {}", () -> logOffset);
     /// Defer this construction
-    var dispatcher = Dispatcher$.MODULE$.apply("daml-on-qldb", -1L, logOffset.orElse(-1L),
+    var dispatcher = Dispatcher$.MODULE$.apply("daml-on-qldb", 0L, logOffset.map(x -> x + 1).orElse(0L),
         scala.math.Ordering.comparatorToOrdering(Long::compare));
 
     return new Participant<>(txLog, commitPayloadBuilder, submitterBuilder.withDispatcher(dispatcher).build(), ledgerId,
