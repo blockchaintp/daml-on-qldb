@@ -43,8 +43,8 @@ services:
         --createaws true \
         --region $$AWS_REGION \
         --ledger $$LEDGER_NAME \
-        --statestore \"jdbc:postgresql://postgres/damlstate?user=postgres\" \
-        --txlogstore \"jdbc:postgresql://postgres/txblobs?user=postgres\" \
+        --statestore \"jdbc:postgresql://postgres/qldb_damlstate?user=postgres\" \
+        --txlogstore \"jdbc:postgresql://postgres/qldb_txblobs?user=postgres\" \
         --participant participant-id=test-participant,port=9000,address=0.0.0.0 \
         `ls /opt/daml-on-qldb/dar/*.dar`\""
     volumes:
@@ -53,9 +53,8 @@ services:
       - ../test-dars:/opt/daml-on-qldb/dar/
     depends_on:
       - postgres
-
   # Run the integration tests at most twice to compensate for "piming the pump"
-  ledger-api-testtool:
+  ledger-api-testtool-qldb:
     image: ledger-api-testtool:${ISOLATION_ID}
     # LotsOfPartiesIT - excluded since tests in there doesn't respect the concurrent runs, and just
     #                   blast a ton of concurrent requests, which though they get processes, cannot currently(possibly)
@@ -70,21 +69,29 @@ services:
       sleep 120  && \
       java -jar ledger-api-test-tool.jar \
         --timeout-scale-factor 1 \
+        --exclude RaceConditionIT \
+        --exclude SemanticTests:SemanticConcurrentDoubleSpend \
         --concurrent-test-runs 8 \
         daml-on-qldb:9000 \
         || \
       java -jar ledger-api-test-tool.jar \
         --timeout-scale-factor 1 \
+        --exclude RaceConditionIT \
+        --exclude SemanticTests:SemanticConcurrentDoubleSpend \
         --concurrent-test-runs 4 \
         daml-on-qldb:9000 \
         || \
       java -jar ledger-api-test-tool.jar \
         --timeout-scale-factor 1 \
+        --exclude RaceConditionIT \
+        --exclude SemanticTests:SemanticConcurrentDoubleSpend \
         --concurrent-test-runs 2 \
         daml-on-qldb:9000 \
         || \
       java -jar ledger-api-test-tool.jar \
         --timeout-scale-factor 1 \
+        --exclude RaceConditionIT \
+        --exclude SemanticTests:SemanticConcurrentDoubleSpend \
         --concurrent-test-runs 1 \
         daml-on-qldb:9000 \
         \""

@@ -373,7 +373,7 @@ clean_mvn: $(MARKERS)/build_toolchain_docker
 # configuration.
 ##
 $(MARKERS)/test_mvn: $(MARKERS)/build_toolchain_docker
-	$(DOCKER_MVN) -DskipTests=false test
+	$(DOCKER_MVN) test -DskipTests=false
 	@touch $@
 
 $(MARKERS)/test_go: $(MARKERS)/build_toolchain_docker

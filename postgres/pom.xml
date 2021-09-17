@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<parent>
+  <artifactId>daml-on</artifactId>
+  <groupId>daml-on</groupId>
+  <version>0.1.5-SNAPSHOT</version>
+</parent>
+<packaging>jar</packaging>
+<modelVersion>4.0.0</modelVersion>
+<artifactId>${project.groupId}-postgres</artifactId>
+<name>${project.groupId}-${project.artifactId}</name>
+<description>Daml with a postgres backend</description>
+
+<properties>
+  <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  <scala.lang.version>2.13</scala.lang.version>
+</properties>
+
+
+
+  <dependencies>
+    <dependency>
+      <groupId>daml-on</groupId>
+      <artifactId>core</artifactId>
+      <version>${project.parent.version}</version>
+    </dependency>
+  <!-- Logging -->
+  <dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-api</artifactId>
+  </dependency>
+
+  <!-- Logging -->
+  <!-- SLF4J Bindings should only be included in "main" projects and test scope -->
+  <dependency>
+    <groupId>ch.qos.logback</groupId>
+    <artifactId>logback-classic</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>ch.qos.logback</groupId>
+    <artifactId>logback-core</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-api</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>kr.pe.kwonnam.slf4j-lambda</groupId>
+    <artifactId>slf4j-lambda-core</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>log4j-over-slf4j</artifactId>
+  </dependency>
+
+  <!-- Rx -->
+  <dependency>
+    <groupId>io.reactivex.rxjava3</groupId>
+    <artifactId>rxjava</artifactId>
+  </dependency>
+  <!-- AWS -->
+  <dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>netty-nio-client</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>s3</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>qldb</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>software.amazon.qldb</groupId>
+    <artifactId>amazon-qldb-driver-java</artifactId>
+  </dependency>
+
+  <!-- DAML Dependencies -->
+  <dependency>
+    <groupId>com.google.protobuf</groupId>
+    <artifactId>protobuf-java</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>com.daml</groupId>
+    <artifactId>participant-state_${scala.lang.version}</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>com.daml</groupId>
+    <artifactId>ledger-api-auth_${scala.lang.version}</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>com.daml</groupId>
+    <artifactId>participant-state-kvutils_${scala.lang.version}</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>com.daml</groupId>
+    <artifactId>participant-state-kvutils-app_${scala.lang.version}</artifactId>
+  </dependency>
+
+  <!-- Resilience -->
+  <dependency>
+    <groupId>io.github.resilience4j</groupId>
+    <artifactId>resilience4j-all</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>io.github.resilience4j</groupId>
+    <artifactId>resilience4j-retry</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>io.github.resilience4j</groupId>
+    <artifactId>resilience4j-circuitbreaker</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>io.github.resilience4j</groupId>
+    <artifactId>resilience4j-bulkhead</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>io.github.resilience4j</groupId>
+    <artifactId>resilience4j-rxjava3</artifactId>
+  </dependency>
+</dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <addClasspath>true</addClasspath>
+              <classpathPrefix>lib/</classpathPrefix>
+              <mainClass>com.blockchaintp.daml.postgres.Main</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>3.3.0</version>
+        <configuration>
+          <descriptors>
+            <descriptor>src/main/assembly/assembly.xml</descriptor>
+          </descriptors>
+        </configuration>
+        <executions>
+          <execution>
+            <id>make-assembly</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+    </plugins>
+  </build>
+</project>

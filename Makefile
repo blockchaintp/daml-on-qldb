@@ -59,11 +59,11 @@ $(MARKERS)/test_daml: $(MARKERS)/package_docker
 	docker-compose -p $(ISOLATION_ID) -f docker/daml-test.yaml down \
 		-v || true
 	docker-compose -p $(ISOLATION_ID) -f docker/daml-test.yaml up \
-		--exit-code-from ledger-api-testtool || true
-	docker logs $(ISOLATION_ID)_ledger-api-testtool_1 | \
+		--exit-code-from ledger-api-testtool-qldb || true
+	docker logs $(ISOLATION_ID)_ledger-api-testtool-qldb_1 | \
 		sed -r "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2})?)?[mGK]//g" \
-		> build/results.txt 2>&1
-	./run_tests ./build/results.txt DAML > build/daml-test.results
+		> build/results_qldb.txt 2>&1
+	./run_tests ./build/results_qldb.txt DAML > build/daml-on-qldb-test.results
 	docker-compose -p $(ISOLATION_ID) -f docker/daml-test.yaml down \
 		|| true
 	touch $@
@@ -82,10 +82,12 @@ clean_docker:
 	docker-compose -p $(ISOLATION_ID) -f docker/daml-test.yaml down \
 		-v --rmi all || true
 
+# Truncate ledger id to 31 chars, a qldb limit
+CLIPPED=$(shell echo $(ISOLATION_ID)| sed 's/^\(.\{31\}\).*/\1/g')
 
 .PHONY: clean_aws
 clean_aws:
 	docker run --rm -e AWS_REGION -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY \
 		--entrypoint /bin/bash amazon/aws-cli:latest \
 		-c "aws qldb delete-ledger \
-			--name ${ISOLATION_ID::-1} --region ${AWS_REGION}" || true
+			--name ${CLIPPED} --region ${AWS_REGION}" || true

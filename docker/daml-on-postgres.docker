@@ -1,4 +1,4 @@
-# Copyright 2019 Blockchain Techology Partners
+# Copyright 2019 Blockchain Technology Partners
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,25 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-version: '2.1'
+FROM openjdk:11-jre
 
-services:
+COPY ./postgres/target/daml-on-postgres-*-bin.zip /opt
 
+WORKDIR /opt
+RUN unzip -x daml-on-postgres-*-bin.zip && rm -f daml-on-postgres-*-bin.zip && mv daml-on-postgres-* daml-on-postgres
 
-  daml-on-qldb:
-    build:
-      context: .
-      dockerfile: docker/daml-on-qldb.docker
-    image: daml-on-qldb:${ISOLATION_ID}
-    container_name: daml-on-qldb
-    volumes:
-      - ./:/project
-
-  daml-on-postgres:
-    build:
-      context: .
-      dockerfile: docker/daml-on-postgres.docker
-    image: daml-on-postgres:${ISOLATION_ID}
-    container_name: daml-on-postgres
-    volumes:
-      - ./:/project
+WORKDIR /opt/daml-on-postgres
+RUN chmod 755 entrypoint.sh
+#TO-DO remember to include environmental variable for injection as arguments
+ENTRYPOINT /opt/daml-on-postgres/entrypoint.sh $@

@@ -3,12 +3,17 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>daml-on-qldb</groupId>
-  <artifactId>daml-on-qldb</artifactId>
+  <groupId>daml-on</groupId>
+  <artifactId>daml-on</artifactId>
   <version>0.1.5-SNAPSHOT</version>
-  <name>DAML on QLDB</name>
-  <packaging>jar</packaging>
-  <description>Implementation of DAML SDK with a QLDB backend</description>
+  <modules>
+    <module>core</module>
+    <module>qldb</module>
+    <module>postgres</module>
+  </modules>
+  <name>DAML on core</name>
+  <packaging>pom</packaging>
+  <description>Library support for daml ledger implementation to multiple backends</description>
   <profiles>
     <profile>
       <id>default</id>
@@ -49,18 +54,6 @@
             <version>2.8.1</version>
           </plugin>
           <plugin>
-            <artifactId>maven-jar-plugin</artifactId>
-            <configuration>
-              <classifier>jdk8</classifier>
-              <archive>
-                <manifest>
-                  <addClasspath>true</addClasspath>
-                  <mainClass>com.blockchaintp.daml.qldb.Main$</mainClass>
-                </manifest>
-              </archive>
-            </configuration>
-          </plugin>
-          <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
             <version>${maven.compiler.plugin.version}</version>
@@ -79,7 +72,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <protobuf.version>3.17.3</protobuf.version>
-    <daml.sdk.version>1.14.2</daml.sdk.version>
+    <daml.sdk.version>1.13.1</daml.sdk.version>
     <scala.lang.version>2.13</scala.lang.version>
   </properties>
   <dependencyManagement>
@@ -421,6 +414,21 @@
       <plugins>
 
         <plugin>
+          <groupId>org.commonjava.maven.plugins</groupId>
+          <artifactId>directory-maven-plugin</artifactId>
+          <version>0.1</version>
+          <executions>
+            <execution>
+              <id>directories</id>
+              <goals>
+                <goal>highest-basedir</goal>
+              </goals>
+              <phase>initialize</phase>
+            </execution>
+          </executions>
+        </plugin>
+
+        <plugin>
           <groupId>com.diffplug.spotless</groupId>
           <artifactId>spotless-maven-plugin</artifactId>
           <version>2.12.1</version>
@@ -448,10 +456,10 @@
             <!-- language-specific formats -->
             <java>
               <eclipse>
-                <file>${basedir}/.eclipse-formatter.xml</file>
+                <file>${maven.multiModuleProjectDirectory}/.eclipse-formatter.xml</file>
               </eclipse>
               <licenseHeader>
-                <file>${basedir}/.copyright-header-cstyle.txt</file>
+                <file>${maven.multiModuleProjectDirectory}/.copyright-header-cstyle.txt</file>
                 <delimiter>package </delimiter>
               </licenseHeader>
               <toggleOffOn />
@@ -464,10 +472,10 @@
               </includes>
               <scalafmt>
                 <version>2.7.5</version>
-                <file>${basedir}/.scalafmt.conf</file>
+                <file>${maven.multiModuleProjectDirectory}/.scalafmt.conf</file>
               </scalafmt>
               <licenseHeader>
-                <file>${basedir}/.copyright-header-cstyle.txt</file>
+                <file>${maven.multiModuleProjectDirectory}/.copyright-header-cstyle.txt</file>
                 <delimiter>package </delimiter>
               </licenseHeader>
             </scala>
@@ -602,6 +610,9 @@
             </docletArtifact>
             <additionalOptions>
               <additionalOption>-createPumlFiles</additionalOption>
+              <additionalparam>-Xdoclint:none</additionalparam>
+              <additionalOptions>-Xdoclint:none</additionalOptions>
+              <additionalJOption>-Xdoclint:none</additionalJOption>
             </additionalOptions>
           </configuration>
           <executions>
@@ -635,25 +646,6 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
           <version>3.2.0</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-assembly-plugin</artifactId>
-          <version>3.3.0</version>
-          <configuration>
-            <descriptors>
-              <descriptor>src/main/assembly/assembly.xml</descriptor>
-            </descriptors>
-          </configuration>
-          <executions>
-            <execution>
-              <id>make-assembly</id>
-              <phase>package</phase>
-              <goals>
-                <goal>single</goal>
-              </goals>
-            </execution>
-          </executions>
         </plugin>
 
         <plugin>
@@ -719,23 +711,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <configuration>
-          <archive>
-            <manifest>
-              <addClasspath>true</addClasspath>
-              <classpathPrefix>lib/</classpathPrefix>
-              <mainClass>com.blockchaintp.daml.qldb.Main</mainClass>
-            </manifest>
-          </archive>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
       </plugin>
     </plugins>
   </build>
