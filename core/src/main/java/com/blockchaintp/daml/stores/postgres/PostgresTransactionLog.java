@@ -29,6 +29,7 @@ import com.google.protobuf.ByteString;
 
 import io.vavr.CheckedFunction0;
 import io.vavr.Tuple;
+import io.vavr.Tuple2;
 import io.vavr.Tuple3;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
@@ -130,9 +131,10 @@ public final class PostgresTransactionLog implements TransactionLog<UUID, ByteSt
   }
 
   @Override
-  public UUID begin(final Optional<UUID> id) throws StoreWriteException {
-    try (var stmt = connection.prepareStatement("insert into tx(id,data,complete) values (?,null,false) returning id",
-        ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+  public Tuple2<UUID, Long> begin(final Optional<UUID> id) throws StoreWriteException {
+    try (var stmt = connection.prepareStatement(
+        "insert into tx(id,data,complete) values (?,null,false) returning id,seq", ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_READ_ONLY)) {
 
       if (id.isPresent()) {
         stmt.setObject(1, id.get());
@@ -145,7 +147,7 @@ public final class PostgresTransactionLog implements TransactionLog<UUID, ByteSt
         throw new StoreWriteException(PostgresTxLogException.noInsertResult());
       }
 
-      return rx.getObject(1, UUID.class);
+      return Tuple.of(rx.getObject(1, UUID.class), rx.getLong(2));
     } catch (SQLException e) {
       throw new StoreWriteException(e);
     }

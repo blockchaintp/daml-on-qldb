@@ -70,6 +70,7 @@ services:
       java -jar ledger-api-test-tool.jar \
         --timeout-scale-factor 1 \
         --exclude RaceConditionIT \
+        --exclude CommandDeduplicationIT \
         --exclude SemanticTests:SemanticConcurrentDoubleSpend \
         --concurrent-test-runs 8 \
         daml-on-qldb:9000 \
@@ -77,6 +78,7 @@ services:
       java -jar ledger-api-test-tool.jar \
         --timeout-scale-factor 1 \
         --exclude RaceConditionIT \
+        --exclude CommandDeduplicationIT \
         --exclude SemanticTests:SemanticConcurrentDoubleSpend \
         --concurrent-test-runs 4 \
         daml-on-qldb:9000 \
@@ -84,6 +86,7 @@ services:
       java -jar ledger-api-test-tool.jar \
         --timeout-scale-factor 1 \
         --exclude RaceConditionIT \
+        --exclude CommandDeduplicationIT \
         --exclude SemanticTests:SemanticConcurrentDoubleSpend \
         --concurrent-test-runs 2 \
         daml-on-qldb:9000 \
@@ -91,6 +94,7 @@ services:
       java -jar ledger-api-test-tool.jar \
         --timeout-scale-factor 1 \
         --exclude RaceConditionIT \
+        --exclude CommandDeduplicationIT \
         --exclude SemanticTests:SemanticConcurrentDoubleSpend \
         --concurrent-test-runs 1 \
         daml-on-qldb:9000 \

@@ -21,6 +21,7 @@ import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 
 import io.vavr.Tuple;
+import io.vavr.Tuple2;
 import io.vavr.Tuple3;
 
 /**
@@ -96,8 +97,9 @@ public final class CoercingTxLog<K1, K2, V1, V2, I1, I2> implements TransactionL
   }
 
   @Override
-  public K1 begin(final Optional<K1> id) throws StoreWriteException {
-    return keyCoercion.from(inner.begin(id.map(keyCoercion::to)));
+  public Tuple2<K1, I1> begin(final Optional<K1> id) throws StoreWriteException {
+    var res = inner.begin(id.map(keyCoercion::to));
+    return Tuple.of(keyCoercion.from(res._1), seqCoercion.from(res._2));
   }
 
   @Override

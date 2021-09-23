@@ -105,7 +105,7 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
   }
 
   @Override
-  public UUID begin(final Optional<UUID> id) throws StoreWriteException {
+  public Tuple2<UUID, Long> begin(final Optional<UUID> id) throws StoreWriteException {
     try {
       tables.checkTables();
       ensureSequence();
@@ -140,7 +140,7 @@ public final class QldbTransactionLog implements TransactionLog<UUID, ByteString
 
       });
 
-      return uuid;
+      return Tuple.of(uuid, next);
     } catch (QldbException e) {
       throw new StoreWriteException(e);
     }

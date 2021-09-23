@@ -17,6 +17,8 @@ import java.util.Optional;
 
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 
+import io.vavr.Tuple2;
+
 /**
  * A TransactionLogWriter is a StoreWriter that also supports the sending of events.
  *
@@ -36,7 +38,7 @@ public interface TransactionLogWriter<K, V, I> {
    * @return The transaction log id of the uncommitted transaction
    * @param id
    */
-  K begin(Optional<K> id) throws StoreWriteException;
+  Tuple2<K, I> begin(Optional<K> id) throws StoreWriteException;
 
   /**
    * Update the log entry for the id.

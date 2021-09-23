@@ -46,7 +46,7 @@ class ParticipantOwner[ExtraConfig, Id <: Identifier, Address <: LedgerAddress](
   override def acquire()(implicit
       context: ResourceContext
   ): resources.Resource[ResourceContext, Participant[Id, Address]] = {
-    val context = sc.ExecutionContext.fromExecutorService(Executors.newSingleThreadExecutor())
+    val context = sc.ExecutionContext.fromExecutorService(Executors.newCachedThreadPool())
     Resource.successful(
       build(
         config,

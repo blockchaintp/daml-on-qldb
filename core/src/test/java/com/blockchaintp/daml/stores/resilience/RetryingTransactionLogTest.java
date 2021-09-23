@@ -17,6 +17,7 @@ import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.layers.RetryingConfig;
 import com.blockchaintp.daml.stores.layers.RetryingTransactionLog;
 import com.blockchaintp.daml.stores.service.TransactionLog;
+import io.vavr.Tuple;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.s3.model.S3Exception;
@@ -34,7 +35,7 @@ class RetryingTransactionLogTest {
     var retrying = new RetryingTransactionLog(3, log);
 
     when(log.begin(Optional.empty())).thenThrow(new StoreWriteException(S3Exception.builder().build()))
-        .thenThrow(new StoreWriteException(S3Exception.builder().build())).thenReturn(UUID.randomUUID());
+        .thenThrow(new StoreWriteException(S3Exception.builder().build())).thenReturn(Tuple.of(UUID.randomUUID(), 0));
 
     doThrow(new StoreWriteException(S3Exception.builder().build()))
         .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(log)
@@ -63,7 +64,7 @@ class RetryingTransactionLogTest {
     when(log.begin(Optional.empty())).thenThrow(new StoreWriteException(S3Exception.builder().build()))
         .thenThrow(new StoreWriteException(S3Exception.builder().build()))
         .thenThrow(new StoreWriteException(S3Exception.builder().build()))
-        .thenThrow(new StoreWriteException(S3Exception.builder().build())).thenReturn(UUID.randomUUID());
+        .thenThrow(new StoreWriteException(S3Exception.builder().build())).thenReturn(Tuple.of(UUID.randomUUID(), 0));
 
     doThrow(new StoreWriteException(S3Exception.builder().build()))
         .doThrow(new StoreWriteException(S3Exception.builder().build()))

@@ -82,12 +82,12 @@ class CoercingTest {
 
     var id = coerced.begin(Optional.empty());
     var data = DamlKvutils.DamlLogEntry.newBuilder().build();
-    coerced.sendEvent(id, data);
-    coerced.commit(id);
+    coerced.sendEvent(id._1, data);
+    coerced.commit(id._1);
 
     var entry = coerced.from(Offset$.MODULE$.fromByteArray(Longs.toByteArray(-1L)), Optional.empty()).findFirst().get();
 
-    Assertions.assertArrayEquals(id.toByteArray(), entry._2.toByteArray());
+    Assertions.assertArrayEquals(id._1.toByteArray(), entry._2.toByteArray());
 
     Assertions.assertArrayEquals(data.toByteArray(), entry._3.toByteArray());
   }

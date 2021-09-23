@@ -57,7 +57,7 @@ class PostgresTxLogIntegrationTest {
 
     for (var i = 0; i != 3000; i++) {
       var id = txLog.begin(Optional.of(UUID.randomUUID()));
-      ids.add(id);
+      ids.add(id._1);
     }
     var futures = new ArrayList<Future<?>>();
 
@@ -77,8 +77,8 @@ class PostgresTxLogIntegrationTest {
     Thread.sleep(10000);
 
     var aborted = txLog.begin(Optional.empty());
-    txLog.sendEvent(aborted, ByteString.copyFromUtf8("aborted"));
-    txLog.abort(aborted);
+    txLog.sendEvent(aborted._1, ByteString.copyFromUtf8("aborted"));
+    txLog.abort(aborted._1);
 
     var stream = txLog.from(-1L, Optional.empty());
 

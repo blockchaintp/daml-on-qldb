@@ -37,7 +37,7 @@ class SplitTransactionLogTest {
 
     Assertions.assertIterableEquals(Arrays.asList(uid), txLog.inprogress.keySet());
 
-    splitLog.sendEvent(uid, ByteString.copyFromUtf8("test"));
+    splitLog.sendEvent(uid._1, ByteString.copyFromUtf8("test"));
 
     /// Should now have a hash in txLog and the bytes in the blobStore
     Assertions.assertArrayEquals(new byte[] { 'o', 'k' }, txLog.inprogress.get(uid).toByteArray());
@@ -46,7 +46,7 @@ class SplitTransactionLogTest {
         blobStore.get(Key.of(ByteString.copyFromUtf8("ok"))).get().toNative().toByteArray());
 
     /// Committing should make the log entry available for streaming
-    splitLog.commit(uid);
+    splitLog.commit(uid._1);
 
     Assertions.assertEquals(splitLog.from(-1L, Optional.empty()).findFirst(),
         Optional.of(Tuple.of(0L, uid, ByteString.copyFromUtf8("test"))));

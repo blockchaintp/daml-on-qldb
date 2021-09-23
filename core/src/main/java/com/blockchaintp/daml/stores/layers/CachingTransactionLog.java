@@ -89,7 +89,7 @@ public final class CachingTransactionLog<K, V, I> implements TransactionLog<K, V
   }
 
   @Override
-  public K begin(final Optional<K> id) throws StoreWriteException {
+  public Tuple2<K, I> begin(final Optional<K> id) throws StoreWriteException {
     return inner.begin(id);
   }
 

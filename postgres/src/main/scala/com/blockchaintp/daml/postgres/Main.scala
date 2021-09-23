@@ -86,7 +86,7 @@ object Main extends App {
         .withInProcLedgerSubmitterBuilder(builder =>
           builder
             .withSlowCall(60000)
-            .withMaxThroughput(50)
+            .withMaxThroughput(5000)
             .withStateStore(stateStore)
             .withTransactionLogWriter(txLog)
         )

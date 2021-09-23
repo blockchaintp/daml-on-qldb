@@ -25,6 +25,7 @@ import com.blockchaintp.daml.stores.service.TransactionLog;
 
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
+import io.vavr.Tuple2;
 import io.vavr.Tuple3;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
@@ -85,7 +86,7 @@ public final class RetryingTransactionLog<K, V, I> implements TransactionLog<K, 
   }
 
   @Override
-  public K begin(final Optional<K> id) throws StoreWriteException {
+  public Tuple2<K, I> begin(final Optional<K> id) throws StoreWriteException {
     return WrapFunction0
         .of(Retry.decorateCheckedSupplier(retry("begin"), () -> store.begin(id)).unchecked(), StoreWriteException::new)
         .apply();

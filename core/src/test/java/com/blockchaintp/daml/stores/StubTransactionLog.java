@@ -47,11 +47,11 @@ public class StubTransactionLog implements TransactionLog<UUID, ByteString, Long
   }
 
   @Override
-  public UUID begin(final Optional<UUID> id) throws StoreWriteException {
+  public Tuple2<UUID, Long> begin(final Optional<UUID> id) throws StoreWriteException {
     var uuid = id.orElseGet(() -> UUID.randomUUID());
     inprogress.put(uuid, null);
 
-    return uuid;
+    return Tuple.of(uuid, offset = offset + 1L);
   }
 
   @Override
@@ -63,7 +63,6 @@ public class StubTransactionLog implements TransactionLog<UUID, ByteString, Long
   public Long commit(final UUID txId) throws StoreWriteException {
     complete.add(Tuple.of(offset, txId, inprogress.remove(txId)));
     var ret = offset;
-    offset = offset + 1L;
 
     return offset;
   }

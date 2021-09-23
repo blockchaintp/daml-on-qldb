@@ -29,6 +29,7 @@ import com.google.protobuf.ByteString;
 
 import io.vavr.API;
 import io.vavr.Tuple;
+import io.vavr.Tuple2;
 import io.vavr.Tuple3;
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
@@ -104,7 +105,7 @@ public final class SplitTransactionLog implements TransactionLog<UUID, ByteStrin
   }
 
   @Override
-  public UUID begin(final Optional<UUID> id) throws StoreWriteException {
+  public Tuple2<UUID, Long> begin(final Optional<UUID> id) throws StoreWriteException {
     return txLog.begin(id);
   }
 
