@@ -13,9 +13,12 @@
  */
 package com.blockchaintp.daml.participant;
 
-import java.util.Collections;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
@@ -25,33 +28,19 @@ import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
  * Control commits so we can report them in sequence order.
  */
 public final class CommitHighwaterMark {
+  private static final int POLL_INTERVAL = 2;
+  private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(CommitHighwaterMark.class);
   private final ConcurrentSkipListSet<Long> open = new ConcurrentSkipListSet<>();
-  private final ConcurrentSkipListSet<Long> complete = new ConcurrentSkipListSet<>();
 
   /**
    *
    * @param t
    */
   public void begin(final Long t) {
-    open.add(t);
-  }
-
-  /**
-   *
-   * @param t
-   */
-  public void complete(final Long t) {
-    complete.add(t);
-  }
-
-  /**
-   *
-   * @param t
-   * @return Whether the transaction at t is still running.
-   */
-  public boolean running(final Long t) {
-    return complete.contains(t);
+    synchronized (this) {
+      open.add(t);
+    }
   }
 
   /**
@@ -61,29 +50,37 @@ public final class CommitHighwaterMark {
    * @param theCommit
    * @return A value if this is the highest commit, else empty.
    */
-  public Optional<Long> highestCommitted(final Long theCommit) {
+  public CompletableFuture<Long> highestCommitted(final Long theCommit) {
+
     synchronized (this) {
-      complete.add(theCommit);
-      open.remove(theCommit);
-      LOG.trace("Determine if {} is highest transaction open {} complete {}", () -> theCommit,
-          () -> open.stream().map(Object::toString).collect(Collectors.joining(",")),
-          () -> complete.stream().map(Object::toString).collect(Collectors.joining(",")));
+      open.add(theCommit);
+    }
 
-      var highest = Optional.<Long>empty();
-      var candidates = complete.stream().sorted(Collections.reverseOrder()).collect(Collectors.toList());
+    var completionFuture = new CompletableFuture<Long>();
+    var checkFuture = executor.scheduleAtFixedRate(() -> {
+      synchronized (this) {
+        LOG.info("Determine if {} is highest transaction open, before we allow it to complete {}", () -> theCommit,
+            () -> open.stream().map(Object::toString).collect(Collectors.joining(",")));
 
-      for (var x : candidates) {
-        if (open.lower(x) == null) {
-          highest = Optional.of(x);
+        var highest = Optional.<Long>empty();
+
+        if (open.lower(theCommit) == null) {
+          highest = Optional.of(theCommit);
+        }
+
+        if (highest.isPresent()) {
+          var toRemove = open.tailSet(highest.get(), true);
+          LOG.debug("No transactions lower than {}, completing", highest.get());
+          open.removeAll(toRemove);
+          completionFuture.complete(highest.get());
         }
       }
 
-      if (highest.isPresent()) {
-        LOG.debug("Valid high water mark found at {}", highest.get());
-        complete.removeAll(complete.headSet(highest.get(), true));
-      }
+    }, 0, POLL_INTERVAL, TimeUnit.MILLISECONDS);
+    completionFuture.whenComplete((result, thrown) -> {
+      checkFuture.cancel(true);
+    });
 
-      return highest;
-    }
+    return completionFuture;
   }
 }

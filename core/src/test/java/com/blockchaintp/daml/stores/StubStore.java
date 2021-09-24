@@ -25,10 +25,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 public class StubStore<K, V> implements Store<K, V> {
-  private final Map<Key<K>, Value<V>> stored = new HashMap<>();
+  private final ConcurrentMap<Key<K>, Value<V>> stored = new ConcurrentHashMap<>();
 
   @Override
   public final Optional<Value<V>> get(final Key<K> key) throws StoreReadException {

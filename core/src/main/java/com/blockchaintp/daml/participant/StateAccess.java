@@ -15,11 +15,10 @@ package com.blockchaintp.daml.participant;
 
 import java.util.ArrayList;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Opaque;
 import com.blockchaintp.daml.stores.service.Store;
@@ -41,6 +40,7 @@ import scala.concurrent.ExecutionContext;
 import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.Future;
 import scala.jdk.javaapi.CollectionConverters$;
+import scala.jdk.javaapi.FutureConverters;
 import scala.jdk.javaapi.OptionConverters$;
 import scala.jdk.javaapi.StreamConverters;
 import scala.jdk.javaapi.StreamConverters$;
@@ -53,10 +53,8 @@ import scala.util.Try;
 class StateAccess implements LedgerStateAccess<Long> {
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(StateAccess.class);
   public static final int DELAY = 50;
-  private final ConcurrentLinkedDeque<Raw.LogEntryId> beginRx = new ConcurrentLinkedDeque<>();
-  private final ConcurrentLinkedDeque<Raw.LogEntryId> beginTx = new ConcurrentLinkedDeque<>();
-  private final CommitHighwaterMark highwaterMark = new CommitHighwaterMark();
   private final Store<Raw.StateKey, Raw.Envelope> stateStore;
+  private final SerialisedSequenceAllocation sequenceAllocation;
   private final TransactionLogWriter<Raw.LogEntryId, Raw.Envelope, Long> writer;
   private final ExecutionContextExecutor beginExecutor = ExecutionContext
       .fromExecutor(Executors.newSingleThreadExecutor());
@@ -65,37 +63,8 @@ class StateAccess implements LedgerStateAccess<Long> {
   StateAccess(final Store<Raw.StateKey, Raw.Envelope> theStateStore,
       final TransactionLogWriter<Raw.LogEntryId, Raw.Envelope, Long> theWriter) {
     stateStore = theStateStore;
+    sequenceAllocation = new SerialisedSequenceAllocation(theWriter);
     writer = theWriter;
-    beginExecutor.execute(this::beginRunner);
-  }
-
-  private void beginRunner() {
-    while (running) {
-      var next = beginRx.poll();
-      if (next != null) {
-        LOG.trace("Poll begin rx {}", next);
-        var started = false;
-        while (!started) {
-          try {
-            var r = writer.begin(Optional.of(next));
-            highwaterMark.begin(r._2);
-            LOG.info("Transaction seq {} {} begun, enqueing", r._2, r._1);
-            started = true;
-          } catch (StoreWriteException e) {
-            LOG.error("Failed to start transaction {}, retry", e);
-          }
-        }
-        beginTx.add(next);
-      }
-      try {
-        Thread.sleep(DELAY);
-      } catch (InterruptedException theE) {
-        running = false;
-        Thread.currentThread().interrupt();
-      }
-    }
-
-    running = false;
   }
 
   private class Operations extends BatchingLedgerStateOperations<Long> {
@@ -146,30 +115,14 @@ class StateAccess implements LedgerStateAccess<Long> {
     @Override
     public Future<Long> appendToLog(final Raw.LogEntryId key, final Raw.Envelope value,
         final ExecutionContext executionContext) {
-      beginRx.add(key);
 
-      var found = false;
-      do {
-        var head = beginTx.peek();
-        found = (head != null && head.equals(key));
-        Thread.yield();
-      } while (!found);
+      var work = sequenceAllocation.serialisedBegin(key)
+          .thenCompose(seq -> CompletableFuture.supplyAsync(() -> Functions.uncheckFn(() -> {
+            writer.sendEvent(key, value);
+            return seq;
+          }).apply())).thenCompose(seq -> sequenceAllocation.serialisedCommit(seq));
 
-      LOG.info("Transaction {} started, continuing append", beginTx.peekFirst());
-      beginTx.pop();
-
-      return Future.delegate(() -> Future.fromTry(Try.apply(Functions.uncheckFn(() -> {
-        writer.sendEvent(key, value);
-        var r = writer.commit(key);
-        highwaterMark.complete(r);
-
-        do {
-          highwaterMark.highestCommitted(r);
-          Thread.sleep(DELAY);
-        } while (highwaterMark.running(r));
-
-        return r;
-      }))), executionContext);
+      return Future.delegate(() -> FutureConverters.asScala(work), executionContext);
     }
 
   }

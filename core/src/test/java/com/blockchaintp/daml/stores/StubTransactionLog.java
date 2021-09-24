@@ -27,18 +27,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 
 public class StubTransactionLog implements TransactionLog<UUID, ByteString, Long> {
   private long offset = 0L;
-  public final Map<UUID, ByteString> inprogress = new HashMap<>();
+  public final Map<UUID, Tuple2<ByteString, Long>> inProgress = new HashMap<>();
   public final List<Tuple3<Long, UUID, ByteString>> complete = new ArrayList<>();
   public final List<Tuple2<UUID, ByteString>> aborted = new ArrayList<>();
 
   @Override
   public Stream<Tuple3<Long, UUID, ByteString>> from(Long startInclusive, final Optional<Long> endInclusive)
       throws StoreReadException {
-    return complete.stream();
+    synchronized (this) {
+      return complete.stream();
+    }
   }
 
   @Override
@@ -48,28 +52,37 @@ public class StubTransactionLog implements TransactionLog<UUID, ByteString, Long
 
   @Override
   public Tuple2<UUID, Long> begin(final Optional<UUID> id) throws StoreWriteException {
-    var uuid = id.orElseGet(() -> UUID.randomUUID());
-    inprogress.put(uuid, null);
+    synchronized (this) {
+      var uuid = id.orElseGet(() -> UUID.randomUUID());
+      inProgress.put(uuid, Tuple.of(null, offset = offset + 1L));
 
-    return Tuple.of(uuid, offset = offset + 1L);
+      return Tuple.of(uuid, offset);
+    }
   }
 
   @Override
   public void sendEvent(final UUID id, final ByteString data) throws StoreWriteException {
-    inprogress.put(id, data);
+    synchronized (this) {
+      inProgress.put(id, Tuple.of(data, inProgress.get(id)._2));
+    }
   }
 
   @Override
   public Long commit(final UUID txId) throws StoreWriteException {
-    complete.add(Tuple.of(offset, txId, inprogress.remove(txId)));
-    var ret = offset;
+    synchronized (this) {
+      var cur = inProgress.remove(txId);
+      complete.add(Tuple.of(cur._2, txId, cur._1));
 
-    return offset;
+      return cur._2;
+    }
   }
 
   @Override
   public void abort(final UUID txId) throws StoreWriteException {
-    aborted.add(Tuple.of(txId, inprogress.remove(txId)));
+    synchronized (this) {
+      var cur = inProgress.remove(txId);
+      aborted.add(Tuple.of(txId, cur._1));
+    }
   }
 
 }

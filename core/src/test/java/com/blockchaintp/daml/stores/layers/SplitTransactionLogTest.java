@@ -35,12 +35,12 @@ class SplitTransactionLogTest {
 
     var uid = splitLog.begin(Optional.empty());
 
-    Assertions.assertIterableEquals(Arrays.asList(uid), txLog.inprogress.keySet());
+    Assertions.assertIterableEquals(Arrays.asList(uid), txLog.inProgress.keySet());
 
     splitLog.sendEvent(uid._1, ByteString.copyFromUtf8("test"));
 
     /// Should now have a hash in txLog and the bytes in the blobStore
-    Assertions.assertArrayEquals(new byte[] { 'o', 'k' }, txLog.inprogress.get(uid).toByteArray());
+    Assertions.assertArrayEquals(new byte[] { 'o', 'k' }, txLog.inProgress.get(uid)._1.toByteArray());
 
     Assertions.assertArrayEquals(ByteString.copyFromUtf8("test").toByteArray(),
         blobStore.get(Key.of(ByteString.copyFromUtf8("ok"))).get().toNative().toByteArray());
