@@ -119,6 +119,7 @@ class StateAccess implements LedgerStateAccess<Long> {
       var work = sequenceAllocation.serialisedBegin(key)
           .thenCompose(seq -> CompletableFuture.supplyAsync(() -> Functions.uncheckFn(() -> {
             writer.sendEvent(key, value);
+            writer.commit(key);
             return seq;
           }).apply())).thenCompose(seq -> sequenceAllocation.serialisedCommit(seq));
 
