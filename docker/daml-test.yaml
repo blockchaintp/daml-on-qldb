@@ -43,7 +43,6 @@ services:
         --createaws true \
         --region $$AWS_REGION \
         --ledger $$LEDGER_NAME \
-        --statestore \"jdbc:postgresql://postgres/qldb_damlstate?user=postgres\" \
         --txlogstore \"jdbc:postgresql://postgres/qldb_txblobs?user=postgres\" \
         --participant participant-id=test-participant,port=9000,address=0.0.0.0 \
         `ls /opt/daml-on-qldb/dar/*.dar`\""
