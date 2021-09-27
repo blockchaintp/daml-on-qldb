@@ -5,7 +5,7 @@
   <parent>
     <groupId>daml-on</groupId>
     <artifactId>daml-on</artifactId>
-    <version>0.1.5-SNAPSHOT</version>
+    <version>${revision}</version>
   </parent>
   <packaging>jar</packaging>
   <modelVersion>4.0.0</modelVersion>
@@ -25,7 +25,7 @@
     <dependency>
       <groupId>daml-on</groupId>
       <artifactId>core</artifactId>
-      <version>${project.parent.version}</version>
+      <version>${revision}</version>
     </dependency>
     <!-- Logging -->
     <dependency>
