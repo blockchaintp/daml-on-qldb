@@ -13,4 +13,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-java ${JAVA_ARGS} -jar ./daml-on-qldb*.jar "$@"
+java ${JAVA_ARGS} -jar ./daml-on-qldb*.jar $@
