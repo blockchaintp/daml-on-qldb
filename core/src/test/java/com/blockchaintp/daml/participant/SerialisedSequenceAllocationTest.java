@@ -34,7 +34,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-public class SerialisedSequenceAllocationTest {
+class SerialisedSequenceAllocationTest {
 
   @Test
   void commits_are_ordered_when_highly_concurrent() throws ExecutionException, InterruptedException {

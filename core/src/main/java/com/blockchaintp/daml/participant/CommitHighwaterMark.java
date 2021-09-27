@@ -77,9 +77,7 @@ public final class CommitHighwaterMark {
       }
 
     }, 0, POLL_INTERVAL, TimeUnit.MILLISECONDS);
-    completionFuture.whenComplete((result, thrown) -> {
-      checkFuture.cancel(true);
-    });
+    completionFuture.whenComplete((result, thrown) -> checkFuture.cancel(true));
 
     return completionFuture;
   }

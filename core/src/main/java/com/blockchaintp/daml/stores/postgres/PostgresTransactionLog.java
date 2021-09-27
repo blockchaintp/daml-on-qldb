@@ -169,7 +169,8 @@ public final class PostgresTransactionLog implements TransactionLog<UUID, ByteSt
   @Override
   public Long commit(final UUID txId) throws StoreWriteException {
     try (
-        var stmt = connection.prepareStatement("update tx set complete = true, ts = ? where tx.id = ? and tx.complete = false",
+        var stmt = connection.prepareStatement(
+            "update tx set complete = true, ts = ? where tx.id = ? and tx.complete = false",
             ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
         var getSeq = connection.prepareStatement("select tx.seq from tx where tx.id = ?",
             ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);) {

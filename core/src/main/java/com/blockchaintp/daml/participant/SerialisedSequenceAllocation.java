@@ -37,7 +37,7 @@ import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
  */
 public final class SerialisedSequenceAllocation {
   private static final int POLL_INTERVAL = 2;
-  private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(CommitHighwaterMark.class);
+  private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(SerialisedSequenceAllocation.class);
   private final BlockingDeque<Raw.LogEntryId> beginRx = new LinkedBlockingDeque<>();
   private final ConcurrentLinkedDeque<Tuple2<Raw.LogEntryId, Long>> beginTx = new ConcurrentLinkedDeque<>();
   private final TransactionLogWriter<Raw.LogEntryId, Raw.Envelope, Long> writer;
@@ -63,22 +63,9 @@ public final class SerialisedSequenceAllocation {
     while (running) {
       try {
         var next = beginRx.take();
-        LOG.debug("Pre-poll begin rx {}", next);
+        LOG.trace("Pre-poll begin rx {}", next);
         if (next != null) {
-          LOG.debug("Poll begin rx {}", next);
-          var started = false;
-          Tuple2<Raw.LogEntryId, Long> r = null;
-          while (!started) {
-            try {
-              r = writer.begin(Optional.of(next));
-              highwaterMark.begin(r._2);
-              LOG.debug("Transaction seq {} {} begun, enqueuing", r._2, r._1);
-              started = true;
-            } catch (StoreWriteException e) {
-              LOG.error("Failed to start transaction {}, retry", e);
-            }
-          }
-          beginTx.add(Tuple.of(next, r._2));
+          executeBegin(next);
         }
       } catch (InterruptedException e) {
         LOG.info("Interrupted {}", e);
@@ -86,8 +73,23 @@ public final class SerialisedSequenceAllocation {
         Thread.currentThread().interrupt();
       }
     }
+  }
 
-    running = false;
+  private void executeBegin(final Raw.LogEntryId next) {
+    LOG.trace("Poll begin rx {}", next);
+    var started = false;
+    Tuple2<Raw.LogEntryId, Long> r = null;
+    while (!started) {
+      try {
+        r = writer.begin(Optional.of(next));
+        highwaterMark.begin(r._2);
+        LOG.debug("Transaction seq {} {} begun, enqueuing", r._2, r._1);
+        started = true;
+      } catch (StoreWriteException e) {
+        LOG.error("Failed to start transaction {}, retry", e);
+      }
+    }
+    beginTx.add(Tuple.of(next, r._2));
   }
 
   /**

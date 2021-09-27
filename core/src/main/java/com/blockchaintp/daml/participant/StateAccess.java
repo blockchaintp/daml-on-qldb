@@ -16,7 +16,6 @@ package com.blockchaintp.daml.participant;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import com.blockchaintp.daml.stores.service.Key;
@@ -37,7 +36,6 @@ import scala.Option;
 import scala.collection.Iterable;
 import scala.collection.immutable.Seq;
 import scala.concurrent.ExecutionContext;
-import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.Future;
 import scala.jdk.javaapi.CollectionConverters$;
 import scala.jdk.javaapi.FutureConverters;
@@ -56,9 +54,6 @@ class StateAccess implements LedgerStateAccess<Long> {
   private final Store<Raw.StateKey, Raw.Envelope> stateStore;
   private final SerialisedSequenceAllocation sequenceAllocation;
   private final TransactionLogWriter<Raw.LogEntryId, Raw.Envelope, Long> writer;
-  private final ExecutionContextExecutor beginExecutor = ExecutionContext
-      .fromExecutor(Executors.newSingleThreadExecutor());
-  private boolean running = true;
 
   StateAccess(final Store<Raw.StateKey, Raw.Envelope> theStateStore,
       final TransactionLogWriter<Raw.LogEntryId, Raw.Envelope, Long> theWriter) {
@@ -121,7 +116,7 @@ class StateAccess implements LedgerStateAccess<Long> {
             writer.sendEvent(key, value);
             writer.commit(key);
             return seq;
-          }).apply())).thenCompose(seq -> sequenceAllocation.serialisedCommit(seq));
+          }).apply())).thenCompose(sequenceAllocation::serialisedCommit);
 
       return Future.delegate(() -> FutureConverters.asScala(work), executionContext);
     }

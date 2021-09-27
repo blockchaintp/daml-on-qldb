@@ -25,6 +25,6 @@ final case class ExtraConfig(
 object ExtraConfig {
 
   val default: ExtraConfig =
-    ExtraConfig(keystore = "/etc/daml/keystore", logLevel = "info", authType = "none", secret = "", jwksUrl = ""
-      , txLogStore = "")
+    ExtraConfig(keystore = "/etc/daml/keystore", logLevel = "info", authType = "none", secret = "", jwksUrl = "",
+      txLogStore = "")
 }
