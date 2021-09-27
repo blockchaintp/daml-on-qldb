@@ -63,7 +63,7 @@ object Main extends App {
         .build();
 
       val stateStore = PostgresStore
-        .fromUrl(config.extra.stateStore)
+        .fromUrl(config.extra.txLogStore)
         .migrate()
         .retrying(3)
         .build()
@@ -138,17 +138,6 @@ class LedgerFactory(
         config.copy(
           extra = config.extra.copy(
             txLogStore = v
-          )
-        )
-      }
-    parser
-      .opt[String](name = "statestore")
-      .required()
-      .text("JDBC connection url for the state blob store")
-      .action { case (v, config) =>
-        config.copy(
-          extra = config.extra.copy(
-            stateStore = v
           )
         )
       }

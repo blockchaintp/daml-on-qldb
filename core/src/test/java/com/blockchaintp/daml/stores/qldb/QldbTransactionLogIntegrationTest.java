@@ -20,7 +20,6 @@ import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.resources.QldbResources;
 import com.blockchaintp.utility.Aws;
 import com.google.protobuf.ByteString;
-import com.google.protobuf.Option;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;

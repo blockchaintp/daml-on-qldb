@@ -15,7 +15,6 @@ package com.blockchaintp.daml.qldb
 
 final case class ExtraConfig(
     txLogStore: String,
-    stateStore: String,
     keystore: String,
     logLevel: String,
     authType: String,
@@ -26,6 +25,6 @@ final case class ExtraConfig(
 object ExtraConfig {
 
   val default: ExtraConfig =
-    ExtraConfig(keystore = "/etc/daml/keystore", logLevel = "info", authType = "none", secret = "", jwksUrl = "",
-      stateStore = "", txLogStore = "")
+    ExtraConfig(keystore = "/etc/daml/keystore", logLevel = "info", authType = "none", secret = "", jwksUrl = ""
+      , txLogStore = "")
 }

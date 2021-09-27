@@ -16,7 +16,6 @@ package com.blockchaintp.daml.qldb
 final case class ExtraConfig(
     createAws: Boolean,
     txLogStore: String,
-    stateStore: String,
     keystore: String,
     region: String,
     maxS3ClientConcurrency: Int,
@@ -34,6 +33,6 @@ object ExtraConfig {
     ExtraConfig(
       createAws = false, keystore = "/etc/daml/keystore", maxOpsPerBatch = "1000".toInt,
       maxOutStandingBatches = "2".toInt, logLevel = "info", authType = "none", secret = "", jwksUrl = "",
-      region = "US_EAST_2", maxS3ClientConcurrency = 30, stateStore = "", txLogStore = ""
+      region = "US_EAST_2", maxS3ClientConcurrency = 30, txLogStore = ""
     )
 }
