@@ -136,7 +136,7 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   public Future<SubmissionResult> commit(final String correlationId, final Raw.Envelope envelope,
       final CommitMetadata metadata, final TelemetryContext telemetryContext) {
     synchronized (this) {
-
+      LOG.debug("Commit correlation id {}", correlationId);
       var commits = commitPayloadBuilder.build(envelope, metadata, correlationId).stream()
           .map(payload -> submitter.submitPayload(payload).thenApply(x -> {
             if (x == SubmissionStatus.OVERLOADED) {

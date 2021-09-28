@@ -17,7 +17,6 @@ import java.util.Objects;
 
 import com.daml.ledger.participant.state.kvutils.DamlKvutils;
 
-
 /**
  *
  */
