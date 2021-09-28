@@ -50,7 +50,6 @@ import scala.util.Try;
  */
 class StateAccess implements LedgerStateAccess<Long> {
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(StateAccess.class);
-  public static final int DELAY = 50;
   private final Store<Raw.StateKey, Raw.Envelope> stateStore;
   private final SerialisedSequenceAllocation sequenceAllocation;
   private final TransactionLogWriter<Raw.LogEntryId, Raw.Envelope, Long> writer;

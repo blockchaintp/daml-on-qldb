@@ -13,7 +13,10 @@
  */
 package com.blockchaintp.daml.address;
 
+import java.util.Objects;
+
 import com.daml.ledger.participant.state.kvutils.DamlKvutils;
+
 
 /**
  *
@@ -32,5 +35,27 @@ public final class QldbIdentifier implements Identifier {
   @Override
   public DamlKvutils.DamlStateKey toKey() {
     return data;
+  }
+
+  @Override
+  public boolean equals(final Object theO) {
+    if (this == theO) {
+      return true;
+    }
+    if (theO == null || getClass() != theO.getClass()) {
+      return false;
+    }
+    final QldbIdentifier that = (QldbIdentifier) theO;
+    return data.equals(that.data);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(data);
+  }
+
+  @Override
+  public String toString() {
+    return data.toString();
   }
 }

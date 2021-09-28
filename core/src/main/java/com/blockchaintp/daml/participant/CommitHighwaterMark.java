@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
@@ -32,6 +33,7 @@ public final class CommitHighwaterMark {
   private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
   private static final LambdaLogger LOG = LambdaLoggerFactory.getLogger(CommitHighwaterMark.class);
   private final ConcurrentSkipListSet<Long> open = new ConcurrentSkipListSet<>();
+  private final AtomicLong highWatermark = new AtomicLong();
 
   /**
    *

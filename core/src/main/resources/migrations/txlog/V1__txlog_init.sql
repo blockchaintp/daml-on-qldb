@@ -1,4 +1,9 @@
-create extension if not exists "uuid-ossp";
+create table kv (
+  id bytea primary key not null,
+  data bytea not null
+);
+
+CREATE INDEX kv_idx ON kv(id);
 
 create table tx (
   id uuid primary key,

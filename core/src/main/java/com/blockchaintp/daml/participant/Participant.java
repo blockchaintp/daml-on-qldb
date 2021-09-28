@@ -15,6 +15,7 @@ package com.blockchaintp.daml.participant;
 
 import java.util.Comparator;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import com.blockchaintp.daml.address.Identifier;
@@ -40,10 +41,8 @@ import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import scala.Option;
 import scala.Tuple2;
-import scala.compat.java8.FutureConverters;
 import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.Future;
-import scala.jdk.CollectionConverters;
 import scala.math.Ordering;
 
 /**
@@ -136,27 +135,24 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   @Override
   public Future<SubmissionResult> commit(final String correlationId, final Raw.Envelope envelope,
       final CommitMetadata metadata, final TelemetryContext telemetryContext) {
+    synchronized (this) {
 
-    var payloads = commitPayloadBuilder.build(envelope, metadata, correlationId).stream().map(submitter::submitPayload)
-        .map(f -> f.thenApply(x -> {
-          if (x == SubmissionStatus.OVERLOADED) {
-            return SubmissionResult.Overloaded$.MODULE$;
-          } else if (x == SubmissionStatus.REJECTED) {
-            return SubmissionResult.NotSupported$.MODULE$;
-          }
-          return SubmissionResult.Acknowledged$.MODULE$;
-        })).map(FutureConverters::toScala).collect(Collectors.toList());
-
-    return Future.foldLeft(CollectionConverters.CollectionHasAsScala(payloads).asScala().toSeq(),
-        SubmissionResult.Acknowledged$.MODULE$,
-        // Folding latch to any failed payload, unknown how this will affect retry behaviour without
-        // atomicity
-        (a, x) -> {
-          if (a == SubmissionResult.Acknowledged$.MODULE$ && x == SubmissionResult.Acknowledged$.MODULE$) {
+      var commits = commitPayloadBuilder.build(envelope, metadata, correlationId).stream()
+          .map(payload -> submitter.submitPayload(payload).thenApply(x -> {
+            if (x == SubmissionStatus.OVERLOADED) {
+              return SubmissionResult.Overloaded$.MODULE$;
+            } else if (x == SubmissionStatus.REJECTED) {
+              return SubmissionResult.NotSupported$.MODULE$;
+            }
             return SubmissionResult.Acknowledged$.MODULE$;
-          }
-          LOG.debug("Folding result {} {}", a, x);
-          return x;
-        }, context);
+          })).collect(Collectors.toList());
+
+      try {
+        var blockedRes = commits.stream().findFirst().get().get();
+        return Future.successful(blockedRes);
+      } catch (InterruptedException | ExecutionException e) {
+        return Future.successful(SubmissionResult.NotSupported$.MODULE$);
+      }
+    }
   }
 }
