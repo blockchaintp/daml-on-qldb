@@ -65,6 +65,17 @@ object Main extends App {
     "daml-on-qldb",
     new LedgerFactory((config: Config[ExtraConfig], builder: ParticipantBuilder[QldbIdentifier, QldbAddress]) => {
 
+      val txBlobStore = PostgresStore
+        .fromUrl(config.extra.txLogStore)
+        .migrate()
+        .retrying(3)
+        .build()
+
+      val stateBlobStore = PostgresStore
+        .fromUrl(config.extra.txLogStore)
+        .retrying(3)
+        .build()
+
       if (config.extra.createAws) {
         try {
           val qldbClient = QldbClient.builder
@@ -79,18 +90,6 @@ object Main extends App {
           case e: Exception => throw e
         }
       }
-
-      val txBlobStore = PostgresStore
-        .fromUrl(config.extra.txLogStore)
-        .migrate()
-        .retrying(3)
-        .build()
-
-      val stateBlobStore = PostgresStore
-        .fromUrl(config.extra.txLogStore)
-        .migrate()
-        .retrying(3)
-        .build()
 
       val sessionBuilder = QldbSessionClient.builder
         .region(Region.of(config.extra.region))
@@ -115,6 +114,8 @@ object Main extends App {
       val stateStore = SplitStore
         .fromStores(stateQldbStore, stateBlobStore)
         .verified(true)
+        .withCaching(1000)
+        .withS3Index(false)
         .build()
 
       val qldbTransactionLog = QldbTransactionLog

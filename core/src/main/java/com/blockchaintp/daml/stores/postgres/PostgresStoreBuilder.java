@@ -44,8 +44,7 @@ public final class PostgresStoreBuilder {
    * @return A configured builder.
    */
   public PostgresStoreBuilder migrate() {
-    var flyway = Flyway.configure().locations("classpath:migrations/store", "classpath:migrations/txlog")
-        .dataSource(url, "", "").load();
+    var flyway = Flyway.configure().locations("classpath:migrations/store").dataSource(url, "", "").load();
 
     flyway.migrate();
 

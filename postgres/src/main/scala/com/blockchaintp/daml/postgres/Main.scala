@@ -66,7 +66,6 @@ object Main extends App {
         .retrying(3)
         .build()
 
-      /// Only migrate the
       val txLog = PostgresTransactionLog
         .fromUrl(config.extra.txLogStore)
         .migrate()

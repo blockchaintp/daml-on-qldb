@@ -146,12 +146,12 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
             }
             return SubmissionResult.Acknowledged$.MODULE$;
           })).collect(Collectors.toList());
-
       try {
         var blockedRes = commits.stream().findFirst().get().get();
         return Future.successful(blockedRes);
       } catch (InterruptedException | ExecutionException e) {
-        return Future.successful(SubmissionResult.NotSupported$.MODULE$);
+        Thread.currentThread().interrupted();
+        return Future.successful(new SubmissionResult.InternalError(e.toString()));
       }
     }
   }
