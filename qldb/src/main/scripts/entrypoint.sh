@@ -1,3 +1,4 @@
+#!/bin/sh
 # Copyright 2019 Blockchain Techology Partners
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,25 +13,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-version: '2.1'
-
-services:
-
-
-  daml-on-qldb:
-    build:
-      context: .
-      dockerfile: docker/daml-on-qldb.docker
-    image: daml-on-qldb:${ISOLATION_ID}
-    container_name: daml-on-qldb
-    volumes:
-      - ./:/project
-
-  daml-on-postgres:
-    build:
-      context: .
-      dockerfile: docker/daml-on-postgres.docker
-    image: daml-on-postgres:${ISOLATION_ID}
-    container_name: daml-on-postgres
-    volumes:
-      - ./:/project
+java ${JAVA_ARGS} -jar ./daml-on-qldb*.jar $@
