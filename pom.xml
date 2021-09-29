@@ -489,7 +489,7 @@
               </licenseHeader>
               <toggleOffOn />
             </java>
-            <ratchetFrom>origin/btp-releases/1-13</ratchetFrom>
+            <ratchetFrom>origin/main</ratchetFrom>
             <scala>
               <includes>
                 <include>src/main/scala/**/*.scala</include>
