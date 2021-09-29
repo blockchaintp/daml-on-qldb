@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Unreleased
+## v0.1.5
 
 * fix: Guard expensive log operations [view commit](https://github.com/catenasys/daml-on-qldb/commit/a6799c076d80e38c855b9f8806fafd5f389ef8cf)
 * fix: don't print stack trace [view commit](https://github.com/catenasys/daml-on-qldb/commit/f6ffbf1e770520843238ca3ea599a2495b8f0b61)
