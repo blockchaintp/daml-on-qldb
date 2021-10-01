@@ -2,67 +2,157 @@
 
 ## Unreleased
 
-* fix: Guard expensive log
-  operations [view commit](https://github.com/catenasys/daml-on-qldb/commit/a6799c076d80e38c855b9f8806fafd5f389ef8cf)
-* fix: don't print stack
-  trace [view commit](https://github.com/catenasys/daml-on-qldb/commit/f6ffbf1e770520843238ca3ea599a2495b8f0b61)
-* fix: correct sonar
-  issues [view commit](https://github.com/catenasys/daml-on-qldb/commit/4c40c615ebd478955f7c211ed0000818c96244a5)
+* build: spotless should ratchet from main [view commit](https://github.com/catenasys/daml-on-qldb/commit/79b027ad4a09e009ca0cd1c17fac0dae2a52c6de)
+
+## v1.13.0
+
+* fix: Immediately return on submission, enqueue [view commit](https://github.com/catenasys/daml-on-qldb/commit/966e0906c52102c5141a9220d3dda9cd9ca48ed9)
+* fix: Don't migrate twice now we have same store [view commit](https://github.com/catenasys/daml-on-qldb/commit/fa40be0057a5653d24a475cef844a3b648fe47d0)
+* fix: Formatting [view commit](https://github.com/catenasys/daml-on-qldb/commit/a18992257941e4e114b9aaedb4c2c6355666505d)
+* fix: Pariticpant now commits synchronously so we are green but slow [view commit](https://github.com/catenasys/daml-on-qldb/commit/068811698cdc82f2197916bec2449206dc7feb5e)
+* fix: remove additional urls from docker images [view commit](https://github.com/catenasys/daml-on-qldb/commit/97941edc23ec1325e5b20a1ed14354fb6430e2d3)
+* style: Various Sonar fixes [view commit](https://github.com/catenasys/daml-on-qldb/commit/1639200ff645ac1f0b97ad6c21002fb819f969a0)
+* fix: Client side timestamps [view commit](https://github.com/catenasys/daml-on-qldb/commit/ecb3d1400ec90c140eaeabd8b960246014747245)
+* fix: Force $@ past shellcheck with --no-verify [view commit](https://github.com/catenasys/daml-on-qldb/commit/bc5252c970e2a9739ad9307f7a3bae4e8c5bee1d)
+* fix: Unify store urls to txlog [view commit](https://github.com/catenasys/daml-on-qldb/commit/f2b26b5c6eb20dfbfec71b7b5c79ac093dee3211)
+* fix: Correct version setup wiiht $revision, flatten plugin and a revision property [view commit](https://github.com/catenasys/daml-on-qldb/commit/b5d32cf4d8a18dca4e15e96c88da9c44ec58dea3)
+* fix: It helps if you call commit [view commit](https://github.com/catenasys/daml-on-qldb/commit/d5eef325fd7cdf7f67932034e7dff817e7fca09b)
+* fix: A much nicer implementation of order guarantees, as futures, with test [view commit](https://github.com/catenasys/daml-on-qldb/commit/fdeb31be4403afc4b275185eadb88e28ded59071)
+* fix: Guarantee both begin order and in order head signals [view commit](https://github.com/catenasys/daml-on-qldb/commit/da6b3870d3b40fa4cb6553c0302cb1d141dc1fa7)
+* feat: txlog [view commit](https://github.com/catenasys/daml-on-qldb/commit/a3e660e7e5129480fb3048f681b82dda08a87fe7)
+* fix: Recuce concurrency as we re-run the suite [view commit](https://github.com/catenasys/daml-on-qldb/commit/929b4ad9c66e02bf578e72c9b47ca0ff6eee673f)
+* fix: Fail faster [view commit](https://github.com/catenasys/daml-on-qldb/commit/ba393c7a4f094dd50bbdac06c02d3433182eaf06)
+* fix: Wrap QldbExceptions on put, up OCC retry [view commit](https://github.com/catenasys/daml-on-qldb/commit/df0fe69b37a22083e7f52e871f1ed532a392dbed)
+* fix: Resource defaults to attempt green [view commit](https://github.com/catenasys/daml-on-qldb/commit/ba88b327642527353593e98edbf4a3fbda72500f)
+* fix: update daml to 14.2, enable concurrency [view commit](https://github.com/catenasys/daml-on-qldb/commit/5ebd0a708bf105fadb2e4ecdaf124e93c522674e)
+* fix: LongStream.map is not idempotent so move outside of execute block [view commit](https://github.com/catenasys/daml-on-qldb/commit/0cbefe461a00d0b024b50e78cec73dae5383e2da)
+* fix: Smells [view commit](https://github.com/catenasys/daml-on-qldb/commit/29aa18670a9c85a93d0865d55c7b88f37ff2a7e6)
+* fix: Guarantee commit order on begin, rather than commit [view commit](https://github.com/catenasys/daml-on-qldb/commit/276d3f0924c6557d38e880b24265fabf5193216b)
+* test: Restore full stack testing [view commit](https://github.com/catenasys/daml-on-qldb/commit/84fbb0df6091d1eee1257f682163247e1f24e63e)
+* fix: Use scala conversion of future rather than manual thunking [view commit](https://github.com/catenasys/daml-on-qldb/commit/c6cc3792ed40dd60f1fadba17077f8be11445712)
+* feat: Resilience4j bulkhead and async ledger submitter [view commit](https://github.com/catenasys/daml-on-qldb/commit/6d5bf551bc071ae0e7807cbdc90a6c10241de502)
+* feat: Drop daml SDK back to 1.13.1 [view commit](https://github.com/catenasys/daml-on-qldb/commit/4ace7aa56c2d20c2d4390a5d53ad5a71059b0bef)
+* feat: Drop daml SDK back to 1.13.1 [view commit](https://github.com/catenasys/daml-on-qldb/commit/ee01ace11f0483c8ee8bb9ae0dabf36da35c8ddf)
+* feat: State cache [view commit](https://github.com/catenasys/daml-on-qldb/commit/6646edb635df5bcc7658e614624b54051a823c97)
+* feat: A mapping from our store abstractions to the current daml ledger API [view commit](https://github.com/catenasys/daml-on-qldb/commit/68b976206ff080ab1f94c4322b57b81919937fbe)
+* feat: Wire up ledgercommitter and friends [view commit](https://github.com/catenasys/daml-on-qldb/commit/81670132ff3f644683e5b43aeaf2b3a05f2c9611)
+* docs: add diagrams for d-o-q deployment pattern on s3 and aurora [view commit](https://github.com/catenasys/daml-on-qldb/commit/af6a797b0aa4bf96b065f3679b999f4265d2bab2)
+* build: nullable/notnull annotation checking [view commit](https://github.com/catenasys/daml-on-qldb/commit/7bd164b1ebac35059d7f149277480bf097b7a833)
+* build(gitignore): add .factorypath [view commit](https://github.com/catenasys/daml-on-qldb/commit/fce2ff6c476db167ecf46c5e15344aaf688553cf)
+* style: rename yml to yaml [view commit](https://github.com/catenasys/daml-on-qldb/commit/d9dd4de5ff8bab765b2943e552e7b16e686b0072)
+* refactor: add a log of the submission reference count [view commit](https://github.com/catenasys/daml-on-qldb/commit/0ad42145f464a1e37406304db0c5007f46285ca8)
+* refactor: rework log utils for less code and sonar issues [view commit](https://github.com/catenasys/daml-on-qldb/commit/2d00bfd620c621875a658d924a73fed7dfa75c4a)
+* fix: Sonar issues [view commit](https://github.com/catenasys/daml-on-qldb/commit/5e11578b3e3177d32d38a49774e07cb49785005c)
+* fix: Checkstyle bounce, add log config from d-os, fix egregious null [view commit](https://github.com/catenasys/daml-on-qldb/commit/1fe0cfaf18c479603258c7ed1905b14ae111216d)
+* style: Remaining sonar issues [view commit](https://github.com/catenasys/daml-on-qldb/commit/b4aa35d328b41b3fbdf86613b743a4ba8f7fbbd5)
+* feat: ACtually wire up addresses [view commit](https://github.com/catenasys/daml-on-qldb/commit/f3b0c6e9c722506afa8656c28b2453f88df007c4)
+* style: Various sonar fixes [view commit](https://github.com/catenasys/daml-on-qldb/commit/a5ff11de57b2b0b8ebed731491a01b2d0060808d)
+* fix: Actually block in work [view commit](https://github.com/catenasys/daml-on-qldb/commit/93e727d774eecb8c3740e7d267a7f4220d300a17)
+* fix: remove apache log deps, add log4j to runtime, fix CLI in docker [view commit](https://github.com/catenasys/daml-on-qldb/commit/6e0881f638a829345952ea21ab0e3e3668943a8b)
+* feat: Create AWS resource from CLI [view commit](https://github.com/catenasys/daml-on-qldb/commit/2b8a28a61c1ddc635ea787f7885a2717de49108b)
+* feat: All framework dependencies should be now supplied to builders [view commit](https://github.com/catenasys/daml-on-qldb/commit/2b448b97e6a494a53fd75ced987419b420be02b7)
+* fix: Netty versions [view commit](https://github.com/catenasys/daml-on-qldb/commit/2dab89fc5c5444551bb2825a2d8056e619f936e9)
+* feat: Thread offset through reader correctly, coercions [view commit](https://github.com/catenasys/daml-on-qldb/commit/265dcf1251ffe5e21427bfd85b81faaf678e7c6c)
+* test: TxLog coerce [view commit](https://github.com/catenasys/daml-on-qldb/commit/e5e1fde1148435c3c26dd02880a9bdd8b48c9e3e)
+* feat: corecing, tests, dependency rearrange [view commit](https://github.com/catenasys/daml-on-qldb/commit/3d1892fba790e7e9397e03d9325cab99d82e0afb)
+* feat: An inproc ledger submitter with a similar design to legacy do-qldb [view commit](https://github.com/catenasys/daml-on-qldb/commit/f9e2c502582a8c61085072dc66e93b9a88708b03)
+* feat: In proc submitter runtime considerations, contexts [view commit](https://github.com/catenasys/daml-on-qldb/commit/191c805e1bf7b544dfe9cce255170ee3da2b96fb)
+* feat: Additional builders, more bootstrapping in main [view commit](https://github.com/catenasys/daml-on-qldb/commit/5ff8e6890d26000affcb9924b62f5e4c38f81826)
+* feat: Skeletal reusable init, generic bits moved into runtime package [view commit](https://github.com/catenasys/daml-on-qldb/commit/f05f6f80f09cfa67b577306f928735d80dcf7818)
+* feat: Builders, ids, start on scala entry point [view commit](https://github.com/catenasys/daml-on-qldb/commit/e88e47f753bc58b00675a77756bde07bdd83fd93)
+* feat: Working down from Daml interfaces [view commit](https://github.com/catenasys/daml-on-qldb/commit/ddfb6e2fa13c6028cfe076841a4bbf4b20d63ded)
+* style: Type names [view commit](https://github.com/catenasys/daml-on-qldb/commit/f962d5a8c479aaa9aee854642bb85c8e605479c7)
+* style: Sonar doesn't like two letter type params [view commit](https://github.com/catenasys/daml-on-qldb/commit/eea2f5c067f339203e684fdb111fd8af8c20ffd8)
+* fix: The actual files [view commit](https://github.com/catenasys/daml-on-qldb/commit/15cf270b2800c45be0669e39444c74ad46e25950)
+* style: More ideomatic, composable and correct exception wrapping [view commit](https://github.com/catenasys/daml-on-qldb/commit/67d4a01c99339910e6c72233ee929c43ec98c14b)
+* fix: Stop catching throwable, use unchecked() [view commit](https://github.com/catenasys/daml-on-qldb/commit/ed773d1fa7e60616f28e8cf9a301f90c194affa9)
+* fix: Derive StoreException from Exception [view commit](https://github.com/catenasys/daml-on-qldb/commit/36de47a49d599587b43845dcdbaab26e60a75140)
+* style: Sonar smells [view commit](https://github.com/catenasys/daml-on-qldb/commit/9779ce3b24e5b270cd34d912530e7917c960e822)
+* feat: Retrying for txlog writes [view commit](https://github.com/catenasys/daml-on-qldb/commit/cf65b5cd354d8935e6a628f9327279b678be28f0)
+* feat: Split log testing [view commit](https://github.com/catenasys/daml-on-qldb/commit/5b8acd338f35d8e69e025c1402bb7d86635a4c18)
+* fix: Use unchecked so we don't need to do silly wrapping [view commit](https://github.com/catenasys/daml-on-qldb/commit/c44c3c816e1bfe03a3f6a9d9fd99b7bbc3360adb)
+* feat: Add coercing wrappers from otherwise useless branch [view commit](https://github.com/catenasys/daml-on-qldb/commit/00740f5a87e42b1569f197af4ef087e07885e13a)
+* feat: Map in s3 values in observable [view commit](https://github.com/catenasys/daml-on-qldb/commit/9ca954ff3d864d157cc13d281ae090fe8c783b35)
+* style: Sonarqube fixes [view commit](https://github.com/catenasys/daml-on-qldb/commit/0a6c050a7726583cd733e657e2bd6bf26f1d33f3)
+* docs: add mkdocs setup [view commit](https://github.com/catenasys/daml-on-qldb/commit/525d75bd2dce79fa275843cf3edfd60dbd8fd07d)
+* feat: Allow optional seq for end-of-sequence marker [view commit](https://github.com/catenasys/daml-on-qldb/commit/3b892933ed73232d1ca4d3ac8f1830b95a2b7e0a)
+* feat: Viable qldb txlog implementation, needs hardening [view commit](https://github.com/catenasys/daml-on-qldb/commit/44728e881cf112e2fcdee557bd2274f74991d396)
+* feat: Observable implementation (WIP) [view commit](https://github.com/catenasys/daml-on-qldb/commit/b2b0708614c4c5e75b854d19e1865dc78190dbd7)
+* feat: TxLog write, improve resource creation [view commit](https://github.com/catenasys/daml-on-qldb/commit/9c02a87a94f111d06f714b08624f1cd6cf470933)
+* fix: rx deps [view commit](https://github.com/catenasys/daml-on-qldb/commit/51bea9cc055a15a75683ed51eb4d22a2e0ef8a98)
+* fix: Import root rx (streams version same), interfaces [view commit](https://github.com/catenasys/daml-on-qldb/commit/1491a9e9b12e2b7552f3efd492be8d6af42157a0)
+* feat: Writer / reader interfaces [view commit](https://github.com/catenasys/daml-on-qldb/commit/7bec6e1d6a0ded9a665db9b324d75218bf137f30)
+* feat: Split transactionlog / store interfaces [view commit](https://github.com/catenasys/daml-on-qldb/commit/78069c061c6e34662c61a807a17df1e42315159d)
+* fix: Derive QLDB exception, remove pointless messages [view commit](https://github.com/catenasys/daml-on-qldb/commit/4a98ab95ce4d7b86334358cc792e1d7d2c4cb1b9)
+* fix: Remove java from pre-commit [view commit](https://github.com/catenasys/daml-on-qldb/commit/ae85b7d0882593715cb5deb2e4de60877334c878)
+* style: Restore precommit, Map.entry, move splitsgtore [view commit](https://github.com/catenasys/daml-on-qldb/commit/550da18f9f1587961a591b75b88c0844d5dcbc1b)
+* style: Accept blank lines in javadoc [view commit](https://github.com/catenasys/daml-on-qldb/commit/d9c496a8ec6c56905092f7e624c5e338568297d4)
+* fix: Accidental recursion [view commit](https://github.com/catenasys/daml-on-qldb/commit/313d1589fbb0bc57137f8d079f4acdceb6cdc9e8)
+* style: Apply checkstyle rules [view commit](https://github.com/catenasys/daml-on-qldb/commit/66eaa77dbd392978f4ce7b76fe66c57b1a4f2550)
+* fix: QLdb efficiency by using blobs [view commit](https://github.com/catenasys/daml-on-qldb/commit/2903a44bac33bb3337c9cde5fb02e3e97415a4fc)
+* fix: Splitstore now has bytestring interfaces [view commit](https://github.com/catenasys/daml-on-qldb/commit/89d8d8eada83d092c1dae1cedd3d92aabfd3c8c4)
+* fix: TransactionLog now uses bytestring [view commit](https://github.com/catenasys/daml-on-qldb/commit/d3130afb1aaac956312a983725a2be0cd1f27392)
+* fix: Remove jcache, config editoprconfig with line length [view commit](https://github.com/catenasys/daml-on-qldb/commit/6996cee67dbcdc52abd60a8f0be10ec97a1f4256)
+* build: add spotless formatting and checking [view commit](https://github.com/catenasys/daml-on-qldb/commit/94981913ac0e8445a978b5e3cd2ce6807c7c73b0)
+* feat: add participant submitter interfaces [view commit](https://github.com/catenasys/daml-on-qldb/commit/bcfef27569ef58ad447e3d7b6528467095a1c7e6)
+* feat: add protocol buffer definitions [view commit](https://github.com/catenasys/daml-on-qldb/commit/e6171ccd99eb3160173d8cb4f7b00df5286df276)
+* docs: update documents [view commit](https://github.com/catenasys/daml-on-qldb/commit/77f930618b8de85d4fe6e1cf870c497589d13e77)
+* feat: add good canonized logging setup for log4j and layouts [view commit](https://github.com/catenasys/daml-on-qldb/commit/723d257388f0431be399d0b64cbf61efe5e9f101)
+* build: update daml dependencies [view commit](https://github.com/catenasys/daml-on-qldb/commit/b874acb502881f33bb64628b03736448dda30a83)
+* refactor: checkstyle and javadoc changes [view commit](https://github.com/catenasys/daml-on-qldb/commit/965f0eae0e430fe52b631ca92e3dbf1a559a97b2)
+* refactor: make package hierarchy more sensible [view commit](https://github.com/catenasys/daml-on-qldb/commit/31900202e17ee731d86e76496e2c8807f378ffbd)
+* refactor: remove visibilty modifiers on tests [view commit](https://github.com/catenasys/daml-on-qldb/commit/1b641be8f52fa3ba5082d4d2083f68299909fcfe)
+* refactor: eliminate concretes for qlds3store classes [view commit](https://github.com/catenasys/daml-on-qldb/commit/23cfcef1d0050e349958b2a203cb445b8d8e6b39)
+* refactor: Verified and UnverifiedReader don't need to be impl specific [view commit](https://github.com/catenasys/daml-on-qldb/commit/7a1ec43e7f16591f819784ced4f87303fec1e145)
+* test: rework tests and correct various issues [view commit](https://github.com/catenasys/daml-on-qldb/commit/700b949da9d7037d31a3ddb3704915efd7c6a887)
+* refactor: VerifiedReader should depend only on interfaces [view commit](https://github.com/catenasys/daml-on-qldb/commit/efba797e12b917fc1a368b980fb88b281ecbd1b4)
+* test: correct test locations and packaging [view commit](https://github.com/catenasys/daml-on-qldb/commit/6f679345667b287594fb5fd4a4cc87f52af4f694)
+* refactor: checkstyle and javadocs on various classes [view commit](https://github.com/catenasys/daml-on-qldb/commit/2ac06541700220268b59248539672ebac6f9e73d)
+* refactor(postgres): checkstyle, javadoc, resolve interface changes [view commit](https://github.com/catenasys/daml-on-qldb/commit/49f0fdc5c00792ad4a3d12272f76b496d8c15e1c)
+* fix(serviceinterface): checkstyle,javadoc [view commit](https://github.com/catenasys/daml-on-qldb/commit/825f2aa50ec600132af60803366eee1a463b1082)
+* fix(s3): correct S3Store to explicitly type when collecting futures [view commit](https://github.com/catenasys/daml-on-qldb/commit/45937c4e67187f9d826fbee502debe8349595525)
+* feat: add resilience features and caching [view commit](https://github.com/catenasys/daml-on-qldb/commit/35f88a844afa5184d85f2ad68fad54d8f491f68d)
+* fix: remove log4j deps [view commit](https://github.com/catenasys/daml-on-qldb/commit/41caab0d98ab61ef734e40f7ad8662346fafab40)
+* feat: Implementation of combined s3/qldb store and verified reader [view commit](https://github.com/catenasys/daml-on-qldb/commit/11f1a25d429ec369e76c0b22d519c973e30cf634)
+* feat: S3 store tested and operable [view commit](https://github.com/catenasys/daml-on-qldb/commit/56070ebc32583f09649422a9750bae00efcf0ed3)
+* feat: QLDB store [view commit](https://github.com/catenasys/daml-on-qldb/commit/ee5828d012dd3a7a5f98ce798d6aa1726af8b75c)
+* feat: Composable stores [view commit](https://github.com/catenasys/daml-on-qldb/commit/a53535239fe7ebe882cc5c0e9e0beabb61b0d660)
+* fix: Guard expensive log operations [view commit](https://github.com/catenasys/daml-on-qldb/commit/a6799c076d80e38c855b9f8806fafd5f389ef8cf)
+* fix: don't print stack trace [view commit](https://github.com/catenasys/daml-on-qldb/commit/f6ffbf1e770520843238ca3ea599a2495b8f0b61)
+* fix: correct sonar issues [view commit](https://github.com/catenasys/daml-on-qldb/commit/4c40c615ebd478955f7c211ed0000818c96244a5)
 
 ## v0.1.4
 
-* Use maven central not bintray for DA
-  jars [view commit](https://github.com/catenasys/daml-on-qldb/commit/bd9b061aabd287b2e396c057828c3c92b654ef84)
-* expose grpc for
-  daml-local.yaml [view commit](https://github.com/catenasys/daml-on-qldb/commit/5a2a3cdb727b89e0b48fbbb8dc7095f424e6bd23)
-* expose port for grpc
-  service [view commit](https://github.com/catenasys/daml-on-qldb/commit/beae577725e0074a49328ebac6603b47306d5753)
+* Use maven central not bintray for DA jars [view commit](https://github.com/catenasys/daml-on-qldb/commit/bd9b061aabd287b2e396c057828c3c92b654ef84)
+* expose grpc for daml-local.yaml [view commit](https://github.com/catenasys/daml-on-qldb/commit/5a2a3cdb727b89e0b48fbbb8dc7095f424e6bd23)
+* expose port for grpc service [view commit](https://github.com/catenasys/daml-on-qldb/commit/beae577725e0074a49328ebac6603b47306d5753)
 
 ## v0.1.3
 
-* Fix exception
-  message [view commit](https://github.com/catenasys/daml-on-qldb/commit/0677181b944ff2b49c46f8869cc8375145f89bb8)
-* Compensate for a delay on AWS side creating
-  tables [view commit](https://github.com/catenasys/daml-on-qldb/commit/69fe894554f519d351fa8f331017116984abbd98)
-* Base64 encode id
-  fields [view commit](https://github.com/catenasys/daml-on-qldb/commit/91f3e69a1825d2b31e0d16f64a934a293c9596db)
-* Add some useful
-  logging [view commit](https://github.com/catenasys/daml-on-qldb/commit/20011bb82a2ee3b3513bf04f1b674d2dbf7a527f)
-* Remove redundant add to
-  stateList [view commit](https://github.com/catenasys/daml-on-qldb/commit/35eff2202db0d2d5ec6bf87b49205d9f61612808)
-* Add some
-  logging [view commit](https://github.com/catenasys/daml-on-qldb/commit/7e7675bdbbedafc17d2ae686ccffec27c3ab7326)
-* Set postgres host_auth to
-  trust [view commit](https://github.com/catenasys/daml-on-qldb/commit/5d5b5fab992109cb452b2161c04ebcca74068b70)
-* Add
-  pre-commit-config [view commit](https://github.com/catenasys/daml-on-qldb/commit/c87842a88bba8eeddd43617af9979e470138fee8)
+* Fix exception message [view commit](https://github.com/catenasys/daml-on-qldb/commit/0677181b944ff2b49c46f8869cc8375145f89bb8)
+* Compensate for a delay on AWS side creating tables [view commit](https://github.com/catenasys/daml-on-qldb/commit/69fe894554f519d351fa8f331017116984abbd98)
+* Base64 encode id fields [view commit](https://github.com/catenasys/daml-on-qldb/commit/91f3e69a1825d2b31e0d16f64a934a293c9596db)
+* Add some useful logging [view commit](https://github.com/catenasys/daml-on-qldb/commit/20011bb82a2ee3b3513bf04f1b674d2dbf7a527f)
+* Remove redundant add to stateList [view commit](https://github.com/catenasys/daml-on-qldb/commit/35eff2202db0d2d5ec6bf87b49205d9f61612808)
+* Add some logging [view commit](https://github.com/catenasys/daml-on-qldb/commit/7e7675bdbbedafc17d2ae686ccffec27c3ab7326)
+* Set postgres host_auth to trust [view commit](https://github.com/catenasys/daml-on-qldb/commit/5d5b5fab992109cb452b2161c04ebcca74068b70)
+* Add pre-commit-config [view commit](https://github.com/catenasys/daml-on-qldb/commit/c87842a88bba8eeddd43617af9979e470138fee8)
 
 ## v0.1.2
 
-* Upgrade to DAML SDK
-  0.13.41 [view commit](https://github.com/catenasys/daml-on-qldb/commit/e9302ee9e0bd690ccfee1840f184933f16b24c6a)
+* Upgrade to DAML SDK 0.13.41 [view commit](https://github.com/catenasys/daml-on-qldb/commit/e9302ee9e0bd690ccfee1840f184933f16b24c6a)
 
 ## v0.1.1
 
-* Implement generalized handling of non-recoverable S3
-  errors [view commit](https://github.com/catenasys/daml-on-qldb/commit/ab85df8e686523c8b4e63b32d7b2bca405a14f7d)
-* attempt to get object up to three times if bucket does not
-  exist [view commit](https://github.com/catenasys/daml-on-qldb/commit/2ac282f25c8d0bfd4db2f3eba035053067906427)
-* Add auth services to
-  cli [view commit](https://github.com/catenasys/daml-on-qldb/commit/fcc331a017bb35aebb9e15d4ecf79d4e5809ee0a)
+* Implement generalized handling of non-recoverable S3 errors [view commit](https://github.com/catenasys/daml-on-qldb/commit/ab85df8e686523c8b4e63b32d7b2bca405a14f7d)
+* attempt to get object up to three times if bucket does not exist [view commit](https://github.com/catenasys/daml-on-qldb/commit/2ac282f25c8d0bfd4db2f3eba035053067906427)
+* Add auth services to cli [view commit](https://github.com/catenasys/daml-on-qldb/commit/fcc331a017bb35aebb9e15d4ecf79d4e5809ee0a)
 * aws not was [view commit](https://github.com/catenasys/daml-on-qldb/commit/c651994018fcec10c1aa6e07d816191475da0133)
-* remove $'
-  expansion [view commit](https://github.com/catenasys/daml-on-qldb/commit/41566ecfe9a443b0237e9e9a909036fe3885adff)
-* source
-  aws-configure.sh [view commit](https://github.com/catenasys/daml-on-qldb/commit/fd2ae44bd863539720eeb0b3d6f9b686bccc5498)
-* Crop isolation id to 32
-  chars [view commit](https://github.com/catenasys/daml-on-qldb/commit/92bacef3571e41289b7c268ba9bf1a04a9a4e316)
-* Fix aws-configure file
-  copy [view commit](https://github.com/catenasys/daml-on-qldb/commit/3f1125a01e7a7a82693692a43b1b59a84e109472)
-* Change ledger name to isolation
-  id [view commit](https://github.com/catenasys/daml-on-qldb/commit/f08bd304787c6fac5110c585b0d7678711a59bb8)
-* Add
-  aws-configure.sh [view commit](https://github.com/catenasys/daml-on-qldb/commit/7b62c184f0e848f87c90c3b6f5e6e31c9c3c1b86)
-* Add AWS CLI to ledger test
-  image [view commit](https://github.com/catenasys/daml-on-qldb/commit/9ccfb183a0d0460d981055459ea19c22d8b0f318)
+* remove $' expansion [view commit](https://github.com/catenasys/daml-on-qldb/commit/41566ecfe9a443b0237e9e9a909036fe3885adff)
+* source aws-configure.sh [view commit](https://github.com/catenasys/daml-on-qldb/commit/fd2ae44bd863539720eeb0b3d6f9b686bccc5498)
+* Crop isolation id to 32 chars [view commit](https://github.com/catenasys/daml-on-qldb/commit/92bacef3571e41289b7c268ba9bf1a04a9a4e316)
+* Fix aws-configure file copy [view commit](https://github.com/catenasys/daml-on-qldb/commit/3f1125a01e7a7a82693692a43b1b59a84e109472)
+* Change ledger name to isolation id [view commit](https://github.com/catenasys/daml-on-qldb/commit/f08bd304787c6fac5110c585b0d7678711a59bb8)
+* Add aws-configure.sh [view commit](https://github.com/catenasys/daml-on-qldb/commit/7b62c184f0e848f87c90c3b6f5e6e31c9c3c1b86)
+* Add AWS CLI to ledger test image [view commit](https://github.com/catenasys/daml-on-qldb/commit/9ccfb183a0d0460d981055459ea19c22d8b0f318)
 
