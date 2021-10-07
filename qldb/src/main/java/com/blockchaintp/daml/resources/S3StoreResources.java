@@ -11,7 +11,7 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.blockchaintp.daml.stores.resources;
+package com.blockchaintp.daml.resources;
 
 import java.util.concurrent.CompletableFuture;
 

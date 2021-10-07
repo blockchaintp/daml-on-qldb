@@ -11,7 +11,7 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.blockchaintp.daml.stores.postgres;
+package com.blockshaintp.daml.stores.postgres;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
