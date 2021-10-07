@@ -11,13 +11,13 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.blockchaintp.daml.stores.qldb;
+package store;
 
-import com.blockchaintp.daml.stores.StubStore;
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.layers.RetryingConfig;
 import com.blockchaintp.daml.stores.layers.RetryingStore;
+import com.blockchaintp.daml.stores.qldb.QldbRetryStrategy;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.Value;

@@ -44,7 +44,6 @@ import com.blockchaintp.daml.stores.service.TransactionLog;
 import com.blockchaintp.utility.UuidConverter;
 import com.google.protobuf.ByteString;
 
-import static software.amazon.awssdk.services.qldbsession.model.QldbSessionException.create;
 import io.vavr.API;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
@@ -54,6 +53,7 @@ import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
 import software.amazon.awssdk.services.qldb.model.QldbException;
 import software.amazon.awssdk.services.qldbsession.model.QldbSessionException;
 import software.amazon.qldb.ExecutorNoReturn;
+import static software.amazon.awssdk.services.qldbsession.model.QldbSessionException.create;
 import software.amazon.qldb.QldbDriver;
 
 /**

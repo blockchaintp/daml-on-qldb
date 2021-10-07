@@ -11,9 +11,10 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.blockchaintp.daml.stores.qldb;
+package store;
 
 import com.blockchaintp.daml.stores.exception.StoreReadException;
+import com.blockchaintp.daml.stores.qldb.QldbStore;
 import com.blockchaintp.daml.stores.service.Key;
 import com.google.protobuf.ByteString;
 import org.junit.jupiter.api.Assertions;
@@ -22,8 +23,6 @@ import software.amazon.qldb.Executor;
 import software.amazon.qldb.QldbDriver;
 import software.amazon.qldb.exceptions.Errors;
 import software.amazon.qldb.exceptions.QldbDriverException;
-
-import java.nio.charset.StandardCharsets;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;

@@ -33,7 +33,6 @@ import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.Value;
 import com.google.common.collect.Sets;
 import com.google.protobuf.ByteString;
-
 import io.vavr.API;
 import io.vavr.Tuple;
 import io.vavr.collection.Stream;

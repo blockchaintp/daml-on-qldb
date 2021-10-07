@@ -133,7 +133,7 @@
             <manifest>
               <addClasspath>true</addClasspath>
               <classpathPrefix>lib/</classpathPrefix>
-              <mainClass>com.blockchaintp.daml.qldb.Main</mainClass>
+              <mainClass>com.blockchaintp.daml.store.Main</mainClass>
             </manifest>
           </archive>
         </configuration>
