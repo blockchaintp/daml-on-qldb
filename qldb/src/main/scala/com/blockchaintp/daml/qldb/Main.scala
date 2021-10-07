@@ -22,11 +22,8 @@ import com.blockchaintp.daml.runtime.BuilderLedgerFactory
 import com.blockchaintp.daml.stores.layers.CoercingStore
 import com.blockchaintp.daml.stores.layers.SplitStore
 import com.blockchaintp.daml.stores.layers.SplitTransactionLog
-import com.blockchaintp.daml.stores.postgres.PostgresStore
 import com.blockchaintp.daml.stores.qldb.QldbStore
 import com.blockchaintp.daml.stores.qldb.QldbTransactionLog
-import com.blockchaintp.daml.stores.resources.QldbResources
-import com.blockchaintp.daml.stores.resources.S3StoreResources
 import com.blockchaintp.daml.stores.s3.S3Store
 import com.blockchaintp.utility.Aws
 import com.daml.jwt.JwksVerifier
