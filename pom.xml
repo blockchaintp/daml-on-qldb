@@ -79,7 +79,7 @@
 		</profile>
 	</profiles>
 	<properties>
-		<revision>0.1.5-SNAPSHOT</revision>
+		<revision>1.13.1-SNAPSHOT</revision>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<protobuf.version>3.17.3</protobuf.version>
 		<daml.sdk.version>1.13.1</daml.sdk.version>
