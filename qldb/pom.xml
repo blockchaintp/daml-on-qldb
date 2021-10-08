@@ -48,11 +48,13 @@
 			<artifactId>core</artifactId>
 			<version>${revision}</version>
 		</dependency>
+
 		<dependency>
 			<groupId>daml-on</groupId>
-			<artifactId>postgres</artifactId>
+			<artifactId>daml-on-postgres</artifactId>
 			<version>${revision}</version>
 		</dependency>
+
 		<!-- AWS SDK -->
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
@@ -155,7 +157,7 @@
 						<manifest>
 							<addClasspath>true</addClasspath>
 							<classpathPrefix>lib/</classpathPrefix>
-							<mainClass>com.blockchaintp.daml.store.Main</mainClass>
+							<mainClass>com.blockchaintp.daml.qldb.Main</mainClass>
 						</manifest>
 					</archive>
 				</configuration>

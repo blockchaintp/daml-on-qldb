@@ -18,6 +18,7 @@ import com.blockchaintp.daml.address.QldbAddress
 import com.blockchaintp.daml.address.QldbIdentifier
 import com.blockchaintp.daml.participant.InProcLedgerSubmitter
 import com.blockchaintp.daml.participant.ParticipantBuilder
+import com.blockchaintp.daml.resources.QldbResources
 import com.blockchaintp.daml.runtime.BuilderLedgerFactory
 import com.blockchaintp.daml.stores.layers.CoercingStore
 import com.blockchaintp.daml.stores.layers.SplitStore
@@ -26,6 +27,7 @@ import com.blockchaintp.daml.stores.qldb.QldbStore
 import com.blockchaintp.daml.stores.qldb.QldbTransactionLog
 import com.blockchaintp.daml.stores.s3.S3Store
 import com.blockchaintp.utility.Aws
+import com.blockshaintp.daml.stores.postgres.PostgresStore
 import com.daml.jwt.JwksVerifier
 import com.daml.jwt.RSA256Verifier
 import com.daml.ledger.api.auth.AuthService
@@ -39,18 +41,14 @@ import com.daml.ledger.validator.DefaultStateKeySerializationStrategy
 import com.daml.resources.ProgramResource
 import scopt.OptionParser
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
-import software.amazon.awssdk.http.async.SdkAsyncHttpClient
-import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.qldb.QldbClient
 import software.amazon.awssdk.services.qldbsession.QldbSessionClient
-import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.qldb.QldbDriver
 import software.amazon.qldb.RetryPolicy
 
 import scala.jdk.CollectionConverters._
 import java.nio.file.Paths
-import java.time.Duration
 import scala.jdk.FunctionConverters.enrichAsJavaFunction
 import scala.util.Try
 

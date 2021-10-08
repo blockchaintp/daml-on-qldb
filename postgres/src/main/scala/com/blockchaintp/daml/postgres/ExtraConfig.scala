@@ -11,7 +11,7 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.blockchaintp.daml.qldb
+package com.blockchaintp.daml.postgres
 
 final case class ExtraConfig(
     txLogStore: String,
