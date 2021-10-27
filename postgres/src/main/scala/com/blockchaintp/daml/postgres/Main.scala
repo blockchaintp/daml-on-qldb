@@ -11,25 +11,14 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.blockchaintp.daml.qldb
+package com.blockchaintp.daml.postgres
 
-import com.amazon.ion.system.IonSystemBuilder
 import com.blockchaintp.daml.address.QldbAddress
 import com.blockchaintp.daml.address.QldbIdentifier
-import com.blockchaintp.daml.participant.InProcLedgerSubmitter
 import com.blockchaintp.daml.participant.ParticipantBuilder
 import com.blockchaintp.daml.runtime.BuilderLedgerFactory
-import com.blockchaintp.daml.stores.layers.CoercingStore
-import com.blockchaintp.daml.stores.layers.SplitStore
-import com.blockchaintp.daml.stores.layers.SplitTransactionLog
-import com.blockchaintp.daml.stores.postgres.PostgresStore
-import com.blockchaintp.daml.stores.postgres.PostgresTransactionLog
-import com.blockchaintp.daml.stores.qldb.QldbStore
-import com.blockchaintp.daml.stores.qldb.QldbTransactionLog
-import com.blockchaintp.daml.stores.resources.QldbResources
-import com.blockchaintp.daml.stores.resources.S3StoreResources
-import com.blockchaintp.daml.stores.s3.S3Store
-import com.blockchaintp.utility.Aws
+import com.blockshaintp.daml.stores.postgres.PostgresStore
+import com.blockshaintp.daml.stores.postgres.PostgresTransactionLog
 import com.daml.jwt.JwksVerifier
 import com.daml.jwt.RSA256Verifier
 import com.daml.ledger.api.auth.AuthService

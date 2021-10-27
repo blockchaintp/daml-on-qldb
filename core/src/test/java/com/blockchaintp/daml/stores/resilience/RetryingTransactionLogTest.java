@@ -14,13 +14,11 @@
 package com.blockchaintp.daml.stores.resilience;
 
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
-import com.blockchaintp.daml.stores.layers.RetryingConfig;
 import com.blockchaintp.daml.stores.layers.RetryingTransactionLog;
 import com.blockchaintp.daml.stores.service.TransactionLog;
 import io.vavr.Tuple;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -29,24 +27,26 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class RetryingTransactionLogTest {
+
+  class InnerException extends Exception {
+  }
+
   @Test
   void transaction_log_operations_are_retried() throws StoreWriteException {
     var log = mock(TransactionLog.class);
     var retrying = new RetryingTransactionLog(3, log);
 
-    when(log.begin(Optional.empty())).thenThrow(new StoreWriteException(S3Exception.builder().build()))
-        .thenThrow(new StoreWriteException(S3Exception.builder().build())).thenReturn(Tuple.of(UUID.randomUUID(), 0));
+    when(log.begin(Optional.empty())).thenThrow(new StoreWriteException(new InnerException()))
+        .thenThrow(new StoreWriteException(new InnerException())).thenReturn(Tuple.of(UUID.randomUUID(), 0));
 
-    doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(log)
-        .sendEvent(any(UUID.class), any(String.class));
+    doThrow(new StoreWriteException(new InnerException())).doThrow(new StoreWriteException(new InnerException()))
+        .doNothing().when(log).sendEvent(any(UUID.class), any(String.class));
 
-    doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build())).doReturn(Long.valueOf(0L)).when(log)
-        .commit(any(UUID.class));
+    doThrow(new StoreWriteException(new InnerException())).doThrow(new StoreWriteException(new InnerException()))
+        .doReturn(Long.valueOf(0L)).when(log).commit(any(UUID.class));
 
-    doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(log).abort(any(UUID.class));
+    doThrow(new StoreWriteException(new InnerException())).doThrow(new StoreWriteException(new InnerException()))
+        .doNothing().when(log).abort(any(UUID.class));
 
     Assertions.assertDoesNotThrow(() -> retrying.begin(Optional.empty()));
     Assertions.assertDoesNotThrow(() -> retrying.commit(UUID.randomUUID()));
@@ -61,38 +61,33 @@ class RetryingTransactionLogTest {
     var log = mock(TransactionLog.class);
     var retrying = new RetryingTransactionLog(3, log);
 
-    when(log.begin(Optional.empty())).thenThrow(new StoreWriteException(S3Exception.builder().build()))
-        .thenThrow(new StoreWriteException(S3Exception.builder().build()))
-        .thenThrow(new StoreWriteException(S3Exception.builder().build()))
-        .thenThrow(new StoreWriteException(S3Exception.builder().build())).thenReturn(Tuple.of(UUID.randomUUID(), 0));
+    when(log.begin(Optional.empty())).thenThrow(new StoreWriteException(new InnerException()))
+        .thenThrow(new StoreWriteException(new InnerException()))
+        .thenThrow(new StoreWriteException(new InnerException()))
+        .thenThrow(new StoreWriteException(new InnerException())).thenReturn(Tuple.of(UUID.randomUUID(), 0));
 
-    doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(log)
-        .sendEvent(any(UUID.class), any(String.class));
+    doThrow(new StoreWriteException(new InnerException())).doThrow(new StoreWriteException(new InnerException()))
+        .doThrow(new StoreWriteException(new InnerException())).doThrow(new StoreWriteException(new InnerException()))
+        .doNothing().when(log).sendEvent(any(UUID.class), any(String.class));
 
-    doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build())).doReturn(Long.valueOf(0L)).when(log)
-        .commit(any(UUID.class));
+    doThrow(new StoreWriteException(new InnerException())).doThrow(new StoreWriteException(new InnerException()))
+        .doThrow(new StoreWriteException(new InnerException())).doThrow(new StoreWriteException(new InnerException()))
+        .doReturn(Long.valueOf(0L)).when(log).commit(any(UUID.class));
 
-    doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(log).abort(any(UUID.class));
+    doThrow(new StoreWriteException(new InnerException())).doThrow(new StoreWriteException(new InnerException()))
+        .doThrow(new StoreWriteException(new InnerException())).doThrow(new StoreWriteException(new InnerException()))
+        .doNothing().when(log).abort(any(UUID.class));
 
-    Assertions.assertInstanceOf(S3Exception.class,
+    Assertions.assertInstanceOf(InnerException.class,
         Assertions.assertThrows(StoreWriteException.class, () -> retrying.begin(Optional.empty())).getCause());
 
-    Assertions.assertInstanceOf(S3Exception.class,
+    Assertions.assertInstanceOf(InnerException.class,
         Assertions.assertThrows(StoreWriteException.class, () -> retrying.commit(UUID.randomUUID())).getCause());
 
-    Assertions.assertInstanceOf(S3Exception.class,
+    Assertions.assertInstanceOf(InnerException.class,
         Assertions.assertThrows(StoreWriteException.class, () -> retrying.sendEvent(UUID.randomUUID(), "")).getCause());
 
-    Assertions.assertInstanceOf(S3Exception.class,
+    Assertions.assertInstanceOf(InnerException.class,
         Assertions.assertThrows(StoreWriteException.class, () -> retrying.abort(UUID.randomUUID())).getCause());
 
   }

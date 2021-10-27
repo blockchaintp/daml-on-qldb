@@ -22,7 +22,6 @@ import com.blockchaintp.daml.stores.service.Store;
 import com.blockchaintp.daml.stores.service.Value;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -34,18 +33,23 @@ import static org.mockito.Mockito.*;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 class RetryingStoreTest {
+
+  protected class InnerException extends Exception {
+
+  }
+
   @Test
   void get_retries_configured_number_of_store_read_exceptions() throws StoreReadException {
     var store = mock(Store.class);
     var retrying = new RetryingStore(new RetryingConfig(), store);
 
-    when(store.get(any(Key.class))).thenThrow(new StoreReadException(S3Exception.builder().build()))
-        .thenThrow(new StoreReadException(S3Exception.builder().build())).thenReturn(Optional.of(Value.of("stuff")));
+    when(store.get(any(Key.class))).thenThrow(new StoreReadException(new InnerException()))
+        .thenThrow(new StoreReadException(new InnerException())).thenReturn(Optional.of(Value.of("stuff")));
 
     var retMap = new HashMap<>();
     retMap.put(Key.of("stuff"), Value.of("stuff"));
-    when(store.get(any(List.class))).thenThrow(new StoreReadException(S3Exception.builder().build()))
-        .thenThrow(new StoreReadException(S3Exception.builder().build())).thenReturn(retMap);
+    when(store.get(any(List.class))).thenThrow(new StoreReadException(new InnerException()))
+        .thenThrow(new StoreReadException(new InnerException())).thenReturn(retMap);
 
     /// Scalar get
     Assertions.assertEquals(Optional.of(Value.of("stuff")), retrying.get(Key.of("")));
@@ -59,26 +63,24 @@ class RetryingStoreTest {
     var store = mock(Store.class);
     var retrying = new RetryingStore(new RetryingConfig(), store);
 
-    when(store.get(any(Key.class))).thenThrow(new StoreReadException(S3Exception.builder().build()))
-        .thenThrow(new StoreReadException(S3Exception.builder().build()))
-        .thenThrow(new StoreReadException(S3Exception.builder().build()))
-        .thenThrow(new StoreReadException(S3Exception.builder().build()))
-        .thenThrow(new StoreReadException(S3Exception.builder().build())).thenReturn(Optional.of(Value.of("stuff")));
+    when(store.get(any(Key.class))).thenThrow(new StoreReadException(new InnerException()))
+        .thenThrow(new StoreReadException(new InnerException())).thenThrow(new StoreReadException(new InnerException()))
+        .thenThrow(new StoreReadException(new InnerException())).thenThrow(new StoreReadException(new InnerException()))
+        .thenReturn(Optional.of(Value.of("stuff")));
 
-    when(store.get(any(List.class))).thenThrow(new StoreReadException(S3Exception.builder().build()))
-        .thenThrow(new StoreReadException(S3Exception.builder().build()))
-        .thenThrow(new StoreReadException(S3Exception.builder().build()))
-        .thenThrow(new StoreReadException(S3Exception.builder().build()))
-        .thenThrow(new StoreReadException(S3Exception.builder().build())).thenReturn(new HashMap<>());
+    when(store.get(any(List.class))).thenThrow(new StoreReadException(new InnerException()))
+        .thenThrow(new StoreReadException(new InnerException())).thenThrow(new StoreReadException(new InnerException()))
+        .thenThrow(new StoreReadException(new InnerException())).thenThrow(new StoreReadException(new InnerException()))
+        .thenReturn(new HashMap<>());
 
     var getEx = Assertions.assertThrows(StoreReadException.class, () -> retrying.get(Key.of("")));
 
     var getMultipleEx = Assertions.assertThrows(StoreReadException.class, () -> retrying.get(Arrays.asList()));
 
     /// Check we did not double wrap
-    Assertions.assertInstanceOf(S3Exception.class, getEx.getCause());
+    Assertions.assertInstanceOf(InnerException.class, getEx.getCause());
 
-    Assertions.assertInstanceOf(S3Exception.class, getMultipleEx.getCause());
+    Assertions.assertInstanceOf(InnerException.class, getMultipleEx.getCause());
   }
 
   @Test
@@ -86,12 +88,11 @@ class RetryingStoreTest {
     var store = mock(Store.class);
     var retrying = new RetryingStore(new RetryingConfig(), store);
 
-    doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(store)
-        .put(any(Key.class), any(Value.class));
+    doThrow(new StoreWriteException(new InnerException())).doThrow(new StoreWriteException(new InnerException()))
+        .doNothing().when(store).put(any(Key.class), any(Value.class));
 
-    doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(store).put(any(List.class));
+    doThrow(new StoreWriteException(new InnerException())).doThrow(new StoreWriteException(new InnerException()))
+        .doNothing().when(store).put(any(List.class));
 
     /// Scalar put
     Assertions.assertDoesNotThrow(() -> retrying.put(Key.of(""), Value.of("")));
@@ -105,18 +106,14 @@ class RetryingStoreTest {
     var store = mock(Store.class);
     var retrying = new RetryingStore(new RetryingConfig(), store);
 
-    doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(store)
+    doThrow(new StoreWriteException(new InnerException())).doThrow(new StoreWriteException(new InnerException()))
+        .doThrow(new StoreWriteException(new InnerException())).doThrow(new StoreWriteException(new InnerException()))
+        .doThrow(new StoreWriteException(new InnerException())).doNothing().when(store)
         .put(any(Key.class), any(Value.class));
 
-    doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build()))
-        .doThrow(new StoreWriteException(S3Exception.builder().build())).doNothing().when(store).put(any(List.class));
+    doThrow(new StoreWriteException(new InnerException())).doThrow(new StoreWriteException(new InnerException()))
+        .doThrow(new StoreWriteException(new InnerException())).doThrow(new StoreWriteException(new InnerException()))
+        .doThrow(new StoreWriteException(new InnerException())).doNothing().when(store).put(any(List.class));
 
     /// Scalar put
     var putEx = Assertions.assertThrows(StoreWriteException.class, () -> retrying.put(Key.of(""), Value.of("")));
@@ -125,9 +122,9 @@ class RetryingStoreTest {
     var putMultipleEx = Assertions.assertThrows(StoreWriteException.class, () -> retrying.put(Arrays.asList()));
 
     /// Check we did not double wrap
-    Assertions.assertInstanceOf(S3Exception.class, putEx.getCause());
+    Assertions.assertInstanceOf(InnerException.class, putEx.getCause());
 
-    Assertions.assertInstanceOf(S3Exception.class, putMultipleEx.getCause());
+    Assertions.assertInstanceOf(InnerException.class, putMultipleEx.getCause());
 
   }
 }

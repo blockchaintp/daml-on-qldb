@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Blockchain Technology Partners
+ * Copyright 2021 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -11,20 +11,23 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.blockchaintp.daml.postgres
+package com.blockshaintp.daml.stores.postgres;
 
-final case class ExtraConfig(
-    txLogStore: String,
-    keystore: String,
-    logLevel: String,
-    authType: String,
-    secret: String,
-    jwksUrl: String
-)
+import com.blockchaintp.daml.stores.exception.StoreException;
 
-object ExtraConfig {
+/**
+ * Non sql exceptions for the postgres txlog.
+ */
+public final class PostgresTxLogException extends StoreException {
+  private PostgresTxLogException(final String msg) {
+    super(msg);
+  }
 
-  val default: ExtraConfig =
-    ExtraConfig(keystore = "/etc/daml/keystore", logLevel = "info", authType = "none", secret = "", jwksUrl = "",
-      txLogStore = "")
+  /**
+   *
+   * @return The appropriate exception.
+   */
+  public static PostgresTxLogException noInsertResult() {
+    return new PostgresTxLogException("No result from insert");
+  }
 }

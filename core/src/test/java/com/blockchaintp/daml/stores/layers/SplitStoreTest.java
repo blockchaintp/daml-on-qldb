@@ -13,7 +13,6 @@
  */
 package com.blockchaintp.daml.stores.layers;
 
-import com.amazon.ion.system.IonSystemBuilder;
 import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.Key;
@@ -25,7 +24,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
@@ -57,7 +55,6 @@ class SplitStoreTest {
   @Test
   void indexed_put_enters_hash_into_txlog_after_storing_in_blobStore_and_also_stores_index()
       throws StoreWriteException, StoreReadException {
-    var ion = IonSystemBuilder.standard().build();
     var txLog = new com.blockchaintp.daml.stores.StubStore<ByteString, ByteString>();
     var blobStore = new com.blockchaintp.daml.stores.StubStore<ByteString, ByteString>();
 
