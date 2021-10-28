@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+* fix: Test dependencies etc [view commit](https://github.com/catenasys/daml-on-qldb/commit/4b0725741243013ffcca4fedf08336ff722b8da5)
+* fix: bump [view commit](https://github.com/catenasys/daml-on-qldb/commit/7d2504d095f2ba5bdca46b342f7c4e27d72f501f)
+* fix: Correct .pom imports, add .pom file to spotless [view commit](https://github.com/catenasys/daml-on-qldb/commit/41f86ad735e7fdddd1eeb4bd185b64aa1d12e28e)
+* feat: Postgress code split to module [view commit](https://github.com/catenasys/daml-on-qldb/commit/74b3ff9cab905bc845a995094df658e0784f8a00)
+* feat: split qldb deps [view commit](https://github.com/catenasys/daml-on-qldb/commit/c2d5dabc2baa1eaedd191cc0d088c8165b81a42c)
 * build: spotless should ratchet from main [view commit](https://github.com/catenasys/daml-on-qldb/commit/79b027ad4a09e009ca0cd1c17fac0dae2a52c6de)
 
 ## v1.13.0
