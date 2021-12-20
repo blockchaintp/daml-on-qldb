@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Unreleased
+## v1.13.1
 
 * fix: Test dependencies etc [view commit](https://github.com/catenasys/daml-on-qldb/commit/4b0725741243013ffcca4fedf08336ff722b8da5)
 * fix: bump [view commit](https://github.com/catenasys/daml-on-qldb/commit/7d2504d095f2ba5bdca46b342f7c4e27d72f501f)
