@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v1.13.2
+
+* fix(docker-compose): fix a name clash with catenasys/daml-on-postgres [view commit](https://github.com/catenasys/daml-on-qldb/commit/bd6dd75ba2df873fc44c27e3230dbeae75d5f293)
+
 ## v1.13.1
 
 * fix: Test dependencies etc [view commit](https://github.com/catenasys/daml-on-qldb/commit/4b0725741243013ffcca4fedf08336ff722b8da5)
