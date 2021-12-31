@@ -26,11 +26,11 @@ services:
     volumes:
       - ./:/project
 
-  daml-on-postgres:
+  daml-on-postgres-ng:
     build:
       context: .
       dockerfile: docker/daml-on-postgres.docker
-    image: daml-on-postgres:${ISOLATION_ID}
+    image: daml-on-postgres-ng:${ISOLATION_ID}
     container_name: daml-on-postgres
     volumes:
       - ./:/project
