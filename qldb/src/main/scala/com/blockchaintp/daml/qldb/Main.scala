@@ -49,6 +49,7 @@ import software.amazon.qldb.RetryPolicy
 
 import scala.jdk.CollectionConverters._
 import java.nio.file.Paths
+import java.time.Duration
 import scala.jdk.FunctionConverters.enrichAsJavaFunction
 import scala.util.Try
 
@@ -303,6 +304,12 @@ class LedgerFactory(
           )
         )
       }
+
+    Metrics.metricsReporterParse(parser)(
+      (f, c) => c.copy(metricsReporter = f(c.metricsReporter)),
+      (f, c) => c.copy(metricsReportingInterval = (Duration.ofNanos(c.metricsReportingInterval.toNanos))),
+    )
+
     ()
   }
 }
