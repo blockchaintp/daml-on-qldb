@@ -13,6 +13,7 @@
  */
 package com.blockchaintp.daml.participant;
 
+
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.concurrent.BlockingDeque;
@@ -25,11 +26,8 @@ import java.util.concurrent.TimeUnit;
 import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.address.LedgerAddress;
 import com.blockchaintp.daml.stores.service.TransactionLogReader;
-
-import com.daml.ledger.offset.Offset;
-import com.daml.ledger.participant.state.kvutils.KVOffsetBuilder;
 import com.daml.ledger.api.health.HealthStatus;
-import com.daml.ledger.participant.state.kvutils.KVOffsetBuilder$;
+import com.daml.ledger.offset.Offset;
 import com.daml.ledger.participant.state.kvutils.Raw;
 import com.daml.ledger.participant.state.kvutils.api.CommitMetadata;
 import com.daml.ledger.participant.state.kvutils.api.LedgerReader;
