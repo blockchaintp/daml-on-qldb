@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Blockchain Technology Partners
+ * Copyright 2021-2022 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -25,15 +25,17 @@ import java.util.concurrent.TimeUnit;
 import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.address.LedgerAddress;
 import com.blockchaintp.daml.stores.service.TransactionLogReader;
+
+import com.daml.ledger.offset.Offset;
+import com.daml.ledger.participant.state.kvutils.KVOffsetBuilder;
 import com.daml.ledger.api.health.HealthStatus;
-import com.daml.ledger.participant.state.kvutils.OffsetBuilder;
+import com.daml.ledger.participant.state.kvutils.KVOffsetBuilder$;
 import com.daml.ledger.participant.state.kvutils.Raw;
 import com.daml.ledger.participant.state.kvutils.api.CommitMetadata;
 import com.daml.ledger.participant.state.kvutils.api.LedgerReader;
 import com.daml.ledger.participant.state.kvutils.api.LedgerRecord;
 import com.daml.ledger.participant.state.kvutils.api.LedgerWriter;
-import com.daml.ledger.participant.state.v1.Offset;
-import com.daml.ledger.participant.state.v1.SubmissionResult;
+import com.daml.ledger.participant.state.v2.SubmissionResult;
 import com.daml.platform.akkastreams.dispatcher.Dispatcher;
 import com.daml.platform.akkastreams.dispatcher.SubSource.RangeSource;
 import com.daml.telemetry.TelemetryContext;
@@ -65,6 +67,7 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   private final BlockingDeque<CommitPayload<I>> submissions = new LinkedBlockingDeque<>();
   private final ExecutionContextExecutor context;
   private final ScheduledExecutorService pollExecutor;
+  private final KVOffsetBuilder offsetBuilder = new KVOffsetBuilder((byte) 0);
 
   /**
    * Convenience method for creating a builder.
@@ -131,16 +134,16 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   public akka.stream.scaladsl.Source<LedgerRecord, NotUsed> events(final Option<Offset> startExclusive) {
     LOG.info("Get from {}", () -> startExclusive);
 
-    var start = OffsetBuilder.fromLong(0L, 0, 0);
+    var start = offsetBuilder.of(0L, 0, 0);
 
     Ordering<Long> scalaLongOrdering = Ordering.comparatorToOrdering(Comparator.comparingLong(scala.Long::unbox));
 
     var rangeSource = new RangeSource<>((s, e) -> Source
         .fromJavaStream(() -> API.unchecked(() -> txLog.from(s - 1, Optional.of(e - 1))).apply()
-            .map(r -> Tuple2.apply(r._1, LedgerRecord.apply(OffsetBuilder.fromLong(r._1, 0, 0), r._2, r._3))))
+            .map(r -> Tuple2.apply(r._1, LedgerRecord.apply(offsetBuilder.of(r._1, 0, 0), r._2, r._3))))
         .mapMaterializedValue(m -> NotUsed.notUsed()).asScala(), scalaLongOrdering);
 
-    var offset = OffsetBuilder.highestIndex(startExclusive.getOrElse(() -> start));
+    var offset = offsetBuilder.highestIndex(startExclusive.getOrElse(() -> start));
     return dispatcher.startingAt(offset, rangeSource, Option.empty()).asJava().map(x -> {
       LOG.debug("Yield log {} {}", x._1, x._2);
       return x;

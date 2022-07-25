@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Blockchain Technology Partners
+ * Copyright 2021-2022 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,7 +13,7 @@
  */
 package com.blockchaintp.daml.address;
 
-import com.daml.ledger.participant.state.kvutils.DamlKvutils;
+import com.daml.ledger.participant.state.kvutils.store.DamlStateKey;
 
 /**
  * A generic identifier.
@@ -23,5 +23,5 @@ public interface Identifier {
    *
    * @return The state key;
    */
-  DamlKvutils.DamlStateKey toKey();
+  DamlStateKey toKey();
 }
