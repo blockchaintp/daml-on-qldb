@@ -18,7 +18,8 @@ import com.blockchaintp.daml.address.Identifier
 import com.blockchaintp.daml.address.LedgerAddress
 import com.blockchaintp.daml.participant.ParticipantBuilder
 import com.daml.ledger.api.v1.admin.config_management_service.TimeModel
-import com.daml.ledger.configuration.{Configuration, LedgerTimeModel}
+import com.daml.ledger.configuration.Configuration
+import com.daml.ledger.configuration.LedgerTimeModel
 import com.daml.ledger.participant.state.kvutils.api.KeyValueLedger
 import com.daml.ledger.participant.state.kvutils.api.KeyValueParticipantState
 import com.daml.ledger.participant.state.kvutils.app.Config
@@ -60,24 +61,6 @@ abstract class BuilderLedgerFactory[
   }
 
   override def initialLedgerConfig(config: Config[ExtraConfig]): InitialLedgerConfiguration =
-    InitialLedgerConfiguration(
-      configuration = Configuration(
-        generation = 1,
-        timeModel = TimeModel(
-          LedgerTimeModel(
-            avgTransactionLatency = Duration.ofSeconds(1L),
-            minSkew = Duration.ofSeconds(40L),
-            maxSkew = Duration.ofSeconds(80L)
-          ).get,
-          maxDeduplicationTime = Duration.ofDays(1)
-        ),
-        initialConfigurationSubmitDelay = Duration.ofSeconds(5),
-        configurationLoadTimeout = Duration.ofSeconds(10)
-          delayBeforeSubmitting = Duration.ofSeconds(5)
-      )
-    )
-
-  def initialLedgerConfig(config: Config[ExtraConfig]): InitialLedgerConfiguration =
     InitialLedgerConfiguration(
       configuration = Configuration(
         generation = 1,
