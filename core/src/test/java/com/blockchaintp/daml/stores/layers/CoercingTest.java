@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Blockchain Technology Partners
+ * Copyright 2021-2022 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -41,8 +41,7 @@ class CoercingTest {
     var stub = new StubStore<ByteString, ByteString>();
 
     var coerced = CoercingStore.from(
-        Bijection.of((DamlStateKey k) -> k.toByteString(),
-            API.unchecked((ByteString k) -> DamlStateKey.parseFrom(k))),
+        Bijection.of((DamlStateKey k) -> k.toByteString(), API.unchecked((ByteString k) -> DamlStateKey.parseFrom(k))),
         Bijection.of((DamlStateValue v) -> v.toByteString(),
             API.unchecked((ByteString v) -> DamlStateValue.parseFrom(v))),
         stub);
@@ -72,16 +71,13 @@ class CoercingTest {
   @Test
   void txlog_coercion() throws StoreWriteException, StoreReadException {
     var stub = new StubTransactionLog();
-    var coerced = CoercingTxLog
-        .from(
-            Bijection.of((DamlLogEntryId k) -> asUuid(k.getEntryId().toByteArray()),
-                (UUID k) -> DamlLogEntryId.newBuilder().setEntryId(ByteString.copyFrom(asBytes(k)))
-                    .build()),
-            Bijection.of((DamlLogEntry v) -> v.toByteString(),
-                API.unchecked((ByteString v) -> DamlLogEntry.parseFrom(v))),
-            Bijection.of((Offset i) -> Longs.fromByteArray(i.toByteArray()),
-                (Long i) -> Offset$.MODULE$.fromByteArray(Longs.toByteArray(i))),
-            stub);
+    var coerced = CoercingTxLog.from(
+        Bijection.of((DamlLogEntryId k) -> asUuid(k.getEntryId().toByteArray()),
+            (UUID k) -> DamlLogEntryId.newBuilder().setEntryId(ByteString.copyFrom(asBytes(k))).build()),
+        Bijection.of((DamlLogEntry v) -> v.toByteString(), API.unchecked((ByteString v) -> DamlLogEntry.parseFrom(v))),
+        Bijection.of((Offset i) -> Longs.fromByteArray(i.toByteArray()),
+            (Long i) -> Offset$.MODULE$.fromByteArray(Longs.toByteArray(i))),
+        stub);
 
     var id = coerced.begin(Optional.empty());
     var data = DamlLogEntry.newBuilder().build();
