@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Blockchain Technology Partners
+ * Copyright 2021-2022 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -15,24 +15,24 @@ package com.blockchaintp.daml.address;
 
 import java.util.Objects;
 
-import com.daml.ledger.participant.state.kvutils.DamlKvutils;
+import com.daml.ledger.participant.state.kvutils.store.DamlStateKey;
 
 /**
  *
  */
 public final class QldbIdentifier implements Identifier {
-  private final DamlKvutils.DamlStateKey data;
+  private final DamlStateKey data;
 
   /**
    *
    * @param theData
    */
-  public QldbIdentifier(final DamlKvutils.DamlStateKey theData) {
+  public QldbIdentifier(final DamlStateKey theData) {
     data = theData;
   }
 
   @Override
-  public DamlKvutils.DamlStateKey toKey() {
+  public DamlStateKey toKey() {
     return data;
   }
 

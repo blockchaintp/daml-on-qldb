@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Blockchain Technology Partners
+ * Copyright 2021-2022 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -16,8 +16,8 @@ package com.blockchaintp.utility;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import com.daml.ledger.participant.state.kvutils.DamlKvutils;
 import com.daml.ledger.participant.state.kvutils.Raw;
+import com.daml.ledger.participant.state.kvutils.store.DamlLogEntryId;
 import com.google.protobuf.ByteString;
 
 import io.vavr.API;
@@ -37,9 +37,7 @@ public final class UuidConverter {
    * @return The UUID encoded as the entry id from the log id.
    */
   public static UUID logEntryToUuid(final Raw.LogEntryId id) {
-    return API
-        .unchecked(
-            () -> UuidConverter.asUuid(DamlKvutils.DamlLogEntryId.parseFrom(id.bytes()).getEntryId().toByteArray()))
+    return API.unchecked(() -> UuidConverter.asUuid(DamlLogEntryId.parseFrom(id.bytes()).getEntryId().toByteArray()))
         .apply();
   }
 
@@ -49,8 +47,8 @@ public final class UuidConverter {
    * @return A log entry id with the encoded UUID as its entry id.
    */
   public static Raw.LogEntryId uuidtoLogEntry(final UUID id) {
-    return Raw.LogEntryId$.MODULE$.apply(
-        DamlKvutils.DamlLogEntryId.newBuilder().setEntryId(ByteString.copyFrom(UuidConverter.asBytes(id))).build());
+    return Raw.LogEntryId$.MODULE$
+        .apply(DamlLogEntryId.newBuilder().setEntryId(ByteString.copyFrom(UuidConverter.asBytes(id))).build());
   }
 
   /**

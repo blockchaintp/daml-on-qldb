@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Blockchain Technology Partners
+ * Copyright 2021-2022 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -24,6 +24,7 @@ import com.daml.jwt.RSA256Verifier
 import com.daml.ledger.api.auth.AuthService
 import com.daml.ledger.api.auth.AuthServiceJWT
 import com.daml.ledger.api.auth.AuthServiceWildcard
+import com.daml.ledger.api.v1.ledger_configuration_service.LedgerConfiguration
 import com.daml.ledger.participant.state.kvutils.api.CommitMetadata
 import com.daml.ledger.participant.state.kvutils.app.Config
 import com.daml.ledger.participant.state.kvutils.app.ParticipantConfig
@@ -31,14 +32,12 @@ import com.daml.ledger.participant.state.kvutils.app.Runner
 import com.daml.ledger.resources.ResourceContext
 import com.daml.ledger.validator.DefaultStateKeySerializationStrategy
 import com.daml.platform.configuration.CommandConfiguration
-import com.daml.platform.configuration.LedgerConfiguration
 import com.daml.resources.ProgramResource
 import scopt.OptionParser
 
 import scala.jdk.CollectionConverters._
 import java.nio.file.Paths
-import scala.concurrent.duration.DurationInt
-import scala.concurrent.duration.FiniteDuration
+import java.time.Duration
 import scala.jdk.FunctionConverters.enrichAsJavaFunction
 import scala.util.Try
 
@@ -113,25 +112,7 @@ class LedgerFactory(
     }
   }
 
-  override def ledgerConfig(config: Config[ExtraConfig]): LedgerConfiguration =
-    LedgerConfiguration.defaultLocalLedger
-
   override val defaultExtraConfig: ExtraConfig = ExtraConfig.default
-
-  override def commandConfig(
-      participantConfig: ParticipantConfig,
-      config: Config[ExtraConfig]
-  ): CommandConfiguration = {
-    val DefaultTrackerRetentionPeriod: FiniteDuration = 5.minutes
-
-    CommandConfiguration(
-      inputBufferSize = 512,
-      maxParallelSubmissions = 1,
-      maxCommandsInFlight = 256,
-      limitMaxCommandsInFlight = true,
-      retentionPeriod = DefaultTrackerRetentionPeriod
-    )
-  }
 
   private def validatePath(path: String, message: String) = {
     val valid = Try(Paths.get(path).toFile.canRead).getOrElse(false)

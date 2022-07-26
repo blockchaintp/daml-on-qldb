@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Blockchain Technology Partners
+ * Copyright 2021-2022 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,6 +13,7 @@
  */
 package com.blockchaintp.daml.participant;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.concurrent.BlockingDeque;
@@ -26,14 +27,14 @@ import com.blockchaintp.daml.address.Identifier;
 import com.blockchaintp.daml.address.LedgerAddress;
 import com.blockchaintp.daml.stores.service.TransactionLogReader;
 import com.daml.ledger.api.health.HealthStatus;
-import com.daml.ledger.participant.state.kvutils.OffsetBuilder;
+import com.daml.ledger.offset.Offset;
+import com.daml.ledger.participant.state.kvutils.KVOffsetBuilder;
 import com.daml.ledger.participant.state.kvutils.Raw;
 import com.daml.ledger.participant.state.kvutils.api.CommitMetadata;
 import com.daml.ledger.participant.state.kvutils.api.LedgerReader;
 import com.daml.ledger.participant.state.kvutils.api.LedgerRecord;
 import com.daml.ledger.participant.state.kvutils.api.LedgerWriter;
-import com.daml.ledger.participant.state.v1.Offset;
-import com.daml.ledger.participant.state.v1.SubmissionResult;
+import com.daml.ledger.participant.state.v2.SubmissionResult;
 import com.daml.platform.akkastreams.dispatcher.Dispatcher;
 import com.daml.platform.akkastreams.dispatcher.SubSource.RangeSource;
 import com.daml.telemetry.TelemetryContext;
@@ -62,9 +63,11 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   private final String ledgerId;
   private final String participantId;
   private final Dispatcher<Long> dispatcher;
-  private final BlockingDeque<CommitPayload<I>> submissions = new LinkedBlockingDeque<>();
+  private final BlockingDeque<CommitPayload<I>> submissions;
+  private final BlockingDeque<Tuple2<String, com.blockchaintp.daml.participant.SubmissionResult>> responses;
   private final ExecutionContextExecutor context;
   private final ScheduledExecutorService pollExecutor;
+  private final KVOffsetBuilder offsetBuilder = new KVOffsetBuilder((byte) 0);
 
   /**
    * Convenience method for creating a builder.
@@ -103,6 +106,8 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
     context = theContext;
     pollExecutor = Executors.newSingleThreadScheduledExecutor();
     pollExecutor.scheduleAtFixedRate(this::work, 0, 1, TimeUnit.MILLISECONDS);
+    responses = new LinkedBlockingDeque<>();
+    submissions = new LinkedBlockingDeque<>();
   }
 
   private void work() {
@@ -112,7 +117,9 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
       LOG.debug("Commit correlation id {}", next.getCorrelationId());
 
       try {
-        var result = submitter.submitPayload(next).get();
+        com.blockchaintp.daml.participant.SubmissionResult result = submitter.submitPayload(next).get();
+
+        responses.push(Tuple2.apply(next.getCorrelationId(), result));
 
         LOG.info("Submission result for {} {}", next.getCorrelationId(), result);
 
@@ -131,16 +138,16 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   public akka.stream.scaladsl.Source<LedgerRecord, NotUsed> events(final Option<Offset> startExclusive) {
     LOG.info("Get from {}", () -> startExclusive);
 
-    var start = OffsetBuilder.fromLong(0L, 0, 0);
+    var start = offsetBuilder.of(0L, 0, 0);
 
     Ordering<Long> scalaLongOrdering = Ordering.comparatorToOrdering(Comparator.comparingLong(scala.Long::unbox));
 
     var rangeSource = new RangeSource<>((s, e) -> Source
         .fromJavaStream(() -> API.unchecked(() -> txLog.from(s - 1, Optional.of(e - 1))).apply()
-            .map(r -> Tuple2.apply(r._1, LedgerRecord.apply(OffsetBuilder.fromLong(r._1, 0, 0), r._2, r._3))))
+            .map(r -> Tuple2.apply(r._1, LedgerRecord.apply(offsetBuilder.of(r._1, 0, 0), r._2, r._3))))
         .mapMaterializedValue(m -> NotUsed.notUsed()).asScala(), scalaLongOrdering);
 
-    var offset = OffsetBuilder.highestIndex(startExclusive.getOrElse(() -> start));
+    var offset = offsetBuilder.highestIndex(startExclusive.getOrElse(() -> start));
     return dispatcher.startingAt(offset, rangeSource, Option.empty()).asJava().map(x -> {
       LOG.debug("Yield log {} {}", x._1, x._2);
       return x;
@@ -161,7 +168,33 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   public Future<SubmissionResult> commit(final String correlationId, final Raw.Envelope envelope,
       final CommitMetadata metadata, final TelemetryContext telemetryContext) {
 
-    commitPayloadBuilder.build(envelope, metadata, correlationId).stream().forEach(submissions::add);
+    final var waitFor = new ArrayList<String>();
+
+    commitPayloadBuilder.build(envelope, metadata, correlationId).stream().forEach(submission -> {
+      waitFor.add(submission.getCorrelationId());
+      submissions.add(submission);
+    });
+
+    SubmissionResult lastError = null;
+
+    while (!waitFor.isEmpty()) {
+      var head = responses.peek();
+
+      if (head != null) {
+        if (waitFor.contains(head._1)) {
+          waitFor.remove(head._1);
+
+          if (head._2.getStatus() == SubmissionStatus.REJECTED) {
+            lastError = head._2.getError().get();
+          }
+        }
+      }
+
+    }
+
+    if (lastError != null) {
+      return Future.successful(lastError);
+    }
 
     return Future.successful(SubmissionResult.Acknowledged$.MODULE$);
   }

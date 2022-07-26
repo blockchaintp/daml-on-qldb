@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Blockchain Technology Partners
+ * Copyright 2021-2022 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -28,6 +28,7 @@ import com.daml.ledger.participant.state.kvutils.Raw;
 import com.daml.ledger.validator.BatchingLedgerStateOperations;
 import com.daml.ledger.validator.LedgerStateAccess;
 import com.daml.ledger.validator.LedgerStateOperations;
+import com.daml.logging.LoggingContext;
 
 import kr.pe.kwonnam.slf4jlambda.LambdaLogger;
 import kr.pe.kwonnam.slf4jlambda.LambdaLoggerFactory;
@@ -65,7 +66,7 @@ class StateAccess implements LedgerStateAccess<Long> {
 
     @Override
     public Future<Seq<Option<Raw.Envelope>>> readState(final Iterable<Raw.StateKey> keys,
-        final ExecutionContext executionContext) {
+        final ExecutionContext executionContext, final LoggingContext loggingContext) {
 
       var syncFuture = Future.fromTry(Try.apply(Functions.uncheckFn(() -> {
         var sparseInputs = StreamConverters$.MODULE$.asJavaParStream(keys)
@@ -87,7 +88,7 @@ class StateAccess implements LedgerStateAccess<Long> {
 
     @Override
     public Future<BoxedUnit> writeState(final Iterable<scala.Tuple2<Raw.StateKey, Raw.Envelope>> keyValuePairs,
-        final ExecutionContext executionContext) {
+        final ExecutionContext executionContext, final LoggingContext loggingContext) {
       LOG.debug("Write state {}", keyValuePairs);
       var syncFuture = Future.fromTry(Try.apply(Functions.uncheckFn(() -> {
         stateStore.put(new ArrayList<>(StreamConverters.asJavaParStream(keyValuePairs)
@@ -108,7 +109,7 @@ class StateAccess implements LedgerStateAccess<Long> {
      */
     @Override
     public Future<Long> appendToLog(final Raw.LogEntryId key, final Raw.Envelope value,
-        final ExecutionContext executionContext) {
+        final ExecutionContext executionContext, final LoggingContext loggingContext) {
 
       var work = sequenceAllocation.serialisedBegin(key)
           .thenCompose(seq -> CompletableFuture.supplyAsync(() -> Functions.uncheckFn(() -> {
@@ -124,7 +125,7 @@ class StateAccess implements LedgerStateAccess<Long> {
 
   @Override
   public <T> Future<T> inTransaction(final Function1<LedgerStateOperations<Long>, Future<T>> body,
-      final ExecutionContext executionContext) {
+      final ExecutionContext executionContext, final LoggingContext loggingContext) {
     return Future.delegate(() -> body.apply(new Operations()), executionContext);
   }
 }

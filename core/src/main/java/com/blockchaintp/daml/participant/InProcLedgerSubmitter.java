@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Blockchain Technology Partners
+ * Copyright 2021-2022 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -28,9 +28,9 @@ import com.blockchaintp.daml.stores.service.TransactionLogWriter;
 import com.blockchaintp.utility.Functions;
 import com.blockchaintp.utility.UuidConverter;
 import com.daml.api.util.TimeProvider;
-import com.daml.ledger.participant.state.kvutils.DamlKvutils;
 import com.daml.ledger.participant.state.kvutils.Raw;
-import com.daml.ledger.participant.state.v1.SubmissionResult;
+import com.daml.ledger.participant.state.kvutils.store.DamlLogEntryId;
+import com.daml.ledger.participant.state.v2.SubmissionResult;
 import com.daml.ledger.validator.SubmissionValidator$;
 import com.daml.ledger.validator.ValidatingCommitter;
 import com.daml.lf.engine.Engine;
@@ -78,8 +78,8 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
    * @param id
    * @return A daml log entry id parsed from a daml log entry id.
    */
-  private DamlKvutils.DamlLogEntryId logEntryIdToDamlLogEntryId(final Raw.LogEntryId id) {
-    var parsed = Functions.uncheckFn(() -> DamlKvutils.DamlLogEntryId.parseFrom(id.bytes())).apply();
+  private DamlLogEntryId logEntryIdToDamlLogEntryId(final Raw.LogEntryId id) {
+    var parsed = Functions.uncheckFn(() -> DamlLogEntryId.parseFrom(id.bytes())).apply();
 
     LOG.info("parse log id {}", () -> parsed.getEntryId().toString());
 
@@ -107,7 +107,7 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
             new StateAccess(CoercingStore.from(Bijection.of(Raw.StateKey::bytes, Raw.StateKey$.MODULE$::apply),
                 Bijection.of(Raw.Envelope::bytes, Raw.Envelope$.MODULE$::apply), theStateStore), writer),
             () -> logEntryIdToDamlLogEntryId(UuidConverter.uuidtoLogEntry(UUID.randomUUID())), false,
-            new StateCache<>(new LRUCache<>(STATE_CACHE_SIZE)), theEngine, theMetrics, false),
+            new StateCache<>(new LRUCache<>(STATE_CACHE_SIZE)), theEngine, theMetrics),
         r -> {
           /// New head should be end of sequence, i.e. one past the actual head. This should really have a
           /// nicer type, we ensure it is monotonic here
@@ -125,19 +125,20 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
   }
 
   @Override
-  public CompletableFuture<SubmissionStatus> submitPayload(final CommitPayload<A> cp) {
+  public CompletableFuture<com.blockchaintp.daml.participant.SubmissionResult> submitPayload(
+      final CommitPayload<A> cp) {
     return FutureConverters
         .toJava(
             this.comitter.commit(cp.getCorrelationId(), cp.getSubmission(), cp.getSubmittingParticipantId(), context))
         .thenApply(x -> {
           if (x == SubmissionResult.Acknowledged$.MODULE$) {
-            return SubmissionStatus.SUBMITTED;
+            return com.blockchaintp.daml.participant.SubmissionResult.submitted();
           }
-          if (x == SubmissionResult.NotSupported$.MODULE$) {
-            return SubmissionStatus.REJECTED;
+          if (x instanceof SubmissionResult.SynchronousError) {
+            return com.blockchaintp.daml.participant.SubmissionResult.rejected((SubmissionResult.SynchronousError) x);
           }
           LOG.info("Overloaded {} {} ", cp.getCorrelationId(), x);
-          return SubmissionStatus.OVERLOADED;
+          return com.blockchaintp.daml.participant.SubmissionResult.overloaded();
         }).toCompletableFuture();
   }
 

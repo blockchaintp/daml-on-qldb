@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Blockchain Technology Partners
+ * Copyright 2021-2022 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -19,9 +19,12 @@ import com.blockchaintp.daml.stores.exception.StoreReadException;
 import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.service.Key;
 import com.blockchaintp.daml.stores.service.Value;
-import com.daml.ledger.participant.state.kvutils.DamlKvutils;
-import com.daml.ledger.participant.state.v1.Offset;
-import com.daml.ledger.participant.state.v1.Offset$;
+import com.daml.ledger.offset.Offset;
+import com.daml.ledger.offset.Offset$;
+import com.daml.ledger.participant.state.kvutils.store.DamlLogEntry;
+import com.daml.ledger.participant.state.kvutils.store.DamlLogEntryId;
+import com.daml.ledger.participant.state.kvutils.store.DamlStateKey;
+import com.daml.ledger.participant.state.kvutils.store.DamlStateValue;
 import com.google.common.primitives.Longs;
 import com.google.protobuf.ByteString;
 import io.vavr.API;
@@ -38,14 +41,13 @@ class CoercingTest {
     var stub = new StubStore<ByteString, ByteString>();
 
     var coerced = CoercingStore.from(
-        Bijection.of((DamlKvutils.DamlStateKey k) -> k.toByteString(),
-            API.unchecked((ByteString k) -> DamlKvutils.DamlStateKey.parseFrom(k))),
-        Bijection.of((DamlKvutils.DamlStateValue v) -> v.toByteString(),
-            API.unchecked((ByteString v) -> DamlKvutils.DamlStateValue.parseFrom(v))),
+        Bijection.of((DamlStateKey k) -> k.toByteString(), API.unchecked((ByteString k) -> DamlStateKey.parseFrom(k))),
+        Bijection.of((DamlStateValue v) -> v.toByteString(),
+            API.unchecked((ByteString v) -> DamlStateValue.parseFrom(v))),
         stub);
 
-    var k = DamlKvutils.DamlStateKey.newBuilder().setParty("bob").build();
-    var v = DamlKvutils.DamlStateValue.newBuilder().build();
+    var k = DamlStateKey.newBuilder().setParty("bob").build();
+    var v = DamlStateValue.newBuilder().build();
     coerced.put(Key.of(k), Value.of(v));
 
     Assertions.assertArrayEquals(v.toByteArray(), coerced.get(Key.of(k)).get().toNative().toByteArray());
@@ -69,19 +71,16 @@ class CoercingTest {
   @Test
   void txlog_coercion() throws StoreWriteException, StoreReadException {
     var stub = new StubTransactionLog();
-    var coerced = CoercingTxLog
-        .from(
-            Bijection.of((DamlKvutils.DamlLogEntryId k) -> asUuid(k.getEntryId().toByteArray()),
-                (UUID k) -> DamlKvutils.DamlLogEntryId.newBuilder().setEntryId(ByteString.copyFrom(asBytes(k)))
-                    .build()),
-            Bijection.of((DamlKvutils.DamlLogEntry v) -> v.toByteString(),
-                API.unchecked((ByteString v) -> DamlKvutils.DamlLogEntry.parseFrom(v))),
-            Bijection.of((Offset i) -> Longs.fromByteArray(i.toByteArray()),
-                (Long i) -> Offset$.MODULE$.fromByteArray(Longs.toByteArray(i))),
-            stub);
+    var coerced = CoercingTxLog.from(
+        Bijection.of((DamlLogEntryId k) -> asUuid(k.getEntryId().toByteArray()),
+            (UUID k) -> DamlLogEntryId.newBuilder().setEntryId(ByteString.copyFrom(asBytes(k))).build()),
+        Bijection.of((DamlLogEntry v) -> v.toByteString(), API.unchecked((ByteString v) -> DamlLogEntry.parseFrom(v))),
+        Bijection.of((Offset i) -> Longs.fromByteArray(i.toByteArray()),
+            (Long i) -> Offset$.MODULE$.fromByteArray(Longs.toByteArray(i))),
+        stub);
 
     var id = coerced.begin(Optional.empty());
-    var data = DamlKvutils.DamlLogEntry.newBuilder().build();
+    var data = DamlLogEntry.newBuilder().build();
     coerced.sendEvent(id._1, data);
     coerced.commit(id._1);
 

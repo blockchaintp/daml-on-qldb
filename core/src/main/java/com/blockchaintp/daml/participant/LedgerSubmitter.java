@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Blockchain Technology Partners
+ * Copyright 2021-2022 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -35,7 +35,7 @@ public interface LedgerSubmitter<A extends Identifier, B extends LedgerAddress> 
    *          the payload to submit.
    * @return a reference to the submission.
    */
-  CompletableFuture<SubmissionStatus> submitPayload(CommitPayload<A> cp);
+  CompletableFuture<SubmissionResult> submitPayload(CommitPayload<A> cp);
 
   /**
    * For convenience we can translate one the payload to the expected output payload.
