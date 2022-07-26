@@ -13,6 +13,7 @@
  */
 package com.blockchaintp.daml.participant;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.concurrent.BlockingDeque;
@@ -63,6 +64,8 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   private final String participantId;
   private final Dispatcher<Long> dispatcher;
   private final BlockingDeque<CommitPayload<I>> submissions = new LinkedBlockingDeque<>();
+  private final BlockingDeque<Tuple2<String, com.blockchaintp.daml.participant.SubmissionResult>> responses
+    = new LinkedBlockingDeque<>();
   private final ExecutionContextExecutor context;
   private final ScheduledExecutorService pollExecutor;
   private final KVOffsetBuilder offsetBuilder = new KVOffsetBuilder((byte) 0);
@@ -113,7 +116,9 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
       LOG.debug("Commit correlation id {}", next.getCorrelationId());
 
       try {
-        var result = submitter.submitPayload(next).get();
+        com.blockchaintp.daml.participant.SubmissionResult result = submitter.submitPayload(next).get();
+
+        responses.push(Tuple2.apply(next.getCorrelationId(), result));
 
         LOG.info("Submission result for {} {}", next.getCorrelationId(), result);
 
@@ -162,7 +167,33 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   public Future<SubmissionResult> commit(final String correlationId, final Raw.Envelope envelope,
       final CommitMetadata metadata, final TelemetryContext telemetryContext) {
 
-    commitPayloadBuilder.build(envelope, metadata, correlationId).stream().forEach(submissions::add);
+    final var waitFor = new ArrayList<String>();
+
+    commitPayloadBuilder.build(envelope, metadata, correlationId).stream().forEach(submission -> {
+      waitFor.add(submission.getCorrelationId());
+      submissions.add(submission);
+    });
+
+    SubmissionResult lastError = null;
+
+    while (!waitFor.isEmpty()) {
+      var head = responses.peek();
+
+      if (head != null) {
+        if (waitFor.contains(head._1)) {
+          waitFor.remove(head._1);
+
+          if (head._2.getStatus() == SubmissionStatus.REJECTED) {
+            lastError = head._2.getError().get();
+          }
+        }
+      }
+
+    }
+
+    if (lastError != null) {
+      return Future.successful(lastError);
+    }
 
     return Future.successful(SubmissionResult.Acknowledged$.MODULE$);
   }

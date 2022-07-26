@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Blockchain Technology Partners
+ * Copyright 2021-2022 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -80,7 +80,7 @@ public final class LedgerSubmitterBulkhead<A extends Identifier, B extends Ledge
   }
 
   @Override
-  public CompletableFuture<SubmissionStatus> submitPayload(final CommitPayload<A> cp) {
+  public CompletableFuture<SubmissionResult> submitPayload(final CommitPayload<A> cp) {
     var executor = ContextAwareScheduledThreadPoolExecutor.newScheduledThreadPool().build();
 
     var retry = Retry.of("Ledger submitter retry",
@@ -99,7 +99,7 @@ public final class LedgerSubmitterBulkhead<A extends Identifier, B extends Ledge
         .withBulkhead(bulkhead)
         .withFallback(
             Arrays.asList(TimeoutException.class, CallNotPermittedException.class, BulkheadFullException.class),
-            throwable -> SubmissionStatus.OVERLOADED)
+            throwable -> SubmissionResult.overloaded())
         .withRetry(retry, executor).get().toCompletableFuture();
   }
 

@@ -125,19 +125,20 @@ public final class InProcLedgerSubmitter<A extends Identifier, B extends LedgerA
   }
 
   @Override
-  public CompletableFuture<SubmissionStatus> submitPayload(final CommitPayload<A> cp) {
+  public CompletableFuture<com.blockchaintp.daml.participant.SubmissionResult> submitPayload(
+      final CommitPayload<A> cp) {
     return FutureConverters
         .toJava(
             this.comitter.commit(cp.getCorrelationId(), cp.getSubmission(), cp.getSubmittingParticipantId(), context))
         .thenApply(x -> {
           if (x == SubmissionResult.Acknowledged$.MODULE$) {
-            return SubmissionStatus.SUBMITTED;
+            return com.blockchaintp.daml.participant.SubmissionResult.submitted();
           }
           if (x instanceof SubmissionResult.SynchronousError) {
-            return SubmissionStatus.REJECTED;
+            return com.blockchaintp.daml.participant.SubmissionResult.rejected((SubmissionResult.SynchronousError) x);
           }
           LOG.info("Overloaded {} {} ", cp.getCorrelationId(), x);
-          return SubmissionStatus.OVERLOADED;
+          return com.blockchaintp.daml.participant.SubmissionResult.overloaded();
         }).toCompletableFuture();
   }
 
