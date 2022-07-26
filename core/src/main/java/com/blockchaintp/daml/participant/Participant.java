@@ -63,9 +63,8 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   private final String ledgerId;
   private final String participantId;
   private final Dispatcher<Long> dispatcher;
-  private final BlockingDeque<CommitPayload<I>> submissions = new LinkedBlockingDeque<>();
-  private final BlockingDeque<Tuple2<String, com.blockchaintp.daml.participant.SubmissionResult>> responses
-    = new LinkedBlockingDeque<>();
+  private final BlockingDeque<CommitPayload<I>> submissions;
+  private final BlockingDeque<Tuple2<String, com.blockchaintp.daml.participant.SubmissionResult>> responses;
   private final ExecutionContextExecutor context;
   private final ScheduledExecutorService pollExecutor;
   private final KVOffsetBuilder offsetBuilder = new KVOffsetBuilder((byte) 0);
@@ -107,6 +106,8 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
     context = theContext;
     pollExecutor = Executors.newSingleThreadScheduledExecutor();
     pollExecutor.scheduleAtFixedRate(this::work, 0, 1, TimeUnit.MILLISECONDS);
+    responses = new LinkedBlockingDeque<>();
+    submissions = new LinkedBlockingDeque<>();
   }
 
   private void work() {
