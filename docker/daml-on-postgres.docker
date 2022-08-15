@@ -17,9 +17,11 @@ FROM openjdk:11-jre
 COPY ./postgres/target/daml-on-postgres-*-bin.zip /opt
 
 WORKDIR /opt
-RUN unzip -x daml-on-postgres-*-bin.zip && rm -f daml-on-postgres-*-bin.zip && mv daml-on-postgres-* daml-on-postgres
+RUN unzip -x daml-on-postgres-*-bin.zip \
+  && rm -f daml-on-postgres-*-bin.zip \
+  && mv daml-on-postgres-* daml-on-postgres
 
 WORKDIR /opt/daml-on-postgres
 RUN chmod 755 entrypoint.sh
 #TO-DO remember to include environmental variable for injection as arguments
-ENTRYPOINT /opt/daml-on-postgres/entrypoint.sh $@
+ENTRYPOINT ["/opt/daml-on-postgres/entrypoint.sh"]
