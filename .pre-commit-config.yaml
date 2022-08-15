@@ -75,7 +75,7 @@ repos:
     hooks:
       - id: forbid-tabs
         exclude: "^(Makefile|.*.go|.*.mk)$"
-  - repo: git://github.com/doublify/pre-commit-go
+  - repo: https://github.com/doublify/pre-commit-go
     rev: 208a4aaa7f86b44e961eaaea526743b920e187a0
     hooks:
       - id: fmt
