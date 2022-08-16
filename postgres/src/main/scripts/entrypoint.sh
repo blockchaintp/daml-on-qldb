@@ -13,4 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-java ${JAVA_ARGS} -jar daml-on-postgres*.jar $@
+POSTGRES_USER=${POSTGRES_USER:-postgres}
+POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+POSTGRES_HOST=${POSTGRES_HOST:-postgres}
+POSTGRES_PORT=${POSTGRES_PORT:-5432}
+POSTGRES_DB=${POSTGRES_DB:-damlpg_ng}
+JAVA_OPTS=${JAVA_OPTS:-""}
+
+LEDGER_ID=${LEDGER_ID:?"LEDGER_ID must be set!"}
+DAML_GRPC_PORT=${DAML_GRPC_PORT:-39000}
+
+PARTICIPANT_ID=${PARTICIPANT_ID:-"participant"}
+
+POSTGRES_JDBC_URL=${POSTGRES_JDBC_URL:-"jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?user=${POSTGRES_USER}&password=${POSTGRES_PASSWORD}"}
+
+# shellcheck disable=SC2086,SC2046,SC2068
+exec java ${JAVA_OPTS} -jar daml-on-postgres*.jar \
+  --txlogstore "$POSTGRES_JDBC_URL" \
+  --participant "participant-id=${PARTICIPANT_ID},port=${DAML_GRPC_PORT},address=0.0.0.0" \
+  $@ \
+  $(ls /opt/digitalasset/dar/*.dar 2>/dev/null)

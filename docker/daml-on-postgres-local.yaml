@@ -33,7 +33,9 @@ services:
       - AWS_SECRET_ACCESS_KEY
       - AWS_ACCESS_KEY
       - AWS_ACCESS_KEY_ID
-      - LEDGER_NAME
+      - LEDGER_ID=default-ledger
+      - POSTGRES_JDBC_URL=jdbc:postgresql://postgres/pg_txblobs?user=postgres
+      - DAML_GRPC_PORT=9000
     expose:
       - 9000
     ports:
@@ -44,13 +46,8 @@ services:
         echo 'Waiting for postgres to be available'; \
         sleep 1; \
       done; \
-      /opt/daml-on-qldb/entrypoint.sh \
-        --createaws true \
-        --region $$AWS_REGION \
-        --ledger $$LEDGER_NAME \
-        --txlogstore \"jdbc:postgresql://postgres/qldb_txblobs?user=postgres\" \
-        --participant participant-id=test-participant,port=9000,address=0.0.0.0 \
-        `ls /opt/daml-on-qldb/dar/*.dar`\""
+      /opt/daml-on-postgres/entrypoint.sh \
+        `ls /opt/daml-on-postgres/dar/*.dar`\""
     volumes:
       - /dev/urandom:/dev/random
       - /dev/urandom:/dev/urandom
