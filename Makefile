@@ -54,32 +54,59 @@ $(MARKERS)/package_docker: build $(MARKERS)/package_mvn
 	docker-compose -f docker-compose.yaml build
 	touch $@
 
-$(MARKERS)/test_daml: $(MARKERS)/package_docker
-	docker-compose -f docker/daml-test.yaml build
-	docker-compose -p $(ISOLATION_ID) -f docker/daml-test.yaml down \
+$(MARKERS)/test_daml: $(MARKERS)/test_daml_postgres $(MARKERS)/test_daml_qldb
+
+$(MARKERS)/test_daml_qldb: $(MARKERS)/package_docker
+	docker-compose -f docker/daml-on-qldb-test.yaml build
+	docker-compose -p $(ISOLATION_ID) -f docker/daml-on-qldb-test.yaml down \
 		-v || true
-	docker-compose -p $(ISOLATION_ID) -f docker/daml-test.yaml up \
-		--exit-code-from ledger-api-testtool-qldb || true
-	docker logs $(ISOLATION_ID)_ledger-api-testtool-qldb_1 | \
+	docker-compose -p $(ISOLATION_ID) -f docker/daml-on-qldb-test.yaml up \
+		--exit-code-from ledger-api-testtool || true
+	docker-compose -p $(ISOLATION_ID) -f docker/daml-on-postgres-test.yaml logs \
+		ledger-api-testtool | \
 		sed -r "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2})?)?[mGK]//g" \
 		> build/results_qldb.txt 2>&1
-	./run_tests ./build/results_qldb.txt DAML > build/daml-on-qldb-test.results
-	docker-compose -p $(ISOLATION_ID) -f docker/daml-test.yaml down \
+	./run_tests ./build/results_qldb.txt DAML-QLDB > build/daml-on-qldb-test.results
+	docker-compose -p $(ISOLATION_ID) -f docker/daml-on-qldb-test.yaml down \
 		|| true
 	touch $@
 
+$(MARKERS)/test_daml_postgres: $(MARKERS)/package_docker
+	docker-compose -f docker/daml-on-postgres-test.yaml build
+	docker-compose -p $(ISOLATION_ID) -f docker/daml-on-postgres-test.yaml down \
+		-v || true
+	docker-compose -p $(ISOLATION_ID) -f docker/daml-on-postgres-test.yaml up \
+		--exit-code-from ledger-api-testtool || true
+	docker-compose -p $(ISOLATION_ID) -f docker/daml-on-postgres-test.yaml logs \
+		ledger-api-testtool | \
+		sed -r "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2})?)?[mGK]//g" \
+		> build/results_postgres.txt 2>&1
+	./run_tests ./build/results_postgres.txt DAML-PG > build/daml-on-postgres-test.results
+	docker-compose -p $(ISOLATION_ID) -f docker/daml-on-postgres-test.yaml down \
+		|| true
+	touch $@
+
+
 .PHONY: clean_containers
 clean_containers:
-	docker-compose -p $(ISOLATION_ID) -f docker/daml-test.yaml \
+	docker-compose -p $(ISOLATION_ID) -f docker/daml-on-qldb-test.yaml \
 		rm -f || true
-	docker-compose -p $(ISOLATION_ID) -f docker/daml-test.yaml down \
+	docker-compose -p $(ISOLATION_ID) -f docker/daml-on-qldb-test.yaml down \
+		-v || true
+	docker-compose -p $(ISOLATION_ID) -f docker/daml-on-postgres-test.yaml \
+		rm -f || true
+	docker-compose -p $(ISOLATION_ID) -f docker/daml-on-postgres-test.yaml down \
 		-v || true
 
 .PHONY: clean_docker
 clean_docker:
-	docker-compose -p $(ISOLATION_ID) -f docker/daml-test.yaml \
+	docker-compose -p $(ISOLATION_ID) -f docker/daml-on-qldb-test.yaml \
 		rm -f || true
-	docker-compose -p $(ISOLATION_ID) -f docker/daml-test.yaml down \
+	docker-compose -p $(ISOLATION_ID) -f docker/daml-on-qldb-test.yaml down \
+		-v --rmi all || true
+	docker-compose -p $(ISOLATION_ID) -f docker/daml-on-postgres-test.yaml \
+		rm -f || true
+	docker-compose -p $(ISOLATION_ID) -f docker/daml-on-postgres-test.yaml down \
 		-v --rmi all || true
 
 # Truncate ledger id to 31 chars, a qldb limit

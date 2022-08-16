@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ------------------------------------------------------------------------------
-
+# yamllint disable rule:line-length
+---
 version: "2.1"
 
 services:
@@ -21,11 +22,11 @@ services:
     image: postgres
     environment:
       - POSTGRES_HOST_AUTH_METHOD=trust
-      - POSTGRES_USER=postgres
     volumes:
-        # copy the sql script to create tables
-        - ./sql/create_databases.sql:/docker-entrypoint-initdb.d/create_databases.sql
-  daml-on-qldb:
+      # copy the sql script to create tables
+      - ./sql/create_databases.sql:/docker-entrypoint-initdb.d/create_databases.sql
+
+  daml-rpc:
     image: daml-on-qldb:${ISOLATION_ID}
     environment:
       - AWS_REGION
@@ -38,8 +39,12 @@ services:
     ports:
       - "9000:9000"
     entrypoint: "bash -xc \"\
-      env;
-      /opt/daml-on-qldb/entrypoint.sh  \
+      sleep 10; \
+      until psql -h postgres -U postgres -c 'select 1' > /dev/null 2>&1; do \
+        echo 'Waiting for postgres to be available'; \
+        sleep 1; \
+      done; \
+      /opt/daml-on-qldb/entrypoint.sh \
         --createaws true \
         --region $$AWS_REGION \
         --ledger $$LEDGER_NAME \
@@ -52,42 +57,21 @@ services:
       - ../test-dars:/opt/daml-on-qldb/dar/
     depends_on:
       - postgres
+
   # Run the integration tests at most twice to compensate for "piming the pump"
-  ledger-api-testtool-qldb:
+  ledger-api-testtool:
     image: ledger-api-testtool:${ISOLATION_ID}
-    # LotsOfPartiesIT - excluded since tests in there doesn't respect the concurrent runs, and just
-    #                   blast a ton of concurrent requests, which though they get processes, cannot currently(possibly)
-    #                   be processed in time to pass
-    # PartyManagementServiceIT - Currently returning INTERNAL: None.get on some tests
-    # PackageManagementService - test appears to fail because of overly ambitious concurrency goals
-    # TimeIT - this is never going to pass on daml-on-qldb, since it is testing for a testing feature we don't
-    #          support (setting time)
-    # TransactionServiceIT - not clear why this fails, certain tests report "RESOURCE_EXHAUSTED" and thats all we get so
-    #                        far
+    # Long sleep is exclusively due to the unpredictable time it takes
+    # to create a QLDB instance
     entrypoint: "bash -xc \"\
-      sleep 120  && \
+      sleep 300  && \
       java -jar ledger-api-test-tool.jar \
-        --timeout-scale-factor 2 \
-        --concurrent-test-runs 8 \
-        daml-on-qldb:9000 \
-        || \
-      java -jar ledger-api-test-tool.jar \
-        --timeout-scale-factor 2 \
-        --concurrent-test-runs 4 \
-        daml-on-qldb:9000 \
-        || \
-      java -jar ledger-api-test-tool.jar \
-        --timeout-scale-factor 2 \
-        --concurrent-test-runs 2 \
-        daml-on-qldb:9000 \
-        || \
-      java -jar ledger-api-test-tool.jar \
-        --timeout-scale-factor 2 \
+        --timeout-scale-factor 6 \
         --concurrent-test-runs 1 \
-        daml-on-qldb:9000 \
+        daml-rpc:9000 \
         \""
     depends_on:
-      - daml-on-qldb
+      - daml-rpc
     volumes:
       - /dev/urandom:/dev/random
       - /dev/urandom:/dev/urandom

@@ -13,6 +13,7 @@
 # limitations under the License.
 FROM ubuntu:bionic
 
+ARG JDK=11
 ARG DAML_SDK_VERSION=1.13.1
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -35,7 +36,7 @@ RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0xB1998361
   apt-add-repository 'deb http://repos.azulsystems.com/ubuntu stable main' && \
   apt-get update -y && \
   apt-get install -y --no-install-recommends \
-  zulu-11 \
+  zulu-${JDK} \
   && rm -rf /var/lib/apt/lists/*
 
 

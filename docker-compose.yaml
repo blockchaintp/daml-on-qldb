@@ -22,15 +22,9 @@ services:
       context: .
       dockerfile: docker/daml-on-qldb.docker
     image: daml-on-qldb:${ISOLATION_ID}
-    container_name: daml-on-qldb
-    volumes:
-      - ./:/project
 
   daml-on-postgres-ng:
     build:
       context: .
       dockerfile: docker/daml-on-postgres.docker
     image: daml-on-postgres-ng:${ISOLATION_ID}
-    container_name: daml-on-postgres
-    volumes:
-      - ./:/project

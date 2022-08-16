@@ -12,7 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM openjdk:11-jre
+ARG JDK=11
+FROM openjdk:${JDK}-jre
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN apt-get update -y && \
+  apt-get upgrade -y && \
+  apt-get install -y --no-install-recommends \
+  postgresql-client \
+  && rm -rf /var/lib/apt/lists/*
 
 COPY ./qldb/target/daml-on-qldb-*-bin.zip /opt
 
