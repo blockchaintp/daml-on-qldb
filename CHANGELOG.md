@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v1.13.4
+
+* fix(dop): correct docker-compose yaml for traditional [view commit](https://github.com/catenasys/daml-on-qldb/commit/2feb51213bb4bf77c526c319549993e95f93f514)
+* fix(dop): adapt dop entrypoint to match traditinal [view commit](https://github.com/catenasys/daml-on-qldb/commit/8cd043b2d4c0b6c2dbf9693d07a7a64679f0c7f6)
+
 ## v1.13.3
 
 * style: spotless corrections [view commit](https://github.com/catenasys/daml-on-qldb/commit/fc7c2b62e35fd4d7a00b4082b78d1847f18fde04)
