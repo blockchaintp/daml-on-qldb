@@ -63,7 +63,6 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   private final String participantId;
   private final Dispatcher<Long> dispatcher;
   private final BlockingDeque<CommitPayload<I>> submissions = new LinkedBlockingDeque<>();
-  private final ExecutionContextExecutor context;
   private final ScheduledExecutorService pollExecutor;
 
   /**
@@ -100,7 +99,6 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
     ledgerId = theLedgerId;
     participantId = theParticipantId;
     dispatcher = theDispatcher;
-    context = theContext;
     pollExecutor = Executors.newSingleThreadScheduledExecutor();
     pollExecutor.scheduleAtFixedRate(this::work, 0, 1, TimeUnit.MILLISECONDS);
   }
