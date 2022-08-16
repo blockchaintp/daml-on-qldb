@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/bin/bash 
 
 RESULTS_FILE=$1
 
 RESULTS_TAG=$2
 
-TEST_COUNT=$(grep -E -c "^ledger-api-testtool.*\| \- \[?[A-Z]" "$RESULTS_FILE")
+TEST_COUNT=$(grep -E -c "^[A-Za-z0-9\-_].* \| \- \[?[A-Z]" "$RESULTS_FILE")
 
 echo "1..${TEST_COUNT}"
 
