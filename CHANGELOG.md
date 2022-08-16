@@ -1,7 +1,9 @@
 # CHANGELOG
 
-## Unreleased
+## v1.13.3
 
+* style: spotless corrections [view commit](https://github.com/catenasys/daml-on-qldb/commit/fc7c2b62e35fd4d7a00b4082b78d1847f18fde04)
+* feat: Add metrics reporter [view commit](https://github.com/catenasys/daml-on-qldb/commit/4add59a8cda7f4d7c92fb6c6c0d184fa023822d8)
 * docs: correct mkdocs config [view commit](https://github.com/catenasys/daml-on-qldb/commit/fa8d144f1e101cd7b761a46283b1b026e7d7dee5)
 * refactor(docker): address docker linting issues [view commit](https://github.com/catenasys/daml-on-qldb/commit/5842e251e5e4f522a3a4f87dcee86193766a5c7e)
 * fix: bump timeout scale [view commit](https://github.com/catenasys/daml-on-qldb/commit/a48c67aa78ad948bf4f86e33b1b09587614469ce)
