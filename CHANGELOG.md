@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## Unreleased
+
+* docs: correct mkdocs config [view commit](https://github.com/catenasys/daml-on-qldb/commit/fa8d144f1e101cd7b761a46283b1b026e7d7dee5)
+* refactor(docker): address docker linting issues [view commit](https://github.com/catenasys/daml-on-qldb/commit/5842e251e5e4f522a3a4f87dcee86193766a5c7e)
+* fix: bump timeout scale [view commit](https://github.com/catenasys/daml-on-qldb/commit/a48c67aa78ad948bf4f86e33b1b09587614469ce)
+* fix: Also the qldb backing kv [view commit](https://github.com/catenasys/daml-on-qldb/commit/9216a3d046c96f27e2c1225443781126073cef92)
+* fix: mkdocs build [view commit](https://github.com/catenasys/daml-on-qldb/commit/b1ca6701896357fe9299b94d733503f7d0eb63bc)
+* fix: Checkstyle line length [view commit](https://github.com/catenasys/daml-on-qldb/commit/a8cc5f2ae151e03443db3b12843a7de4f56643c3)
+* fix: Use sha512 for a unique index on address and a serial pk [view commit](https://github.com/catenasys/daml-on-qldb/commit/648104105be39a4f1d212badf1480ea8b253ad7d)
+
 ## v1.13.2
 
 * fix(docker-compose): fix a name clash with catenasys/daml-on-postgres [view commit](https://github.com/catenasys/daml-on-qldb/commit/bd6dd75ba2df873fc44c27e3230dbeae75d5f293)
