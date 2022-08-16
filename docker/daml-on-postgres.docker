@@ -11,15 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+ARG JDK=11
+FROM openjdk:${JDK}-jre
 
-FROM openjdk:11-jre
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN apt-get update -y && \
+  apt-get upgrade -y && \
+  apt-get install -y --no-install-recommends \
+    postgresql-client \
+  && rm -rf /var/lib/apt/lists/*
 
 COPY ./postgres/target/daml-on-postgres-*-bin.zip /opt
 
 WORKDIR /opt
-RUN unzip -x daml-on-postgres-*-bin.zip && rm -f daml-on-postgres-*-bin.zip && mv daml-on-postgres-* daml-on-postgres
+RUN unzip -x daml-on-postgres-*-bin.zip \
+  && rm -f daml-on-postgres-*-bin.zip \
+  && mv daml-on-postgres-* daml-on-postgres
 
 WORKDIR /opt/daml-on-postgres
 RUN chmod 755 entrypoint.sh
 #TO-DO remember to include environmental variable for injection as arguments
-ENTRYPOINT /opt/daml-on-postgres/entrypoint.sh $@
+ENTRYPOINT ["/opt/daml-on-postgres/entrypoint.sh"]

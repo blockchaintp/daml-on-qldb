@@ -12,15 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM openjdk:11-jre
+ARG JDK=11
+FROM openjdk:${JDK}-jre
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN apt-get update -y && \
+  apt-get upgrade -y && \
+  apt-get install -y --no-install-recommends \
+  postgresql-client \
+  && rm -rf /var/lib/apt/lists/*
 
 COPY ./qldb/target/daml-on-qldb-*-bin.zip /opt
 
 WORKDIR /opt
-RUN unzip -x daml-on-qldb-*-bin.zip && rm -f daml-on-qldb-*-bin.zip && mv daml-on-qldb-* daml-on-qldb
+RUN unzip -x daml-on-qldb-*-bin.zip \
+  && rm -f daml-on-qldb-*-bin.zip \
+  && mv daml-on-qldb-* daml-on-qldb
 
 WORKDIR /opt/daml-on-qldb
 RUN chmod 755 entrypoint.sh
 #TO-DO remember to include environmental variable for injection as arguments
-ENTRYPOINT /opt/daml-on-qldb/entrypoint.sh $@
+ENTRYPOINT ["/opt/daml-on-qldb/entrypoint.sh"]

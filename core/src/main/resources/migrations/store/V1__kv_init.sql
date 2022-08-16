@@ -1,6 +1,8 @@
+create extension pgcrypto;
 create table kv (
-  id bytea primary key not null,
+  id serial primary key,
+  address bytea not null,
   data bytea not null
 );
 
-CREATE INDEX kv_idx ON kv(id);
+create unique index unique_addr_index on kv(sha512(address));

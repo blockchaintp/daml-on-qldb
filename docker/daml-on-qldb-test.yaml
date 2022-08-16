@@ -12,18 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ------------------------------------------------------------------------------
-
-version: "3"
+# yamllint disable rule:line-length
+---
+version: "2.1"
 
 services:
 
   postgres:
-    platform: linux/amd64
     image: postgres
     environment:
       - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      # copy the sql script to create tables
+      - ./sql/create_databases.sql:/docker-entrypoint-initdb.d/create_databases.sql
 
-  daml-on-qldb:
+  daml-rpc:
     image: daml-on-qldb:${ISOLATION_ID}
     environment:
       - AWS_REGION
@@ -35,13 +38,18 @@ services:
       - 9000
     ports:
       - "9000:9000"
-    entrypoint: "bash -c \"\
+    entrypoint: "bash -xc \"\
+      sleep 10; \
+      until psql -h postgres -U postgres -c 'select 1' > /dev/null 2>&1; do \
+        echo 'Waiting for postgres to be available'; \
+        sleep 1; \
+      done; \
       /opt/daml-on-qldb/entrypoint.sh \
         --createaws true \
-        --region AWS_REGION \
+        --region $$AWS_REGION \
         --ledger $$LEDGER_NAME \
         --txlogstore \"jdbc:postgresql://postgres/qldb_txblobs?user=postgres\" \
-        --participant participant-id=test-participant,port=9000 \
+        --participant participant-id=test-participant,port=9000,address=0.0.0.0 \
         `ls /opt/daml-on-qldb/dar/*.dar`\""
     volumes:
       - /dev/urandom:/dev/random
@@ -49,3 +57,21 @@ services:
       - ../test-dars:/opt/daml-on-qldb/dar/
     depends_on:
       - postgres
+
+  # Run the integration tests at most twice to compensate for "piming the pump"
+  ledger-api-testtool:
+    image: ledger-api-testtool:${ISOLATION_ID}
+    # Long sleep is exclusively due to the unpredictable time it takes
+    # to create a QLDB instance
+    entrypoint: "bash -xc \"\
+      sleep 300  && \
+      java -jar ledger-api-test-tool.jar \
+        --timeout-scale-factor 6 \
+        --concurrent-test-runs 1 \
+        daml-rpc:9000 \
+        \""
+    depends_on:
+      - daml-rpc
+    volumes:
+      - /dev/urandom:/dev/random
+      - /dev/urandom:/dev/urandom

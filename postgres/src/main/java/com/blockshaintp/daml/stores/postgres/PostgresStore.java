@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Blockchain Technology Partners
+ * Copyright 2021-2022 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -76,7 +76,7 @@ public class PostgresStore implements Store<ByteString, ByteString> {
   public final Map<Key<ByteString>, Value<ByteString>> get(final List<Key<ByteString>> listOfKeys)
       throws StoreReadException {
     return guardRead(() -> {
-      try (var stmt = connection.prepareStatement("select id,data from kv where id = any((?))",
+      try (var stmt = connection.prepareStatement("select address,data from kv where address = any((?))",
           ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
         var blobs = new ArrayList<byte[]>();
 
@@ -92,7 +92,7 @@ public class PostgresStore implements Store<ByteString, ByteString> {
 
           if (rx.first()) {
             do {
-              map.put(Key.of(ByteString.readFrom(rx.getBinaryStream("id"))),
+              map.put(Key.of(ByteString.readFrom(rx.getBinaryStream("address"))),
                   Value.of(ByteString.readFrom(rx.getBinaryStream("data"))));
             } while (rx.next());
           }
@@ -109,7 +109,7 @@ public class PostgresStore implements Store<ByteString, ByteString> {
         .entrySet().stream().collect(Collectors.toList());
 
     try (var stmt = connection.prepareStatement(
-        "insert into kv(id,data) select unnest((?)),unnest((?)) on conflict(id) do update set data = excluded.data")) {
+        "insert into kv(address,data) select unnest((?)),unnest((?)) on conflict(sha512(address)) do update set data = excluded.data")) {
 
       var keys = new ArrayList<byte[]>();
       var values = new ArrayList<byte[]>();

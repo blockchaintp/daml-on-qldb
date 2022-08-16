@@ -1,0 +1,70 @@
+# Copyright 2019 Blockchain Technology Partners
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ------------------------------------------------------------------------------
+# yamllint disable rule:line-length
+---
+version: "2.1"
+
+services:
+
+  postgres:
+    image: postgres
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      # copy the sql script to create tables
+      - ./sql/create_databases.sql:/docker-entrypoint-initdb.d/create_databases.sql
+  daml-rpc:
+    image: daml-on-postgres-ng:${ISOLATION_ID}
+    environment:
+      - AWS_REGION
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_ACCESS_KEY
+      - AWS_ACCESS_KEY_ID
+      - LEDGER_NAME
+    expose:
+      - 9000
+    ports:
+      - "9000:9000"
+    entrypoint: "bash -xc \"\
+      sleep 10; \
+      until psql -h postgres -U postgres -c 'select 1' > /dev/null 2>&1; do \
+        echo 'Waiting for postgres to be available'; \
+        sleep 1; \
+      done; \
+      /opt/daml-on-postgres/entrypoint.sh  \
+        --txlogstore \"jdbc:postgresql://postgres/pg_txblobs?user=postgres\" \
+        --participant participant-id=test-participant,port=9000,address=0.0.0.0 \
+        `ls /opt/daml-on-postgres/dar/*.dar`\""
+    volumes:
+      - /dev/urandom:/dev/random
+      - /dev/urandom:/dev/urandom
+      - ../test-dars:/opt/daml-on-postgres/dar/
+    depends_on:
+      - postgres
+
+  ledger-api-testtool:
+    image: ledger-api-testtool:${ISOLATION_ID}
+    entrypoint: "bash -xc \"\
+      sleep 120  && \
+      java -jar ledger-api-test-tool.jar \
+        --timeout-scale-factor 1 \
+        --concurrent-test-runs 4 \
+        daml-rpc:9000 \
+        \""
+    depends_on:
+      - daml-rpc
+    volumes:
+      - /dev/urandom:/dev/random
+      - /dev/urandom:/dev/urandom
