@@ -26,6 +26,7 @@ repos:
           - --pattern
           - '^(?!((fix|feature|refactor)\/[a-zA-Z0-9\-]+)$).*'
       - id: trailing-whitespace
+        exclude: "^(.*/?Makefile|.*.mk|.*.go|.*/?pom.xml)$"
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v2.29.3
     hooks:
@@ -76,7 +77,7 @@ repos:
     rev: v1.3.0
     hooks:
       - id: forbid-tabs
-        exclude: "^(.*/?Makefile|.*.mk|.*.go)$"
+        exclude: "^(.*/?Makefile|.*.mk|.*.go|.*/?pom.xml)$"
   - repo: https://github.com/doublify/pre-commit-go
     rev: 208a4aaa7f86b44e961eaaea526743b920e187a0
     hooks:

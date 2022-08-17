@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Blockchain Technology Partners
+ * Copyright 2021-2022 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -63,7 +63,6 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
   private final String participantId;
   private final Dispatcher<Long> dispatcher;
   private final BlockingDeque<CommitPayload<I>> submissions = new LinkedBlockingDeque<>();
-  private final ExecutionContextExecutor context;
   private final ScheduledExecutorService pollExecutor;
 
   /**
@@ -100,7 +99,11 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
     ledgerId = theLedgerId;
     participantId = theParticipantId;
     dispatcher = theDispatcher;
-    context = theContext;
+
+    if (theContext != null) {
+      LOG.debug("ExecutionContextExecutor theContext provided, but not used");
+    }
+
     pollExecutor = Executors.newSingleThreadScheduledExecutor();
     pollExecutor.scheduleAtFixedRate(this::work, 0, 1, TimeUnit.MILLISECONDS);
   }

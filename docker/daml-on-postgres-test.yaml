@@ -34,6 +34,7 @@ services:
       - AWS_ACCESS_KEY_ID
       - LEDGER_ID=default-ledger
       - POSTGRES_JDBC_URL=jdbc:postgresql://postgres/pg_txblobs?user=postgres
+      - INDEX_JDBC_URL=jdbc:postgresql://postgres/daml_idx?user=postgres
       - DAML_GRPC_PORT=9000
     expose:
       - 9000

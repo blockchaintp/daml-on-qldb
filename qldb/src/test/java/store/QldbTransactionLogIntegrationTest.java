@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Blockchain Technology Partners
+ * Copyright 2021-2022 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -21,6 +21,8 @@ import com.blockchaintp.daml.stores.exception.StoreWriteException;
 import com.blockchaintp.daml.stores.qldb.QldbTransactionLog;
 import com.blockchaintp.utility.Aws;
 import com.google.protobuf.ByteString;
+
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +37,7 @@ import software.amazon.qldb.RetryPolicy;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -98,7 +101,7 @@ class QldbTransactionLogIntegrationTest {
       }));
     });
 
-    Thread.sleep(8000);
+    sleepFor(8000);
 
     var aborted = txLog.begin(Optional.empty());
     txLog.sendEvent(aborted._1, ByteString.copyFromUtf8("aborted"));
@@ -111,4 +114,13 @@ class QldbTransactionLogIntegrationTest {
     Assertions.assertIterableEquals(ids, page.stream().map(x -> x._2).collect(Collectors.toList()));
   }
 
+  private void sleepFor(long millis) {
+    long stopAfter = System.currentTimeMillis() + (long) (Math.random() % 30);
+    Awaitility.await().until(new Callable<Boolean>() {
+      @Override
+      public Boolean call() {
+        return System.currentTimeMillis() > stopAfter;
+      }
+    });
+  }
 }

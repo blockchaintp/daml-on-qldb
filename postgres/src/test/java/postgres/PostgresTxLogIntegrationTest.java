@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Blockchain Technology Partners
+ * Copyright 2021-2022 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -35,6 +35,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
+import org.awaitility.Awaitility;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Callable;
+
 @Disabled
 class PostgresTxLogIntegrationTest {
   private static final int ITERATIONS = 40;
@@ -66,16 +70,16 @@ class PostgresTxLogIntegrationTest {
     ids.stream().forEach(id -> {
       futures.add(executor.submit(() -> {
         try {
-          Thread.sleep((long) (Math.random() % 30));
+          sleepFor((long) Math.random() % 30);
           txLog.sendEvent(id, ByteString.copyFromUtf8("testdata"));
           txLog.commit(id);
-        } catch (StoreWriteException | InterruptedException theE) {
+        } catch (StoreWriteException theE) {
           theE.printStackTrace();
         }
       }));
     });
 
-    Thread.sleep(10000);
+    this.sleepFor(10000);
 
     var aborted = txLog.begin(Optional.empty());
     txLog.sendEvent(aborted._1, ByteString.copyFromUtf8("aborted"));
@@ -86,5 +90,15 @@ class PostgresTxLogIntegrationTest {
     var page = stream.limit(3000).collect(Collectors.toList());
 
     Assertions.assertIterableEquals(ids, page.stream().map(x -> x._2).collect(Collectors.toList()));
+  }
+
+  private void sleepFor(long millis) {
+    long stopAfter = System.currentTimeMillis() + (long) (Math.random() % 30);
+    Awaitility.await().until(new Callable<Boolean>() {
+      @Override
+      public Boolean call() {
+        return System.currentTimeMillis() > stopAfter;
+      }
+    });
   }
 }
