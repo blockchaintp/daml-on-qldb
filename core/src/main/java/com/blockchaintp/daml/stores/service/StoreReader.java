@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Blockchain Technology Partners
+ * Copyright 2021-2022 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -28,9 +28,6 @@ import com.blockchaintp.daml.stores.exception.StoreReadException;
  *          the type of the values
  */
 public interface StoreReader<K, V> {
-
-  // TODO seems like busy work for the user of the interface to wrap in a Key
-  // TODO might be useful to have a getOrDefault here as well
 
   /**
    * Return an Option of the value behind the Key in the K/V store.
