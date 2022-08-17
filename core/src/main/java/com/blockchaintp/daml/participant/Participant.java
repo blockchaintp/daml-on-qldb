@@ -99,6 +99,11 @@ public final class Participant<I extends Identifier, A extends LedgerAddress> im
     ledgerId = theLedgerId;
     participantId = theParticipantId;
     dispatcher = theDispatcher;
+
+    if (theContext != null) {
+      LOG.debug("ExecutionContextExecutor theContext provided, but not used");
+    }
+
     pollExecutor = Executors.newSingleThreadScheduledExecutor();
     pollExecutor.scheduleAtFixedRate(this::work, 0, 1, TimeUnit.MILLISECONDS);
   }
