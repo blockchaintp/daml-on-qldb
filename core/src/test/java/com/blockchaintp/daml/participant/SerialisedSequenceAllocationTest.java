@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Blockchain Technology Partners
+ * Copyright 2021-2022 Blockchain Technology Partners
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -34,6 +34,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import org.awaitility.Awaitility;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Callable;
+
 class SerialisedSequenceAllocationTest {
 
   @Test
@@ -57,7 +61,13 @@ class SerialisedSequenceAllocationTest {
           .thenCompose(seq -> CompletableFuture.supplyAsync(() -> API.unchecked(() -> {
             writer.sendEvent(UuidConverter.uuidtoLogEntry(key),
                 Raw.Envelope$.MODULE$.apply(ByteString.copyFromUtf8("bob")));
-            Thread.sleep((long) (Math.random() % 50));
+            long stopAfter = System.currentTimeMillis() + (long) (Math.random() % 50);
+            Awaitility.await().until(new Callable<Boolean>() {
+              @Override
+              public Boolean call() {
+                return System.currentTimeMillis() > stopAfter;
+              }
+            });
             writer.commit(UuidConverter.uuidtoLogEntry(key));
             return seq;
           }).apply(), executor)).thenCompose(seq -> serialiser.serialisedCommit(seq));
