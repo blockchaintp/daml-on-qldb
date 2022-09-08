@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## Unreleased
+
+* refactor(core): assign context to field (noop) [view commit](https://github.com/catenasys/daml-on-qldb/commit/9870944fbaa36786def9dbfc8cbb0b467cff1ea4)
+* fix(pom): add Awaitility [view commit](https://github.com/catenasys/daml-on-qldb/commit/c24d8ea387a9d60ff1c1cb32167a4e33398d35f2)
+* fix(postgres): add testing with index database for dop [view commit](https://github.com/catenasys/daml-on-qldb/commit/5d9a80442a4bd781afdbba9fc764d92ccfaa4207)
+* feat(postgres): add support for passing index db parameters [view commit](https://github.com/catenasys/daml-on-qldb/commit/11b28f4391c3e9b0aeaef87378b3517780d78410)
+* style(core): remove todos [view commit](https://github.com/catenasys/daml-on-qldb/commit/a5c6a51d32429fa0d3f7ed7c5d3d881535034983)
+* test: eliminate Thread.sleep from tests [view commit](https://github.com/catenasys/daml-on-qldb/commit/d7301e12e2c1b22bcc9046ac3a0d3685d1a0d906)
+* refactor(core): remove unused class [view commit](https://github.com/catenasys/daml-on-qldb/commit/39fb4df492c3984b0c73a6363f30a64bb1523fcf)
+* refactor(core): remove unused private field [view commit](https://github.com/catenasys/daml-on-qldb/commit/2f8ef695b594edd7841ab86b54da3ee3e7e7bf46)
+
 ## v1.13.4
 
 * fix(dop): correct docker-compose yaml for traditional [view commit](https://github.com/catenasys/daml-on-qldb/commit/2feb51213bb4bf77c526c319549993e95f93f514)
