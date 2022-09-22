@@ -42,9 +42,19 @@ if [ -n "${INDEX_POSTGRES_DB}" ] || [ -n "${INDEX_JDBC_URL}" ]; then
   PARTICIPANT_ARG="${PARTICIPANT_ARG},server-jdbc-url=${INDEX_JDBC_URL}"
 fi
 
-# shellcheck disable=SC2086,SC2046,SC2068
-exec java ${JAVA_OPTS} -jar daml-on-postgres*.jar \
-  --txlogstore "$POSTGRES_JDBC_URL" \
-  --participant "${PARTICIPANT_ARG}" \
-  $@ \
-  $(ls /opt/digitalasset/dar/*.dar 2>/dev/null)
+if [ -n "${LEDGER_ID}" ]; then
+  # shellcheck disable=SC2086,SC2046,SC2068
+  exec java ${JAVA_OPTS} -jar daml-on-postgres*.jar \
+    --txlogstore "$POSTGRES_JDBC_URL" \
+    --ledger-id "$LEDGER_ID" \
+    --participant "${PARTICIPANT_ARG}" \
+    $@ \
+    $(ls /opt/digitalasset/dar/*.dar 2>/dev/null)
+else
+  # shellcheck disable=SC2086,SC2046,SC2068
+  exec java ${JAVA_OPTS} -jar daml-on-postgres*.jar \
+    --txlogstore "$POSTGRES_JDBC_URL" \
+    --participant "${PARTICIPANT_ARG}" \
+    $@ \
+    $(ls /opt/digitalasset/dar/*.dar 2>/dev/null)
+fi
