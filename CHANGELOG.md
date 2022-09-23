@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+* fix(postgres): update entrypoint to respect LEDGER_ID env [view commit](https://github.com/catenasys/daml-on-qldb/commit/a3aa8a60401825271e3cc3193383b83c2fed1dcd)
 * refactor(core): assign context to field (noop) [view commit](https://github.com/catenasys/daml-on-qldb/commit/9870944fbaa36786def9dbfc8cbb0b467cff1ea4)
 * fix(pom): add Awaitility [view commit](https://github.com/catenasys/daml-on-qldb/commit/c24d8ea387a9d60ff1c1cb32167a4e33398d35f2)
 * fix(postgres): add testing with index database for dop [view commit](https://github.com/catenasys/daml-on-qldb/commit/5d9a80442a4bd781afdbba9fc764d92ccfaa4207)
