@@ -43,9 +43,9 @@ repos:
         args:
           - -c
           - google_checks.xml
-        exclude: ".*/src/test/.*"
+        exclude: "(.*/src/test/.*|.*/src/main/java/com/google/.*)"
       - id: cpd
-        exclude: ".*/src/test/.*"
+        exclude: "(.*/src/test/.*|.*/src/main/java/com/google/.*)"
   - repo: https://github.com/jumanjihouse/pre-commit-hooks
     rev: 3.0.0
     hooks:
