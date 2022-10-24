@@ -504,6 +504,7 @@
 						<consoleOutput>true</consoleOutput>
 						<failOnViolation>true</failOnViolation>
 						<violationSeverity>warning</violationSeverity>
+						<excludes>**/CodedInputStream.java</excludes>
 						<sourceDirectories>
 							<sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
 						</sourceDirectories>
