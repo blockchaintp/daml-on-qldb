@@ -1,7 +1,8 @@
 # CHANGELOG
 
-## Unreleased
+## v1.13.5
 
+* fix(core): allow setting recursion limit via envvar [view commit](https://github.com/catenasys/daml-on-qldb/commit/4fd0f8821057daf9b7ea78d2086638e512da67bb)
 * fix(postgres): update entrypoint to respect LEDGER_ID env [view commit](https://github.com/catenasys/daml-on-qldb/commit/a3aa8a60401825271e3cc3193383b83c2fed1dcd)
 * refactor(core): assign context to field (noop) [view commit](https://github.com/catenasys/daml-on-qldb/commit/9870944fbaa36786def9dbfc8cbb0b467cff1ea4)
 * fix(pom): add Awaitility [view commit](https://github.com/catenasys/daml-on-qldb/commit/c24d8ea387a9d60ff1c1cb32167a4e33398d35f2)
