@@ -101,20 +101,6 @@ repos:
         files: docker-compose.*y[a]{0,1}ml$
       - id: docker-compose-check
         files: "^docker/.*yaml$"
-      - id: hadolint
-        files: ".*.docker$"
-        args:
-          - --ignore
-          - DL3008
-          - --ignore
-          - DL3013
-      - id: hadolint
-        files: "Dockerfile.*"
-        args:
-          - --ignore
-          - DL3008
-          - --ignore
-          - DL3013
   - repo: https://gitlab.com/daverona/pre-commit/cpp
     rev: 0.8.0
     hooks:
