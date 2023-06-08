@@ -30,6 +30,13 @@ $(MARKERS): test-dars
 test-dars:
 	mkdir -p test-dars
 
+$(MARKERS)/binfmt:
+	mkdir -p $(MARKERS)
+	if [ `uname -m` = "x86_64" ]; then \
+		docker run --rm --privileged multiarch/qemu-user-static --reset -p yes; \
+	fi
+	touch $@
+
 .PHONY: check_env
 check_env:
 	@if [ -z "$$AWS_ACCESS_KEY_ID" ] || \
@@ -50,9 +57,17 @@ $(MARKERS)/build_ledgertest:
 		-c "java -jar ledger-api-test-tool.jar -x && cp *.dar /out"
 	touch $@
 
-$(MARKERS)/package_docker: build $(MARKERS)/package_mvn
-	docker-compose -f docker-compose.yaml build
+$(MARKERS)/package_docker_amd64: build $(MARKERS)/package_mvn $(MARKERS)/binfmt
+	docker buildx build --platform linux/amd64 -f docker/daml-on-postgres.docker -t daml-on-postgres-ng:$(ISOLATION_ID) . --load
+	docker buildx build --platform linux/amd64 -f docker/daml-on-qldb.docker -t daml-on-qldb:$(ISOLATION_ID) . --load
 	touch $@
+
+$(MARKERS)/package_docker_arm64: build $(MARKERS)/package_mvn $(MARKERS)/binfmt
+	docker buildx build --platform linux/arm64 -f docker/daml-on-postgres.docker -t daml-on-postgres-ng-arm64:$(ISOLATION_ID) . --load
+	docker buildx build --platform linux/arm64 -f docker/daml-on-qldb.docker -t daml-on-qldb-arm64:$(ISOLATION_ID) . --load
+	touch $@
+
+$(MARKERS)/package_docker: $(MARKERS)/package_docker_amd64 $(MARKERS)/package_docker_arm64
 
 $(MARKERS)/test_daml: $(MARKERS)/test_daml_postgres $(MARKERS)/test_daml_qldb
 
