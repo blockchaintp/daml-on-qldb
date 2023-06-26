@@ -2,12 +2,10 @@
 
 ## v1.13.6
 
-fromto 1=v1.13.5 2=HEAD 3=https://github.com/catenasys/daml-on-qldb/commit
 * fix(docker): Add arm64 support [view commit](https://github.com/catenasys/daml-on-qldb/commit/135a2ad55c63aa1dfe6722477eeab92686012c46)
 
 ## v1.13.5
 
-fromto 1=v1.13.4 2=v1.13.5 3=https://github.com/catenasys/daml-on-qldb/commit
 * fix(core): allow setting recursion limit via envvar [view commit](https://github.com/catenasys/daml-on-qldb/commit/4fd0f8821057daf9b7ea78d2086638e512da67bb)
 * fix(postgres): update entrypoint to respect LEDGER_ID env [view commit](https://github.com/catenasys/daml-on-qldb/commit/a3aa8a60401825271e3cc3193383b83c2fed1dcd)
 * refactor(core): assign context to field (noop) [view commit](https://github.com/catenasys/daml-on-qldb/commit/9870944fbaa36786def9dbfc8cbb0b467cff1ea4)
@@ -21,13 +19,11 @@ fromto 1=v1.13.4 2=v1.13.5 3=https://github.com/catenasys/daml-on-qldb/commit
 
 ## v1.13.4
 
-fromto 1=v1.13.3 2=v1.13.4 3=https://github.com/catenasys/daml-on-qldb/commit
 * fix(dop): correct docker-compose yaml for traditional [view commit](https://github.com/catenasys/daml-on-qldb/commit/2feb51213bb4bf77c526c319549993e95f93f514)
 * fix(dop): adapt dop entrypoint to match traditinal [view commit](https://github.com/catenasys/daml-on-qldb/commit/8cd043b2d4c0b6c2dbf9693d07a7a64679f0c7f6)
 
 ## v1.13.3
 
-fromto 1=v1.13.2 2=v1.13.3 3=https://github.com/catenasys/daml-on-qldb/commit
 * style: spotless corrections [view commit](https://github.com/catenasys/daml-on-qldb/commit/fc7c2b62e35fd4d7a00b4082b78d1847f18fde04)
 * feat: Add metrics reporter [view commit](https://github.com/catenasys/daml-on-qldb/commit/4add59a8cda7f4d7c92fb6c6c0d184fa023822d8)
 * docs: correct mkdocs config [view commit](https://github.com/catenasys/daml-on-qldb/commit/fa8d144f1e101cd7b761a46283b1b026e7d7dee5)
@@ -40,12 +36,10 @@ fromto 1=v1.13.2 2=v1.13.3 3=https://github.com/catenasys/daml-on-qldb/commit
 
 ## v1.13.2
 
-fromto 1=v1.13.1 2=v1.13.2 3=https://github.com/catenasys/daml-on-qldb/commit
 * fix(docker-compose): fix a name clash with catenasys/daml-on-postgres [view commit](https://github.com/catenasys/daml-on-qldb/commit/bd6dd75ba2df873fc44c27e3230dbeae75d5f293)
 
 ## v1.13.1
 
-fromto 1=v1.13.0 2=v1.13.1 3=https://github.com/catenasys/daml-on-qldb/commit
 * fix: Test dependencies etc [view commit](https://github.com/catenasys/daml-on-qldb/commit/4b0725741243013ffcca4fedf08336ff722b8da5)
 * fix: bump [view commit](https://github.com/catenasys/daml-on-qldb/commit/7d2504d095f2ba5bdca46b342f7c4e27d72f501f)
 * fix: Correct .pom imports, add .pom file to spotless [view commit](https://github.com/catenasys/daml-on-qldb/commit/41f86ad735e7fdddd1eeb4bd185b64aa1d12e28e)
@@ -55,7 +49,6 @@ fromto 1=v1.13.0 2=v1.13.1 3=https://github.com/catenasys/daml-on-qldb/commit
 
 ## v1.13.0
 
-fromto 1=v0.1.4 2=v1.13.0 3=https://github.com/catenasys/daml-on-qldb/commit
 * fix: Immediately return on submission, enqueue [view commit](https://github.com/catenasys/daml-on-qldb/commit/966e0906c52102c5141a9220d3dda9cd9ca48ed9)
 * fix: Don't migrate twice now we have same store [view commit](https://github.com/catenasys/daml-on-qldb/commit/fa40be0057a5653d24a475cef844a3b648fe47d0)
 * fix: Formatting [view commit](https://github.com/catenasys/daml-on-qldb/commit/a18992257941e4e114b9aaedb4c2c6355666505d)
@@ -173,14 +166,12 @@ fromto 1=v0.1.4 2=v1.13.0 3=https://github.com/catenasys/daml-on-qldb/commit
 
 ## v0.1.4
 
-fromto 1=v0.1.3 2=v0.1.4 3=https://github.com/catenasys/daml-on-qldb/commit
 * Use maven central not bintray for DA jars [view commit](https://github.com/catenasys/daml-on-qldb/commit/bd9b061aabd287b2e396c057828c3c92b654ef84)
 * expose grpc for daml-local.yaml [view commit](https://github.com/catenasys/daml-on-qldb/commit/5a2a3cdb727b89e0b48fbbb8dc7095f424e6bd23)
 * expose port for grpc service [view commit](https://github.com/catenasys/daml-on-qldb/commit/beae577725e0074a49328ebac6603b47306d5753)
 
 ## v0.1.3
 
-fromto 1=v0.1.2 2=v0.1.3 3=https://github.com/catenasys/daml-on-qldb/commit
 * Fix exception message [view commit](https://github.com/catenasys/daml-on-qldb/commit/0677181b944ff2b49c46f8869cc8375145f89bb8)
 * Compensate for a delay on AWS side creating tables [view commit](https://github.com/catenasys/daml-on-qldb/commit/69fe894554f519d351fa8f331017116984abbd98)
 * Base64 encode id fields [view commit](https://github.com/catenasys/daml-on-qldb/commit/91f3e69a1825d2b31e0d16f64a934a293c9596db)
@@ -192,12 +183,10 @@ fromto 1=v0.1.2 2=v0.1.3 3=https://github.com/catenasys/daml-on-qldb/commit
 
 ## v0.1.2
 
-fromto 1=v0.1.1 2=v0.1.2 3=https://github.com/catenasys/daml-on-qldb/commit
 * Upgrade to DAML SDK 0.13.41 [view commit](https://github.com/catenasys/daml-on-qldb/commit/e9302ee9e0bd690ccfee1840f184933f16b24c6a)
 
 ## v0.1.1
 
-fromto 1=v0.1.0 2=v0.1.1 3=https://github.com/catenasys/daml-on-qldb/commit
 * Implement generalized handling of non-recoverable S3 errors [view commit](https://github.com/catenasys/daml-on-qldb/commit/ab85df8e686523c8b4e63b32d7b2bca405a14f7d)
 * attempt to get object up to three times if bucket does not exist [view commit](https://github.com/catenasys/daml-on-qldb/commit/2ac282f25c8d0bfd4db2f3eba035053067906427)
 * Add auth services to cli [view commit](https://github.com/catenasys/daml-on-qldb/commit/fcc331a017bb35aebb9e15d4ecf79d4e5809ee0a)
